@@ -254,6 +254,8 @@ body:has(.souv-landing) { background: #F7F0E8; } /* keep in sync with --l-bg */
 .souv-landing .souv-nav-logo::after {
   display: var(--l-logo-tint-display);
   background: var(--l-logo-tint);
+  /* This is the visible logo, not the shared animated sheen. */
+  opacity: 1;
   animation: none;
   mix-blend-mode: normal;
 }
@@ -867,6 +869,7 @@ body:has(.souv-landing) { background: #F7F0E8; } /* keep in sync with --l-bg */
 .souv-landing .souv-footer-wordmark-wrap::after {
   display: var(--l-logo-tint-display);
   background: var(--l-logo-tint);
+  opacity: 1;
   animation: none;
   mix-blend-mode: normal;
 }
