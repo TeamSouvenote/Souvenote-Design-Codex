@@ -60,13 +60,49 @@ type NavbarProps = {
   cardBank?: number;
   cartCount?: number;
   followUserOnScroll?: boolean;
+  /**
+   * "landing" is used only by the public landing page (`/`): Community Cards
+   * replaces Pricing, and signed-out visitors get a small-screen menu.
+   * Every other screen uses "default", which is unchanged.
+   */
+  navVariant?: "default" | "landing";
 };
+
+const COMMUNITY_CARDS_HREF = "/community-cards";
 
 const NAV_LINKS: NavLink[] = [
   { label: "Personalize a Template", stackedLabel: ["Personalize", "a Template"], sub: "Curated designs, ready to make yours.", signedOutSub: "Browse card styles, then sign up to save, purchase credits, and generate.", href: "/create/personalize-a-template" },
   { label: "Build My Card", stackedLabel: ["Build", "My Card"], sub: "Start from scratch: photo, moment, optional QR song.", signedOutSub: "Preview step one, then sign up and purchase credits to continue.", href: "/create/build-my-card" },
   { label: "Saved Cards & Songs", stackedLabel: ["Saved", "Cards & Songs"], sub: "Saved cards, drafts, songs, and send-ready creations.", signedOutSub: "Sign up or log in to purchase cards and tokens, then save everything you make.", href: "/create/my-cards-and-songs" },
   { label: "Pricing", sub: "Card packs, credits, and what shipping covers.", signedOutSub: "Pricing is public. Purchase buttons ask you to sign up or log in first.", href: "/pricing" },
+];
+
+const findLink = (href: string) => NAV_LINKS.find((link) => link.href === href)!;
+
+// Landing bar: Personalize · Build · Community · Pricing, evenly spaced, with
+// landing-specific hover copy (sub and signedOutSub so it shows signed in or out).
+const LANDING_NAV_LINKS: NavLink[] = [
+  {
+    ...findLink("/create/personalize-a-template"),
+    sub: "Personalize one of our pre-built cards like Comic and Horoscope.",
+    signedOutSub: "Personalize one of our pre-built cards like Comic and Horoscope.",
+  },
+  {
+    ...findLink("/create/build-my-card"),
+    sub: "Have an idea for a card? Answer a few questions and watch your card come to life.",
+    signedOutSub: "Have an idea for a card? Answer a few questions and watch your card come to life.",
+  },
+  {
+    label: "Community Cards",
+    stackedLabel: ["Community", "Cards"],
+    sub: "Choose from our collection of ready to send cards, just add your personal message. No AI credits required.",
+    href: COMMUNITY_CARDS_HREF,
+  },
+  {
+    ...findLink("/pricing"),
+    sub: "Choose from flexible options as low as $6.99.",
+    signedOutSub: "Choose from flexible options as low as $6.99.",
+  },
 ];
 
 const CURRENCIES: CurrencyOption[] = [
@@ -322,7 +358,10 @@ function Navbar({
   cardBank = 0,
   cartCount = 0,
   followUserOnScroll = false,
+  navVariant = "default",
 }: NavbarProps) {
+  const isLanding = navVariant === "landing";
+  const navLinks = isLanding ? LANDING_NAV_LINKS : NAV_LINKS;
   const auth = useAuth();
   const [hovered, setHovered] = React.useState<string | null>(null);
   const [menuOpen, setMenuOpen] = React.useState(false);
@@ -345,9 +384,9 @@ function Navbar({
       </Link>
 
       <nav className="souv-nav-links">
-        {NAV_LINKS.map((link, index) => (
+        {navLinks.map((link, index) => (
           <React.Fragment key={link.label}>
-            {index > 0 && <span className="souv-nav-dot">{"\u00b7"}</span>}
+            {index > 0 && !isLanding && <span className="souv-nav-dot">{"\u00b7"}</span>}
             <div
               className="souv-nav-link-wrap"
               onMouseEnter={() => setHovered(link.label)}
