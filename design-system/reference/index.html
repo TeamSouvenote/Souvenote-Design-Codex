@@ -1,0 +1,415 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>Souvenote Design System: berry &amp; ivory v1.0</title>
+<!-- Fonts: the same families and weights as the app (next/font loads them there).
+     Without internet the page falls back to system fonts. -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700&family=Lobster+Two&display=swap">
+<link rel="stylesheet" href="../tokens/tokens.css">
+<link rel="stylesheet" href="styleguide.css">
+</head>
+<body>
+<div class="sg-backdrop" aria-hidden="true"></div>
+<div class="sg-shell">
+  <aside class="sg-side sv-surface-forest">
+    <img src="../assets/wordmark-gold.png" alt="Souvenote">
+    <p class="sg-version">Design System · berry &amp; ivory · v1.0 · 2026-11-01</p>
+    <nav aria-label="Sections">
+      <a href="#colour">Colour</a>
+      <a href="#surfaces">Surfaces</a>
+      <a href="#type">Typography</a>
+      <a href="#space">Spacing &amp; shape</a>
+      <a href="#buttons">Buttons</a>
+      <a href="#nav">Navigation</a>
+      <a href="#cards">Cards &amp; song</a>
+      <a href="#steps">Step tiles</a>
+      <a href="#compare">Comparison</a>
+      <a href="#faq">Accordion</a>
+      <a href="#footer">Footer</a>
+      <a href="#engravings">Engravings</a>
+      <a href="#logo">Logo</a>
+    </nav>
+  </aside>
+
+  <main class="sg-main" id="main">
+    <header class="sg-hero">
+      <h1>A system worth <span class="sv-script">keeping</span></h1>
+      <p>The visual language of Souvenote's landing page: warm ivory, dusty berry, forest green and antique gold. Light Lato with one thin script word. Everything here uses <code>tokens/tokens.css</code>. Guidelines are in <code>docs/</code>.</p>
+    </header>
+
+    <!-- ============ COLOUR ============ -->
+    <section class="sg-sec" id="colour" aria-labelledby="colour-t">
+      <h2 id="colour-t">Colour <span class="sv-script">palette</span></h2>
+      <p class="sg-lede">About 70% ivory, 20% forest and 10% accents. Gold always means "AI made this". Berry carries emphasis. Terracotta is decoration only.</p>
+      <h3 class="sg-h3">Primitives</h3>
+      <div class="sg-swatches" id="swatches"></div>
+      <h3 class="sg-h3">Contrast (calculated live, WCAG 2.2)</h3>
+      <div class="sg-scroll">
+        <table class="sg-table" id="contrast">
+          <thead><tr><th>Sample</th><th>Text on background</th><th>Ratio</th><th>Use</th></tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- ============ SURFACES ============ -->
+    <section class="sg-sec" id="surfaces" aria-labelledby="surf-t">
+      <h2 id="surf-t">Two <span class="sv-script">surfaces</span></h2>
+      <p class="sg-lede">Components use colour roles, never raw colours. Adding <code>.sv-surface-forest</code> re-maps the roles, so the same markup works on ivory and on green.</p>
+      <div class="sg-split" style="margin-top:32px">
+        <div class="sg-panel" style="background:var(--sv-bg)">
+          <p class="t-label">Ivory (default)</p>
+          <p class="t-h3" style="margin-top:10px">Heading text <span class="sv-script">accent</span></p>
+          <p style="margin-top:8px">Body text in espresso.</p>
+          <p class="t-small" style="margin-top:4px">Muted text in cocoa.</p>
+          <div class="sg-row" style="margin-top:20px">
+            <a class="sv-btn sv-btn-primary" href="#surfaces">Primary</a>
+            <a class="sv-btn sv-btn-secondary" href="#surfaces">Secondary</a>
+          </div>
+        </div>
+        <div class="sg-panel sv-surface-forest">
+          <p class="t-label">Forest (.sv-surface-forest)</p>
+          <p class="t-h3" style="margin-top:10px">Heading text <span class="sv-script">accent</span></p>
+          <p style="margin-top:8px">Body text in ivory.</p>
+          <p class="t-small" style="margin-top:4px">Muted text in oat.</p>
+          <div class="sg-row" style="margin-top:20px">
+            <a class="sv-btn sv-btn-primary" href="#surfaces">Primary</a>
+            <a class="sv-btn sv-btn-secondary" href="#surfaces">Secondary</a>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ TYPE ============ -->
+    <section class="sg-sec" id="type" aria-labelledby="type-t">
+      <h2 id="type-t">Typo<span class="sv-script">graphy</span></h2>
+      <p class="sg-lede">Lato (300, 400, 700) does the work. Lobster Two (400) is the voice: one short phrase per heading, never a whole sentence. Headings are light, not bold.</p>
+      <div class="sg-type" style="margin-top:36px">
+        <div class="sg-type-row"><div class="sg-type-meta"><b>Display · h1</b>Lato 300 · 46-83px fluid · 1.05 · -0.02em</div><div class="t-display">A card worth <span class="sv-script">keeping</span></div></div>
+        <div class="sg-type-row"><div class="sg-type-meta"><b>Section · h2</b>Lato 300 · 34-56px fluid · 1.15 · -0.01em</div><div class="t-h2">Three steps, <span class="sv-script">one keepsake</span></div></div>
+        <div class="sg-type-row"><div class="sg-type-meta"><b>Title · h3</b>Lato 400 · 23-28px fluid · 1.25</div><div class="t-h3">Choose a moment</div></div>
+        <div class="sg-type-row"><div class="sg-type-meta"><b>Lede</b>Lato 400 · 18-21px fluid · 1.65 · max 34ch</div><p class="t-lede" style="max-width:34ch">Create custom cards with a song meant just for them.</p></div>
+        <div class="sg-type-row"><div class="sg-type-meta"><b>Body</b>Lato 400 · 17px (18px ≥600) · 1.65</div><p style="max-width:64ch">Order and send the physical card to their door for as little as $6.99, or save it for a rainy day.</p></div>
+        <div class="sg-type-row"><div class="sg-type-meta"><b>Question</b>Lato 400 · 17-19px fluid · 1.4</div><p class="t-question">How long does shipping take?</p></div>
+        <div class="sg-type-row"><div class="sg-type-meta"><b>Nav link</b>Lato 700 · 12px · caps · 0.16em</div><p class="t-nav">Personalize a Template</p></div>
+        <div class="sg-type-row"><div class="sg-type-meta"><b>Label</b>Lato 700 · 11-13px · caps · 0.14-0.22em · berry</div><p class="t-label">Comic Strip</p></div>
+        <div class="sg-type-row"><div class="sg-type-meta"><b>Small</b>Lato 400 · 14px · cocoa</div><p class="t-small">Tap or click the card to pause</p></div>
+        <div class="sg-type-row"><div class="sg-type-meta"><b>Script</b>Lobster Two 400 · 1.1-1.12em of its line · berry</div><p class="t-script-alone">Jude Mister to the Rescue</p></div>
+      </div>
+    </section>
+
+    <!-- ============ SPACE & SHAPE ============ -->
+    <section class="sg-sec" id="space" aria-labelledby="space-t">
+      <h2 id="space-t">Spacing &amp; <span class="sv-script">shape</span></h2>
+      <p class="sg-lede">A 4px base. Gutters are 20, 32 and 48px, and section spacing 64, 80 and 96px, by breakpoint. Content stays within 1200px. Everything clickable is at least 44px.</p>
+      <h3 class="sg-h3">Spacing scale</h3>
+      <div class="sg-space" id="spacing"></div>
+      <h3 class="sg-h3">Radius &amp; elevation</h3>
+      <div class="sg-shapes">
+        <div class="sg-shape" style="border-radius:var(--sv-radius-sm)"><span><b>sm · 10px</b>Inner card frame</span></div>
+        <div class="sg-shape" style="border-radius:var(--sv-radius-md);box-shadow:var(--sv-shadow-3);border-color:transparent"><span><b>md · 16px</b>Cards · shadow-3</span></div>
+        <div class="sg-shape" style="border-radius:var(--sv-radius-lg);border-top:4px solid var(--sv-stripe)"><span><b>lg · 18px</b>Tiles · table · stripe</span></div>
+        <div class="sg-shape sv-surface-forest" style="background:var(--sv-surface-inverse);border-radius:var(--sv-radius-xl);box-shadow:var(--sv-shadow-3);border-color:transparent"><span><b>xl · 22px</b>Nav bar</span></div>
+        <div class="sg-shape" style="border-radius:var(--sv-radius-pill);aspect-ratio:2.2;place-items:center;box-shadow:var(--sv-shadow-1)"><span><b>pill · 999px</b>Buttons · chips</span></div>
+      </div>
+    </section>
+
+    <!-- ============ BUTTONS ============ -->
+    <section class="sg-sec" id="buttons" aria-labelledby="btn-t">
+      <h2 id="btn-t">Buttons &amp; <span class="sv-script">controls</span></h2>
+      <p class="sg-lede">One primary button per view. Hover lifts it 1px with a soft shadow; secondaries turn berry (gold on forest). Press Tab to see the focus ring.</p>
+      <div class="sg-split" style="margin-top:32px">
+        <div class="sg-panel">
+          <div class="sg-row">
+            <a class="sv-btn sv-btn-primary" href="#buttons">Start for Free</a>
+            <a class="sv-btn sv-btn-secondary" href="#buttons">Log In</a>
+          </div>
+          <div class="sg-row" style="margin-top:20px">
+            <button class="sv-iconbtn" type="button" aria-label="Try with your own photo"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2"/><circle cx="9" cy="11" r="2"/><path d="M3 17l5-5 4 4 3-3 6 6"/></svg></button>
+            <button class="sv-iconbtn" type="button" aria-label="Preview song"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 18V6l11-2v12"/><circle cx="6.5" cy="18" r="2.5"/><circle cx="17.5" cy="16" r="2.5"/></svg></button>
+            <button class="sv-iconbtn is-active" type="button" aria-label="Song preview playing" aria-pressed="true"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><rect x="6.5" y="5" width="3.6" height="14" rx="1"/><rect x="13.9" y="5" width="3.6" height="14" rx="1"/></svg></button>
+            <button class="sv-iconbtn is-filled" type="button" aria-label="Previous" disabled><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 6l-6 6 6 6"/></svg></button>
+            <button class="sv-iconbtn is-filled" type="button" aria-label="Next"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg></button>
+          </div>
+          <p class="sg-note">Primary 56px · Secondary 56px · Outline icon 44px · Filled arrow 52px (40% when disabled)</p>
+        </div>
+        <div class="sg-panel sv-surface-forest">
+          <div class="sg-row">
+            <a class="sv-btn sv-btn-primary" href="#buttons">Start for Free</a>
+            <a class="sv-btn sv-btn-secondary" href="#buttons">Log In</a>
+          </div>
+          <div class="sg-row" style="margin-top:20px">
+            <a class="sv-textlink" href="#buttons">Log In</a>
+            <a class="sv-btn sv-btn-primary sv-btn-sm" href="#buttons">Start for Free</a>
+          </div>
+          <p class="sg-note">On forest: an ivory primary with forest text (white on hover). The nav size is 44px tall and 15px.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ NAV ============ -->
+    <section class="sg-sec" id="nav" aria-labelledby="nav-t">
+      <h2 id="nav-t">Navi<span class="sv-script">gation</span></h2>
+      <p class="sg-lede">A floating forest bar: four links spread evenly, with no separators and no hamburger. Below 701px only the logo and Log In remain.</p>
+      <div class="sv-nav sv-surface-forest" style="margin-top:32px">
+        <a class="sv-nav-logo" href="#nav"><img src="../assets/wordmark-gold.png" alt="Souvenote home"></a>
+        <div class="sv-nav-links t-nav">
+          <a class="sv-nav-link" href="#nav"><span>Personalize</span><span>a Template</span></a>
+          <a class="sv-nav-link" href="#nav"><span>Build</span><span>My Card</span></a>
+          <a class="sv-nav-link" href="#nav"><span>Community</span><span>Cards</span></a>
+          <a class="sv-nav-link is-hover" href="#nav">Pricing</a>
+        </div>
+        <div class="sv-nav-right">
+          <a class="sv-textlink" href="#nav">Log In</a>
+          <a class="sv-btn sv-btn-primary sv-btn-sm" href="#nav">Start for Free</a>
+        </div>
+      </div>
+      <h3 class="sg-h3">Hover popover</h3>
+      <div class="sv-popover sv-surface-forest">
+        <div class="sv-popover-title">Pricing</div>
+        <div class="sv-popover-rule"></div>
+        <div class="sv-popover-sub">Choose from flexible options as low as $6.99.</div>
+      </div>
+    </section>
+
+    <!-- ============ CARDS ============ -->
+    <section class="sg-sec" id="cards" aria-labelledby="cards-t">
+      <h2 id="cards-t">Cards &amp; <span class="sv-script">song</span></h2>
+      <p class="sg-lede">Real cards are the imagery. The hero card turns slowly and pauses on hover, focus or tap. Gallery cards turn over. The song chip is gold because the song is AI-made.</p>
+      <div class="sg-split" style="margin-top:36px;align-items:start">
+        <div class="sg-panel">
+          <div class="sv-hero-card-wrap">
+            <button type="button" class="sv-card" id="heroCard" aria-pressed="false" aria-label="Your Life As A Hero card. Press to pause or resume the rotation">
+              <span class="sv-card-inner">
+                <span class="sv-card-face"><img src="../assets/pt-comic-cover.jpg" alt=""></span>
+                <span class="sv-card-face sv-card-back"><img src="../assets/pt-comic-back.jpg" alt=""></span>
+              </span>
+            </button>
+            <div class="sv-song" id="song" role="group" aria-label="Original song: Jude Mister to the Rescue" style="margin-top:44px">
+              <button type="button" class="sv-song-btn" aria-pressed="false" aria-label="Play Jude Mister to the Rescue">
+                <svg class="sv-song-vinyl" viewBox="0 0 48 48" aria-hidden="true">
+                  <circle cx="24" cy="24" r="22" fill="var(--sv-vinyl-disc)"/>
+                  <circle cx="24" cy="24" r="17" fill="none" stroke="var(--sv-vinyl-note)" stroke-opacity=".3" stroke-width=".8"/>
+                  <circle cx="24" cy="24" r="13" fill="none" stroke="var(--sv-vinyl-note)" stroke-opacity=".3" stroke-width=".8"/>
+                  <circle cx="24" cy="24" r="8" fill="var(--sv-vinyl-label)"/>
+                  <circle cx="24" cy="24" r="1.6" fill="var(--sv-vinyl-note)"/>
+                </svg>
+                <span class="sv-song-icon"></span>
+              </button>
+              <span class="sv-song-text">
+                <span class="sv-song-label">Original song</span>
+                <span class="sv-song-title">Jude Mister to the Rescue</span>
+                <span class="sv-song-status" aria-live="polite">0:00 / 2:41</span>
+              </span>
+              <span class="sv-song-progress" aria-hidden="true"><span></span></span>
+            </div>
+            <p class="sv-card-hint">Tap or click the card to pause</p>
+          </div>
+          <p class="sg-note">Press the vinyl to see the playing state (a demo only, no audio). Other states: no file yet (no status text), Loading…, and Song unavailable (disabled, dimmed icon).</p>
+        </div>
+        <div class="sg-panel">
+          <ul class="sv-gallery" aria-label="Gallery card examples">
+            <li class="sv-gcard">
+              <button type="button" class="sv-gcard-flip" aria-pressed="false" aria-label="Your Life As A Hero: show the back of the card">
+                <span class="sv-gcard-inner">
+                  <span class="sv-gcard-face sv-tone-1"><img class="art" src="../assets/pt-comic-cover.jpg" alt=""></span>
+                  <span class="sv-gcard-face sv-gcard-back"><img class="art" src="../assets/pt-comic-back.jpg" alt=""></span>
+                </span>
+              </button>
+              <div class="sv-gcard-meta"><div><h3 class="sv-gcard-name">Your Life As A Hero</h3><p class="sv-gcard-label">Comic Strip</p></div></div>
+            </li>
+          </ul>
+          <p class="sg-note">Hover, focus or tap to turn it over (700ms).</p>
+        </div>
+      </div>
+      <h3 class="sg-h3">Card tones (fronts without artwork) · back of card</h3>
+      <ul class="sv-gallery is-wrap" aria-label="Card tones">
+        <li class="sv-gcard"><div class="sv-gcard-flip" style="cursor:default"><span class="sv-gcard-inner"><span class="sv-gcard-face sv-tone-1"><span class="sv-gcard-occasion">Tone 1</span></span></span></div><div class="sv-gcard-meta"><div><p class="sv-gcard-name">Gold</p><p class="sv-gcard-label">Espresso · 5.45</p></div></div></li>
+        <li class="sv-gcard"><div class="sv-gcard-flip" style="cursor:default"><span class="sv-gcard-inner"><span class="sv-gcard-face sv-tone-2"><span class="sv-gcard-occasion">Horoscope</span></span></span></div><div class="sv-gcard-meta"><div><p class="sv-gcard-name">Forest</p><p class="sv-gcard-label">Ivory · 9.92</p></div></div></li>
+        <li class="sv-gcard"><div class="sv-gcard-flip" style="cursor:default"><span class="sv-gcard-inner"><span class="sv-gcard-face sv-tone-3"><span class="sv-gcard-occasion">On This Day</span></span></span></div><div class="sv-gcard-meta"><div><p class="sv-gcard-name">Paper</p><p class="sv-gcard-label">Berry · 6.20</p></div></div></li>
+        <li class="sv-gcard"><div class="sv-gcard-flip" style="cursor:default"><span class="sv-gcard-inner"><span class="sv-gcard-face sv-tone-4"><span class="sv-gcard-occasion">Fairy Tale</span></span></span></div><div class="sv-gcard-meta"><div><p class="sv-gcard-name">Terracotta</p><p class="sv-gcard-label">Espresso · 3.74 large only</p></div></div></li>
+        <li class="sv-gcard"><div class="sv-gcard-flip" style="cursor:default"><span class="sv-gcard-inner"><span class="sv-gcard-face sv-tone-5"><span class="sv-gcard-occasion">Dark Holidays</span></span></span></div><div class="sv-gcard-meta"><div><p class="sv-gcard-name">Berry</p><p class="sv-gcard-label">Ivory · 5.70</p></div></div></li>
+        <li class="sv-gcard"><div class="sv-gcard-flip" style="cursor:default"><span class="sv-gcard-inner"><span class="sv-gcard-face sv-gcard-back" style="transform:none"><img class="mark" src="../assets/logomark-gold.png" alt=""></span></span></div><div class="sv-gcard-meta"><div><p class="sv-gcard-name">Card back</p><p class="sv-gcard-label">Gold mark on forest</p></div></div></li>
+      </ul>
+    </section>
+
+    <!-- ============ STEPS ============ -->
+    <section class="sg-sec" id="steps" aria-labelledby="steps-t">
+      <h2 id="steps-t">Step <span class="sv-script">tiles</span></h2>
+      <p class="sg-lede">Paper tiles with a terracotta top stripe. The step where AI does the work turns gold, with a berry stripe.</p>
+      <ol class="sv-steps" style="margin-top:32px">
+        <li class="sv-step"><span class="sv-step-num">01</span><h3 class="sv-step-title">Choose a moment</h3><p class="sv-step-body">Pick the occasion and tell us who it’s for. Or upload a photo that tells the story for you.</p></li>
+        <li class="sv-step is-ai"><span class="sv-step-num">02</span><h3 class="sv-step-title">Let AI craft the card</h3><p class="sv-step-body">Souvenote writes the words, designs the face, and composes a song, tailored to your moment.</p></li>
+        <li class="sv-step"><span class="sv-step-num">03</span><h3 class="sv-step-title">Print, send, keep</h3><p class="sv-step-body">Order and send the physical card to their door for as little as $6.99, or save it for a rainy day.</p></li>
+      </ol>
+    </section>
+
+    <!-- ============ COMPARISON ============ -->
+    <section class="sg-sec" id="compare" aria-labelledby="compare-t">
+      <h2 id="compare-t">Comparison <span class="sv-script">band</span></h2>
+      <p class="sg-lede">The page's single forest band: the gold wordmark sits inline in the heading, and the paper table highlights the Souvenote row in gold.</p>
+      <div class="sv-band sv-surface-forest" style="margin-top:32px">
+        <h3>How <img src="../assets/wordmark-gold.png" alt="Souvenote"> compares</h3>
+        <p class="sub">Your artwork. Their song. Printed and delivered.</p>
+        <div class="sv-compare">
+          <table>
+            <caption class="sv-sr-only">How Souvenote compares with other card services</caption>
+            <thead><tr><th scope="col">Card service</th><th scope="col">Full card art from your prompt</th><th scope="col">Original song made for them</th><th scope="col">Create, print &amp; deliver a song card</th></tr></thead>
+            <tbody id="compareBody"></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ FAQ ============ -->
+    <section class="sg-sec" id="faq" aria-labelledby="faq-t">
+      <h2 id="faq-t">Accor<span class="sv-script">dion</span></h2>
+      <p class="sg-lede">One item open at a time. The open item gets the raised fill, a berry question, and a minus icon.</p>
+      <div class="sv-faq" id="faqList" style="margin-top:32px"></div>
+    </section>
+
+    <!-- ============ FOOTER ============ -->
+    <section class="sg-sec" id="footer" aria-labelledby="footer-t">
+      <h2 id="footer-t">Foo<span class="sv-script">ter</span></h2>
+      <p class="sg-lede">Forest with a terracotta top stripe. The gold wordmark and the slogan sit on the left; link columns have gold titles. Social links open in a new tab.</p>
+      <div class="sv-footer sv-surface-forest" style="margin-top:32px">
+        <div class="sv-footer-top">
+          <div class="sv-footer-brand">
+            <img src="../assets/wordmark-gold.png" alt="Souvenote">
+            <p>Because the card you give should be as unique as they are.</p>
+            <div class="sv-social">
+              <a class="sv-iconbtn" href="#footer" aria-label="Souvenote on Instagram (opens in a new tab)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><rect x="4" y="4" width="16" height="16" rx="5"/><circle cx="12" cy="12" r="3.6"/><circle cx="17" cy="7" r=".8" fill="currentColor"/></svg></a>
+              <a class="sv-iconbtn" href="#footer" aria-label="Souvenote on Pinterest (opens in a new tab)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="8"/><path d="M11 9.5c2.5-1.2 5 .4 4.4 2.9-.5 2.1-2.8 2.4-3.6 1.2M11.5 10l-2 9"/></svg></a>
+              <a class="sv-iconbtn" href="#footer" aria-label="Souvenote on Facebook (opens in a new tab)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" aria-hidden="true"><path d="M14 8h2V5h-2.2C11.6 5 10.5 6.4 10.5 8.5V10H8.5v3h2v6h3v-6h2.2l.5-3h-2.7V8.6c0-.4.2-.6.5-.6z"/></svg></a>
+            </div>
+          </div>
+          <div class="sv-footer-col"><h4>Create</h4><ul><li><a href="#footer">Build My Card</a></li><li><a href="#footer">Personalize a Template</a></li><li><a href="#footer">Saved Cards &amp; Songs</a></li><li><a href="#footer">Community Cards</a></li></ul></div>
+          <div class="sv-footer-col"><h4>Account</h4><ul><li><a href="#footer">Profile</a></li><li><a href="#footer">Pricing</a></li><li><a href="#footer">Account Settings</a></li></ul></div>
+          <div class="sv-footer-col"><h4>Company</h4><ul><li><a href="#footer">About</a></li><li><a href="#footer">FAQ</a></li><li><a href="#footer">Contact</a></li><li><a href="#footer">Privacy Policy</a></li></ul></div>
+        </div>
+        <p class="sv-footer-base">© 2026 SOUVENOTE · THE PHYGITAL GREETING CARD COMPANY</p>
+      </div>
+    </section>
+
+    <!-- ============ ENGRAVINGS ============ -->
+    <section class="sg-sec" id="engravings" aria-labelledby="eng-t">
+      <h2 id="eng-t">Engraving <span class="sv-script">motifs</span></h2>
+      <p class="sg-lede">Line art in espresso at 55%. Use few of them, use them large, and place them only in space that's guaranteed empty. They scroll with the page and are hidden from screen readers.</p>
+      <div class="sg-engravings" style="margin-top:32px" id="engravingGrid"></div>
+      <p class="sg-note">Shown at 100px. On the page they are 72-150px wide and tilted between -14° and +10°. See docs/03-patterns.md for where each one goes.</p>
+    </section>
+
+    <!-- ============ LOGO ============ -->
+    <section class="sg-sec" id="logo" aria-labelledby="logo-t">
+      <h2 id="logo-t">The <span class="sv-script">logo</span></h2>
+      <p class="sg-lede">Antique gold on forest only. The app tints the original files with a CSS mask; pre-tinted gold PNGs for design tools are in <code>assets/</code>.</p>
+      <div class="sg-logos" style="margin-top:32px">
+        <div class="sg-logo sv-surface-forest"><img src="../assets/wordmark-gold.png" alt="Souvenote wordmark in gold"><span class="sg-do">Do · wordmark on forest (5.74:1)</span></div>
+        <div class="sg-logo sv-surface-forest"><img class="mark" src="../assets/logomark-gold.png" alt="Souvenote S mark in gold"><span class="sg-do">Do · mark on forest</span></div>
+        <div class="sg-logo is-bad"><img src="../assets/wordmark-gold.png" alt="Gold wordmark on ivory, which is too faint"><span class="sg-do">Don't · gold on ivory (1.73:1)</span></div>
+        <div class="sg-logo is-bad"><img src="../assets/wordmark-gold.png" alt="Stretched wordmark" style="max-width:60%;transform:scaleX(1.45)"><span class="sg-do">Don't · stretch or distort</span></div>
+      </div>
+    </section>
+  </main>
+</div>
+
+<script>
+/* Data-driven parts of the guide. Values mirror tokens/tokens.css. */
+const C = {
+  berry: ["Dusty berry", "#9E3D58", "--sv-berry-500", "Brand voice: script, labels, hover"],
+  ivory: ["Warm ivory", "#F7F0E8", "--sv-ivory-200", "Page background"],
+  paper: ["Paper", "#FFFAF3", "--sv-ivory-100", "Tiles, table"],
+  raised: ["Raised ivory", "#EFE3D5", "--sv-ivory-300", "Open FAQ, menus"],
+  espresso: ["Soft espresso", "#4A3B39", "--sv-espresso-700", "Text, headings, engravings"],
+  cocoa: ["Cocoa", "#655250", "--sv-espresso-500", "Muted text"],
+  forest: ["Forest green", "#2F3E3B", "--sv-forest-700", "Actions, nav, footer"],
+  forestHover: ["Forest hover", "#3B4D49", "--sv-forest-600", "Primary hover"],
+  gold: ["Antique gold", "#D8B65A", "--sv-gold-400", "AI accent, logo"],
+  terracotta: ["Muted terracotta", "#C98A76", "--sv-terracotta-400", "Stripes only"],
+  oat: ["Oat", "#D9CFC3", "--sv-ivory-400", "Muted text on forest"],
+};
+document.getElementById("swatches").innerHTML = Object.values(C).map(([n, h, t, u]) =>
+  `<div class="sg-swatch"><div class="sg-swatch-chip" style="background:${h}"></div><div class="sg-swatch-body"><b>${n}</b><code>${h}</code><br><code>${t}</code><br><span>${u}</span></div></div>`).join("");
+
+const lum = (h) => { const c = [1, 3, 5].map((i) => parseInt(h.slice(i, i + 2), 16) / 255).map((v) => v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4); return 0.2126 * c[0] + 0.7152 * c[1] + 0.0722 * c[2]; };
+const ratio = (a, b) => { const x = lum(a), y = lum(b); return (Math.max(x, y) + 0.05) / (Math.min(x, y) + 0.05); };
+const pairs = [
+  ["espresso", "ivory", "Any text"], ["espresso", "paper", "Any text"], ["espresso", "raised", "Any text"],
+  ["cocoa", "ivory", "Any text"], ["cocoa", "raised", "Any text"], ["berry", "ivory", "Any text"], ["berry", "raised", "Any text"],
+  ["ivory", "forest", "Any text"], ["ivory", "forestHover", "Any text"], ["oat", "forest", "Any text"], ["gold", "forest", "Any text; logo"],
+  ["espresso", "gold", "Any text"], ["ivory", "berry", "Any text"], ["berry", "gold", "Large text only"],
+  ["espresso", "terracotta", "Large text only"], ["gold", "ivory", "Never as text"], ["terracotta", "ivory", "Never as text"], ["berry", "forest", "Never"],
+];
+document.querySelector("#contrast tbody").innerHTML = pairs.map(([f, b, use]) => {
+  const r = ratio(C[f][1], C[b][1]); const cls = r >= 4.5 ? "sg-pass" : r >= 3 ? "" : "sg-fail";
+  return `<tr><td><span class="sg-pair" style="color:${C[f][1]};background:${C[b][1]}">Aa Souvenote</span></td><td>${C[f][0]} on ${C[b][0].toLowerCase()}</td><td class="${cls}">${r.toFixed(2)}</td><td>${use}</td></tr>`;
+}).join("");
+
+document.getElementById("spacing").innerHTML = [[1,4],[2,8],[3,12],[4,16],[5,20],[6,24],[7,28],[8,32],[10,40],[11,44],[12,48],[14,56],[16,64],[20,80],[24,96]]
+  .map(([n, px]) => `<div class="sg-space-row"><code>--sv-space-${n}</code><div class="sg-space-bar" style="width:${px * 3}px" title="${px}px"></div></div>`).join("");
+
+const yes = '<svg class="sv-mark sv-mark-yes" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg><span class="sv-sr-only">Yes</span>';
+const no = '<svg class="sv-mark sv-mark-no" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="M7 7l10 10M17 7L7 17"/></svg><span class="sv-sr-only">No</span>';
+document.getElementById("compareBody").innerHTML = [["Souvenote", 1], ["Moonpig", 0], ["TouchNote", 0], ["Hallmark", 0]]
+  .map(([s, y]) => `<tr${y ? ' class="is-highlight"' : ""}><th scope="row">${s}</th>${`<td>${y ? yes : no}</td>`.repeat(3)}</tr>`).join("");
+
+const faqs = [
+  ["Can I buy creation credits without buying a card?", "Yes. You can top up creation credits on the Pricing page at any time, without ordering a printed card."],
+  ["What does a personalized song sound like?", "Songs are optional. If you include one, it is uniquely generated from the details you provide and added to the printed card by QR code."],
+  ["How long does shipping take?", "Cards typically arrive within 5–7 business days across North America. International shipping times vary by destination."],
+];
+const list = document.getElementById("faqList");
+list.innerHTML = faqs.map(([q, a], i) => `<div class="sv-faq-item${i === 0 ? " is-open" : ""}"><h3 class="sv-faq-q"><button type="button" id="fq${i}" aria-expanded="${i === 0}" aria-controls="fa${i}"><span>${q}</span><span class="sv-faq-icon" aria-hidden="true"></span></button></h3><div class="sv-faq-panel" id="fa${i}" role="region" aria-labelledby="fq${i}"><div><p>${a}</p></div></div></div>`).join("");
+list.addEventListener("click", (e) => {
+  const btn = e.target.closest("button"); if (!btn) return;
+  const item = btn.closest(".sv-faq-item"); const wasOpen = item.classList.contains("is-open");
+  list.querySelectorAll(".sv-faq-item").forEach((el) => { el.classList.remove("is-open"); el.querySelector("button").setAttribute("aria-expanded", "false"); });
+  if (!wasOpen) { item.classList.add("is-open"); btn.setAttribute("aria-expanded", "true"); }
+});
+
+/* Engraving motifs: same paths as frontend/app/components/landing/Engraving.tsx */
+const HEART = "M16 30 C16 28 0 18 0 8 C0 -1 13 -4 16 6 C19 -4 32 -1 32 8 C32 18 16 28 16 30 Z";
+const M = {
+  Envelope: ["-6 -6 112 78", `<rect x="0" y="0" width="100" height="64" rx="3"/><rect x="5" y="5" width="90" height="54" rx="2" stroke-width="0.7"/><polyline points="0,1.5 50,38 100,1.5"/><line x1="0" y1="64" x2="38" y2="33"/><line x1="100" y1="64" x2="62" y2="33"/><path d="${HEART}" transform="translate(42 25) scale(0.5)"/>`],
+  Stamp: ["-4 -8 128 98", `<rect x="0" y="0" width="70" height="84" rx="1.5" stroke-dasharray="3 3.6"/><rect x="8" y="8" width="54" height="68" rx="1"/><path d="${HEART}" transform="translate(19 28)"/><circle cx="88" cy="16" r="21" stroke-width="1.1"/><circle cx="88" cy="16" r="16" stroke-width="0.6"/><path d="M58 54 q8 -6 16 0 t16 0 t16 0 t8 0 M58 63 q8 -6 16 0 t16 0 t16 0 t8 0 M58 72 q8 -6 16 0 t16 0 t16 0 t8 0" stroke-width="1"/>`],
+  Heart: ["-4 -4 40 38", `<path d="${HEART}" stroke-width="0.9"/><path d="${HEART}" transform="translate(3 3) scale(0.81)" stroke-width="0.45"/><path d="M7 6 L13 12 M6 11 L13 18 M8 16 L15 23 M11 21 L16 26" stroke-width="0.45"/>`],
+  Notes: ["-6 -14 86 62", `<ellipse cx="6" cy="32" rx="6.5" ry="4.6" transform="rotate(-20 6 32)"/><ellipse cx="32" cy="27" rx="6.5" ry="4.6" transform="rotate(-20 32 27)"/><line x1="12" y1="30" x2="12" y2="2"/><line x1="38" y1="25" x2="38" y2="-3"/><path d="M12 2 L38 -3 M12 7 L38 2"/><ellipse cx="58" cy="36" rx="5.5" ry="4" transform="rotate(-20 58 36)"/><line x1="63" y1="34.5" x2="63" y2="8"/><path d="M63 8 c0 8 10 9 10 17" stroke-width="0.9"/>`],
+  Flower: ["-24 -26 54 96", `<circle cx="0" cy="0" r="4.5"/>${[0, 72, 144, 216, 288].map((d) => `<ellipse cx="0" cy="-11" rx="5.5" ry="8" transform="rotate(${d})"/>`).join("")}<path d="M2 19 q-5 22 3 44"/><path d="M3 40 q14 -10 22 2 q-12 8 -22 -2 Z"/><path d="M5 41 q8 -3 18 1" stroke-width="0.5"/>`],
+  Gift: ["-6 -24 84 88", `<rect x="0" y="0" width="72" height="14" rx="2"/><rect x="5" y="14" width="62" height="44" rx="2"/><rect x="9" y="18" width="54" height="36" rx="1" stroke-width="0.6"/><path d="M32 0 V58 M40 0 V58"/><path d="M36 0 C26 -18 8 -15 18 -4 C23 0 30 0 36 0 Z"/><path d="M36 0 C46 -18 64 -15 54 -4 C49 0 42 0 36 0 Z"/><path d="M22 -6 C26 -9 30 -6 33 -2 M50 -6 C46 -9 42 -6 39 -2" stroke-width="0.6"/><path d="M34 2 L27 12 M38 2 L45 12"/><path d="M13 24 L19 30 M13 32 L19 38 M13 40 L19 46 M53 24 L59 30 M53 32 L59 38 M53 40 L59 46" stroke-width="0.6"/>`],
+};
+document.getElementById("engravingGrid").innerHTML = Object.entries(M).map(([name, [vb, body]]) =>
+  `<div class="sg-engraving"><svg class="sv-eng" viewBox="${vb}" aria-hidden="true" focusable="false"><g fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round">${body}</g></svg>${name}</div>`).join("");
+
+/* Hero card: a tap or Enter/Space toggles the pause */
+const card = document.getElementById("heroCard");
+card.addEventListener("click", () => { const p = card.classList.toggle("is-paused"); card.setAttribute("aria-pressed", String(p)); });
+
+/* Gallery flip: tap or keyboard toggles; mouse users flip by hovering */
+document.querySelectorAll("button.sv-gcard-flip").forEach((b) => {
+  let pt = "";
+  b.addEventListener("pointerdown", (e) => { pt = e.pointerType; });
+  b.addEventListener("click", () => {
+    if (pt !== "mouse") { const f = b.classList.toggle("is-flipped"); b.setAttribute("aria-pressed", String(f)); }
+    pt = "";
+  });
+});
+
+/* Song chip demo: switches between the play and pause states (no audio) */
+const PLAY = '<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M8 5.5v13a1 1 0 0 0 1.52.85l10.4-6.5a1 1 0 0 0 0-1.7L9.52 4.65A1 1 0 0 0 8 5.5z"/></svg>';
+const PAUSE = '<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><rect x="6.5" y="5" width="3.6" height="14" rx="1"/><rect x="13.9" y="5" width="3.6" height="14" rx="1"/></svg>';
+const song = document.getElementById("song"); const sb = song.querySelector("button"); const icon = song.querySelector(".sv-song-icon");
+icon.innerHTML = PLAY;
+sb.addEventListener("click", () => {
+  const on = song.classList.toggle("is-playing");
+  icon.innerHTML = on ? PAUSE : PLAY; sb.setAttribute("aria-pressed", String(on));
+  sb.setAttribute("aria-label", (on ? "Pause" : "Play") + " Jude Mister to the Rescue");
+  song.querySelector(".sv-song-status").textContent = on ? "1:02 / 2:41" : "0:00 / 2:41";
+});
+</script>
+</body>
+</html>
