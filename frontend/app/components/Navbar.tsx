@@ -370,7 +370,10 @@ function Navbar({
   const [currencyOpen, setCurrencyOpen] = React.useState(false);
   const resolvedLoggedIn = auth.status === "authenticated";
   const resolvedUser = auth.displayUser || user;
-  const logoSrc = resolvedLoggedIn ? "/assets/LogoMark.png" : "/assets/WordmarkLobster.png";
+  // The landing uses pre-tinted gold artwork; every other screen keeps the originals.
+  const logoSrc = resolvedLoggedIn
+    ? (isLanding ? "/assets/logomark-gold-silver.png" : "/assets/LogoMark.png")
+    : (isLanding ? "/assets/wordmark-gold.png" : "/assets/WordmarkLobster.png");
   const localCreditBalance = (credits.images ?? 0) + (credits.songs ?? 0);
   const creditBalance = useCreditBalance({
     enabled: resolvedLoggedIn,

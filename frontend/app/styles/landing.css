@@ -46,12 +46,12 @@
   --l-stripe-2: #9E3D58;
   --l-card-back: #2F3E3B;       /* gallery card backs (gold logo on green) */
   --l-focus: #2F3E3B;
-  /* Logo: tinted antique gold on this page only (original files unchanged).
-     It always sits on forest green (gold/green 5.7). For the original
-     logo set display: none and opacity: 1. */
-  --l-logo-tint: #D8B65A;
-  --l-logo-tint-display: block;
-  --l-logo-img-opacity: 0;
+  /* Logo: antique gold (#D8B65A) on this page only, always on forest green
+     (gold/green 5.7). Drawn from pre-tinted files (/assets/wordmark-gold.png,
+     /assets/logomark-gold-silver.png: gold "S", platinum #CBCFD6 note) as
+     plain images, never with CSS masks or opacity tricks, so it shows with
+     reduced motion and high contrast too.
+     The original logo files are unchanged. */
   --l-line: rgba(74, 59, 57, 0.14);
   --l-line-strong: rgba(74, 59, 57, 0.34);
   --l-paper-line: rgba(74, 59, 57, 0.16);
@@ -249,15 +249,9 @@ body:has(.souv-landing) { background: #F7F0E8; } /* keep in sync with --l-bg */
   justify-content: space-between;
 }
 .souv-landing .souv-nav-logo { min-height: 44px; }
-/* Logo tint: the shared navbar's shimmer layer (already masked to the logo
-   shape) becomes a solid tint; the original image stays for layout and alt. */
-.souv-landing .souv-nav-logo::after {
-  display: var(--l-logo-tint-display);
-  background: var(--l-logo-tint);
-  animation: none;
-  mix-blend-mode: normal;
-}
-.souv-landing .souv-nav-logo img { opacity: var(--l-logo-img-opacity); }
+/* The gold logo is a real image (navVariant="landing"); the shared navbar's
+   shimmer layer is not used on this page. */
+.souv-landing .souv-nav-logo::after { display: none; }
 .souv-landing .souv-nav-logo.is-wordmark img { height: 34px; max-width: 140px; }
 
 .souv-landing .souv-nav-link,
@@ -647,17 +641,9 @@ body:has(.souv-landing) { background: #F7F0E8; } /* keep in sync with --l-bg */
 .souv-landing .l-gcard-logo { width: 30%; }
 .souv-landing .l-gcard-logo img { width: 100%; height: auto; }
 
-/* Tintable logo (see TintedLogo.tsx); the palette decides whether it tints. */
-.souv-landing .l-tinted { position: relative; display: inline-block; line-height: 0; }
-.souv-landing .l-tinted img { display: block; opacity: var(--l-logo-img-opacity); }
-.souv-landing .l-tinted::after {
-  content: "";
-  position: absolute; inset: 0;
-  display: var(--l-logo-tint-display);
-  background: var(--l-logo-tint);
-  -webkit-mask: var(--l-mask) no-repeat center / contain;
-  mask: var(--l-mask) no-repeat center / contain;
-}
+/* Gold logo (see TintedLogo.tsx): a plain image of the pre-tinted artwork. */
+.souv-landing .l-tinted { display: inline-block; line-height: 0; }
+.souv-landing .l-tinted img { display: block; }
 
 .souv-landing .l-tone-1 { background: var(--l-tone-1); --l-occasion: var(--l-tone-1-ink); }
 .souv-landing .l-tone-2 { background: var(--l-tone-2); --l-occasion: var(--l-tone-2-ink); }
@@ -864,13 +850,8 @@ body:has(.souv-landing) { background: #F7F0E8; } /* keep in sync with --l-bg */
   border-top: 4px solid var(--l-stripe);
 }
 .souv-landing .souv-footer .souv-orn { display: none; }
-.souv-landing .souv-footer-wordmark-wrap::after {
-  display: var(--l-logo-tint-display);
-  background: var(--l-logo-tint);
-  animation: none;
-  mix-blend-mode: normal;
-}
-.souv-landing .souv-footer-wordmark-img { opacity: var(--l-logo-img-opacity); }
+/* Gold wordmark is a real image (variant="landing"); no shimmer layer. */
+.souv-landing .souv-footer-wordmark-wrap::after { display: none; }
 .souv-landing .souv-footer-wordmark-img { height: 48px; }
 .souv-landing .souv-footer-lede { font-family: var(--l-font); font-style: normal; color: var(--l-text); font-size: 17px; }
 .souv-landing .souv-footer-social { flex-wrap: wrap; }

@@ -96,7 +96,7 @@ function GalleryCard({ template }: { template: GalleryTemplate }) {
             {template.back ? (
               <Image src={template.back.src} alt="" fill sizes={GALLERY_IMAGE_SIZES} className="l-gcard-img" />
             ) : (
-              <TintedLogo src="/assets/LogoMark.png" alt="" width={1024} height={1536} sizes="80px" className="l-gcard-logo" />
+              <TintedLogo src="/assets/logomark-gold-silver.png" alt="" width={400} height={600} sizes="80px" className="l-gcard-logo" />
             )}
           </span>
         </span>

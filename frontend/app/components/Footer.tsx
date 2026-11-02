@@ -77,7 +77,11 @@ function Footer({ variant = "default", communityCardsHref, lede = DEFAULT_LEDE }
       <div className="souv-footer-inner">
         <div className="souv-footer-brand">
           <span className="souv-footer-wordmark-wrap">
-            <img src="/assets/WordmarkLobster.png" alt="Souvenote" className="souv-footer-wordmark-img" />
+            <img
+              src={isLanding ? "/assets/wordmark-gold.png" : "/assets/WordmarkLobster.png"}
+              alt="Souvenote"
+              className="souv-footer-wordmark-img"
+            />
           </span>
           <p className="souv-footer-lede">{lede}</p>
           <div className="souv-footer-social">
