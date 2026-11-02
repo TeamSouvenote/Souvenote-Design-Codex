@@ -33,6 +33,8 @@
   /* Antique gold: AI accent, logo tint */
   --sv-gold-300: #E2C478;
   --sv-gold-400: #D8B65A;
+  /* Platinum: the music note in the "S" mark only (app's --platinum-mid) */
+  --sv-platinum-400: #CBCFD6;
   /* Terracotta: stripes and decoration only */
   --sv-terracotta-300: #D49A88;
   --sv-terracotta-400: #C98A76;
@@ -70,7 +72,7 @@
   /* Decoration */
   --sv-stripe: var(--sv-terracotta-400);       /* --l-stripe */
   --sv-stripe-ai: var(--sv-berry-500);         /* --l-stripe-2 */
-  --sv-logo-tint: var(--sv-gold-400);          /* --l-logo-tint */
+  --sv-logo-tint: var(--sv-gold-400);          /* baked into wordmark-gold.png / logomark-gold-silver.png; not a live CSS variable */
   --sv-engrave-color: var(--sv-espresso-700);  /* --l-engrave-color */
   --sv-engrave-opacity: 0.55;                  /* --l-engrave-opacity */
   --sv-glow-1: rgba(201, 138, 118, 0.2);       /* --l-glow-1 (terracotta) */

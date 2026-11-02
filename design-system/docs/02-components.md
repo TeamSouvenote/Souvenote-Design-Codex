@@ -170,14 +170,25 @@ Paths are relative to `frontend/app/`. Landing class names start with `l-`. Shar
 
 Links are at least 44px tall and turn gold with an underline on hover.
 
-## 2.13 Tinted logo
+## 2.13 Gold logo
 
-**For:** showing the logo in antique gold without editing the original files.
-**Source:** `components/landing/TintedLogo.tsx` (nav and footer use the same technique with `::after`).
+**For:** showing the logo in antique gold (#D8B65A) on forest (5.74:1).
+**Source:** `components/landing/TintedLogo.tsx` (comparison heading, gallery card backs); the nav and footer pick the gold file in their landing variant (`navVariant="landing"`, `variant="landing"`).
 
-**How:** the original image stays in place, invisible, to keep its size and alt text. A gold layer masked to the logo's shape sits on top. The logo always sits on forest (5.74:1).
+**How:** a plain image of pre-tinted gold artwork:
 
-**Assets:** `WordmarkLobster.png` (the wordmark) and `LogoMark.png` (the "S" mark). Pre-tinted gold copies for design tools are in `design-system/assets/`.
+| File | Use | Size |
+|---|---|---|
+| `/assets/wordmark-gold.png` | Nav (signed out), footer, comparison heading | 900 × 208 |
+| `/assets/logomark-gold-silver.png` | Nav (signed in), gallery card backs | 400 × 600 |
+
+The files live in `frontend/public/assets/` (copies in `design-system/assets/`). They have exactly the shape of the originals (`WordmarkLobster.png`, `LogoMark.png`), which stay unchanged for the rest of the app.
+
+The "S" mark keeps the original's two tones: the "S" in antique gold `#D8B65A` and the music note in platinum `#CBCFD6` (`--sv-platinum-400`, the app's existing `--platinum-mid`). Both are flat colours, like the wordmark. `logomark-gold.png` (all gold, note included) is superseded and shouldn't be used.
+
+**Don't** tint the logo with CSS masks, a hidden image plus an overlay, or `opacity` tricks. Version 1.0 did, and the logo vanished (an empty forest bar) for anyone with *reduce motion* turned on, because the shared navbar hides its overlay layer for reduced motion. It would also vanish in Windows high-contrast mode. A real image is visible in every setting.
+
+**New colour?** Export a new pre-tinted file with the same shape and canvas as the original, and add it next to the others. Don't recolour in CSS.
 
 ## 2.14 Engraving motif
 

@@ -31,7 +31,8 @@ The design system is documentation plus portable tokens. The app does not import
 | `--sv-focus` | `--l-focus` | #2F3E3B |
 | `--sv-yes` / `--sv-no` | `--l-yes` / `--l-no` | #2F3E3B / #655250 |
 | `--sv-stripe` / `--sv-stripe-ai` | `--l-stripe` / `--l-stripe-2` | #C98A76 / #9E3D58 |
-| `--sv-logo-tint` | `--l-logo-tint` | #D8B65A |
+| `--sv-logo-tint` | none (baked into `/assets/wordmark-gold.png` and `/assets/logomark-gold-silver.png`) | #D8B65A |
+| `--sv-platinum-400` | none (baked into the note of `/assets/logomark-gold-silver.png`; the app's `--platinum-mid`) | #CBCFD6 |
 | `--sv-engrave-color` / `-opacity` | `--l-engrave-color` / `-opacity` | #4A3B39 / 0.55 |
 | `--sv-vinyl-*` | `--l-vinyl-*` | #4A3B39 / #9E3D58 / #F7F0E8 |
 | `--sv-line` / `-strong` / `-paper` | `--l-line` / `--l-line-strong` / `--l-paper-line` | espresso at 14% / 34% / 16% |
@@ -67,3 +68,4 @@ This system describes the **public signed-out landing page (`/`)** and the landi
 | Version | Date | Notes |
 |---|---|---|
 | 1.0 | 2026-11-01 | First release: berry & ivory, antique-gold logo on forest. Built from the landing redesign (snapshot `saved-ui/landing-berry-ivory-2026-11-01`). |
+| 1.1 | 2026-11-02 | Logo fix: the gold logo is now pre-tinted image files (`wordmark-gold.png`, `logomark-gold-silver.png`), not a CSS mask over a hidden image, which vanished with reduced motion. `--l-logo-tint*` and `--l-logo-img-opacity` removed from the live CSS. The "S" mark is two-tone again (gold "S", platinum `#CBCFD6` note, new token `--sv-platinum-400`), replacing the all-gold `logomark-gold.png`. Added a reduced-motion / high-contrast visibility check. Snapshot `saved-ui/landing-berry-ivory-gold-silver-mark-2026-11-02`. |

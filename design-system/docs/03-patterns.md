@@ -73,6 +73,8 @@ Engravings are what make the page feel like a keepsake rather than a website. Th
 - **On ivory:** don't place the gold logo there (1.73:1). Use the original artwork, or put it on a forest shape.
 - **Clear space:** at least the height of the "S" all round.
 - **Sizes:** nav 34px tall (42px ≥1221px, 30px on tablets), footer 48px, inline in a heading 1.15em, card back 30% of the card width.
+- **Files:** always the pre-tinted `wordmark-gold.png` / `logomark-gold-silver.png` as a plain image (see 2.13). Never a CSS mask or a hidden image with an overlay.
+- **The "S" mark is two-tone:** gold "S", platinum note. Never flatten it to one colour.
 - **Don't** stretch it, recolour it outside the palette, add effects to it, or animate it.
 
 ## 3.6 Imagery

@@ -1,6 +1,6 @@
 # Souvenote Design System
 
-**Berry & ivory · v1.0 · 2026-11-01**
+**Berry & ivory · v1.1 · 2026-11-02**
 
 The design language of Souvenote's public landing page, written down so the rest of the product can follow it.
 Every value comes from the live redesign (`frontend/app/styles/landing.css`, branch `landing-page-redesign`).
@@ -27,7 +27,7 @@ design-system/
 │   ├── 01-foundations.md    Colour, contrast, typography, spacing, grid, shape, elevation, motion
 │   ├── 02-components.md     Button, icon button, nav, popover, section heading, hero card,
 │   │                        song chip, gallery card, step tile, comparison table, accordion,
-│   │                        footer, tinted logo, engravings, skip link, utilities
+│   │                        footer, gold logo, engravings, skip link, utilities
 │   ├── 03-patterns.md       Page anatomy, sections, forest surfaces, engraving placement,
 │   │                        logo use, imagery, interaction, responsive behaviour
 │   ├── 04-accessibility.md  WCAG 2.2 AA checklist and pre-launch manual checks
@@ -37,8 +37,9 @@ design-system/
 │   ├── index.html           Visual guide with live, interactive examples of every component
 │   └── styleguide.css       Component styles for the guide, built only on tokens.css
 └── assets/
-    ├── wordmark-gold.png    Wordmark pre-tinted antique gold (#D8B65A), 900px wide
-    ├── logomark-gold.png    "S" mark pre-tinted antique gold, 400px wide
+    ├── wordmark-gold.png    Wordmark pre-tinted antique gold (#D8B65A), 900px wide (live copy in frontend/public/assets)
+    ├── logomark-gold-silver.png  "S" mark: antique-gold S + platinum (#CBCFD6) note, 400px wide (live copy in frontend/public/assets)
+    ├── logomark-gold.png    Superseded all-gold "S" mark (kept for reference; don't use)
     ├── WordmarkLobster.png  Original wordmark (copy)
     ├── LogoMark.png         Original mark (copy)
     └── pt-comic-cover.jpg, pt-comic-back.jpg   Example card artwork (copies)

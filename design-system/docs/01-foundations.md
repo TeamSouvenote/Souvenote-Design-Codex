@@ -17,6 +17,7 @@ The token names are in `tokens/tokens.css` and `tokens/tokens.json`.
 | Cocoa | `#655250` | `--sv-espresso-500` | Secondary text, "no" marks |
 | Forest green | `#2F3E3B` | `--sv-forest-700` | Primary buttons; nav, footer and comparison band |
 | Antique gold | `#D8B65A` | `--sv-gold-400` | Means "AI made this"; the logo on forest |
+| Platinum | `#CBCFD6` | `--sv-platinum-400` | Only the music note in the "S" mark (the app's existing `--platinum-mid`). Not for text or surfaces |
 | Muted terracotta | `#C98A76` | `--sv-terracotta-400` | Top stripes on tiles and footer; background glow |
 | Oat | `#D9CFC3` | `--sv-ivory-400` | Secondary text on forest |
 
@@ -52,6 +53,7 @@ The page should feel mostly ivory, held together by forest, and lifted by berry 
 | Ivory | Forest hover | 7.93 | Any text |
 | Oat | Forest | 7.29 | Any text |
 | Gold | Forest | 5.74 | Any text; the logo |
+| Platinum | Forest | 7.17 | The note in the "S" mark |
 | Espresso | Gold | 5.45 | Any text |
 | Ivory | Berry | 5.70 | Any text |
 | Berry | Gold | 3.30 | Large text only (24px+, or 19px+ bold) |

@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex">
-<title>Souvenote Design System: berry &amp; ivory v1.0</title>
+<title>Souvenote Design System: berry &amp; ivory v1.1</title>
 <!-- Fonts: the same families and weights as the app (next/font loads them there).
      Without internet the page falls back to system fonts. -->
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -18,7 +18,7 @@
 <div class="sg-shell">
   <aside class="sg-side sv-surface-forest">
     <img src="../assets/wordmark-gold.png" alt="Souvenote">
-    <p class="sg-version">Design System · berry &amp; ivory · v1.0 · 2026-11-01</p>
+    <p class="sg-version">Design System · berry &amp; ivory · v1.1 · 2026-11-02</p>
     <nav aria-label="Sections">
       <a href="#colour">Colour</a>
       <a href="#surfaces">Surfaces</a>
@@ -234,7 +234,7 @@
         <li class="sv-gcard"><div class="sv-gcard-flip" style="cursor:default"><span class="sv-gcard-inner"><span class="sv-gcard-face sv-tone-3"><span class="sv-gcard-occasion">On This Day</span></span></span></div><div class="sv-gcard-meta"><div><p class="sv-gcard-name">Paper</p><p class="sv-gcard-label">Berry · 6.20</p></div></div></li>
         <li class="sv-gcard"><div class="sv-gcard-flip" style="cursor:default"><span class="sv-gcard-inner"><span class="sv-gcard-face sv-tone-4"><span class="sv-gcard-occasion">Fairy Tale</span></span></span></div><div class="sv-gcard-meta"><div><p class="sv-gcard-name">Terracotta</p><p class="sv-gcard-label">Espresso · 3.74 large only</p></div></div></li>
         <li class="sv-gcard"><div class="sv-gcard-flip" style="cursor:default"><span class="sv-gcard-inner"><span class="sv-gcard-face sv-tone-5"><span class="sv-gcard-occasion">Dark Holidays</span></span></span></div><div class="sv-gcard-meta"><div><p class="sv-gcard-name">Berry</p><p class="sv-gcard-label">Ivory · 5.70</p></div></div></li>
-        <li class="sv-gcard"><div class="sv-gcard-flip" style="cursor:default"><span class="sv-gcard-inner"><span class="sv-gcard-face sv-gcard-back" style="transform:none"><img class="mark" src="../assets/logomark-gold.png" alt=""></span></span></div><div class="sv-gcard-meta"><div><p class="sv-gcard-name">Card back</p><p class="sv-gcard-label">Gold mark on forest</p></div></div></li>
+        <li class="sv-gcard"><div class="sv-gcard-flip" style="cursor:default"><span class="sv-gcard-inner"><span class="sv-gcard-face sv-gcard-back" style="transform:none"><img class="mark" src="../assets/logomark-gold-silver.png" alt=""></span></span></div><div class="sv-gcard-meta"><div><p class="sv-gcard-name">Card back</p><p class="sv-gcard-label">Gold &amp; platinum mark on forest</p></div></div></li>
       </ul>
     </section>
 
@@ -307,10 +307,10 @@
     <!-- ============ LOGO ============ -->
     <section class="sg-sec" id="logo" aria-labelledby="logo-t">
       <h2 id="logo-t">The <span class="sv-script">logo</span></h2>
-      <p class="sg-lede">Antique gold on forest only. The app tints the original files with a CSS mask; pre-tinted gold PNGs for design tools are in <code>assets/</code>.</p>
+      <p class="sg-lede">Antique gold on forest only. The app shows pre-tinted gold PNGs as plain images (never a CSS mask), so the logo stays visible with reduced motion and high contrast. The same files are in <code>assets/</code>.</p>
       <div class="sg-logos" style="margin-top:32px">
         <div class="sg-logo sv-surface-forest"><img src="../assets/wordmark-gold.png" alt="Souvenote wordmark in gold"><span class="sg-do">Do · wordmark on forest (5.74:1)</span></div>
-        <div class="sg-logo sv-surface-forest"><img class="mark" src="../assets/logomark-gold.png" alt="Souvenote S mark in gold"><span class="sg-do">Do · mark on forest</span></div>
+        <div class="sg-logo sv-surface-forest"><img class="mark" src="../assets/logomark-gold-silver.png" alt="Souvenote S mark in gold with a platinum note"><span class="sg-do">Do · mark on forest</span></div>
         <div class="sg-logo is-bad"><img src="../assets/wordmark-gold.png" alt="Gold wordmark on ivory, which is too faint"><span class="sg-do">Don't · gold on ivory (1.73:1)</span></div>
         <div class="sg-logo is-bad"><img src="../assets/wordmark-gold.png" alt="Stretched wordmark" style="max-width:60%;transform:scaleX(1.45)"><span class="sg-do">Don't · stretch or distort</span></div>
       </div>
@@ -330,6 +330,7 @@ const C = {
   forest: ["Forest green", "#2F3E3B", "--sv-forest-700", "Actions, nav, footer"],
   forestHover: ["Forest hover", "#3B4D49", "--sv-forest-600", "Primary hover"],
   gold: ["Antique gold", "#D8B65A", "--sv-gold-400", "AI accent, logo"],
+  platinum: ["Platinum", "#CBCFD6", "--sv-platinum-400", "Note in the S mark only"],
   terracotta: ["Muted terracotta", "#C98A76", "--sv-terracotta-400", "Stripes only"],
   oat: ["Oat", "#D9CFC3", "--sv-ivory-400", "Muted text on forest"],
 };
@@ -341,7 +342,7 @@ const ratio = (a, b) => { const x = lum(a), y = lum(b); return (Math.max(x, y) +
 const pairs = [
   ["espresso", "ivory", "Any text"], ["espresso", "paper", "Any text"], ["espresso", "raised", "Any text"],
   ["cocoa", "ivory", "Any text"], ["cocoa", "raised", "Any text"], ["berry", "ivory", "Any text"], ["berry", "raised", "Any text"],
-  ["ivory", "forest", "Any text"], ["ivory", "forestHover", "Any text"], ["oat", "forest", "Any text"], ["gold", "forest", "Any text; logo"],
+  ["ivory", "forest", "Any text"], ["ivory", "forestHover", "Any text"], ["oat", "forest", "Any text"], ["gold", "forest", "Any text; logo"], ["platinum", "forest", "S-mark note"],
   ["espresso", "gold", "Any text"], ["ivory", "berry", "Any text"], ["berry", "gold", "Large text only"],
   ["espresso", "terracotta", "Large text only"], ["gold", "ivory", "Never as text"], ["terracotta", "ivory", "Never as text"], ["berry", "forest", "Never"],
 ];
