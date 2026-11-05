@@ -1,5 +1,9 @@
 /* Next.js app integration helpers. Keep visual styling in the converted handoff CSS files. */
 html { scroll-behavior: smooth; }
+/* In-page links jump instead of gliding when reduced motion is requested. */
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+}
 
 body { min-height: 100vh; }
 

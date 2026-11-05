@@ -1,20 +1,18 @@
 # Developer handoff notes
 
 Open items from the landing, auth, Welcome modal, signed-in Home and Create Options redesign (branch `landing-page-redesign`).
-Keep this list current as items are resolved. Last reviewed 2026-11-04 (night).
+Keep this list current as items are resolved. Last reviewed 2026-11-05.
 
 Latest snapshot of the working tree: `saved-ui/create-options-2026-11-04/` (README there explains how to restore it).
 
 ## Before merging
 
-- **Most of the redesign is uncommitted.** The landing redesign is committed (`a731844`, `65367c4`,
-  `4bc032f`, `a90ed6b`). The auth pages, Welcome modal, Terms consent screen, Remember me, SEO files, signed-in
-  noindex layouts, the signed-in `/home` page, the merged nav menu, backend consent changes and migrations
-  004/005 are still only in the working tree.
-- **Don't commit `reference-materials/` (98 MB) or `saved-ui/` (13 MB).** They are design references (PDFs,
-  screenshots, WhatsApp images, saved UI snapshots) and aren't in `.gitignore`. Add them to `.gitignore` or
-  move them out of the repo. `LOCAL_INTEGRATION_TEST_REPORT.md` and the two deleted `options-*-screenshot.png`
-  files at the root also need a keep/drop decision.
+- **The redesign is committed on `landing-page-redesign`, not merged into `main`.** Landing (`a731844`,
+  `65367c4`, `4bc032f`, `a90ed6b`); auth, Welcome modal, `/home` + nav, `/create`, Pricing, backend consent
+  changes and migrations 004/005 (`51dabff`); the 2026-11-05 Pricing pass in the commit after that. Merge
+  through a pull request.
+- **`reference-materials/` (98 MB) and `saved-ui/` (13 MB) are git-ignored.** They are local design references
+  and saved UI snapshots; keep them out of commits.
 - **CI now runs `npm test` in `frontend/`** (`.github/workflows/ci.yml`). The script uses
   `node --experimental-strip-types`, which needs Node 22.6 or later; CI pins Node 22, so make sure it resolves
   to 22.6+.
@@ -105,7 +103,7 @@ Worth knowing before changing these areas:
   is only shown once, right after first sign-up (`/welcome` redirects to `/home?welcome=1`). If the modal is
   ever shown at other times, the badge must read the user's real balance.
 
-## Signed-in Home and nav (done 2026-11-04, uncommitted)
+## Signed-in Home and nav (done 2026-11-04, committed in `51dabff`)
 
 How it works now, for anyone changing these areas:
 
@@ -152,7 +150,7 @@ Still open:
   clean-ups) and #14 (animation cost on low-end phones, needs a real device). #7's tiny decorative text inside the
   Template sketch is unchanged. Everything else in that file is done (see below).
 
-## Welcome modal fixes (done 2026-11-04, uncommitted)
+## Welcome modal fixes (done 2026-11-04, committed in `51dabff`)
 
 All in `frontend/app/components/Auth.tsx` (`WelcomeOptions`) and `frontend/app/styles/auth.css`:
 
@@ -172,7 +170,7 @@ All in `frontend/app/components/Auth.tsx` (`WelcomeOptions`) and `frontend/app/s
 - **Fit (no scrolling):** checked at 320x568, 360x740, 375x667, 390x844, 667x375, 740x360, 844x390, 932x430,
   1024x768 and 1440x900.
 
-## Create Options page `/create` (done 2026-11-04, uncommitted)
+## Create Options page `/create` (done 2026-11-04, committed in `51dabff`)
 
 Built from `CREATE_OPTIONS_BUILD_PROMPT.md` (repo root). Every decision in it was approved by the owner.
 
@@ -227,7 +225,7 @@ Built from `CREATE_OPTIONS_BUILD_PROMPT.md` (repo root). Every decision in it wa
 - **Welcome modal colour fix** (owner, 2026-11-04): `--sv-platinum-400` was missing, so one small shelf card in
   the Community sketch had no fill. It's now light grey.
 
-## Pricing page `/pricing` (done 2026-11-04, uncommitted)
+## Pricing page `/pricing` (done 2026-11-04, committed in `51dabff`)
 
 Redesigned on berry & ivory with the old page's structure (reference `21-Pricing`): heading, Print and Send +
 Big Sender side by side (stacked below 900px), the send-window note, the three credit packs, a back link.
@@ -245,6 +243,17 @@ behaviour below was approved by the owner on 2026-11-04.
   copy is condensed: intro "One flat price, shipping included Canada-wide. Prices in CAD; tax is extra." and the
   steps are Buy your card (the card-bank explanation) / Choose a card / Add the details. Big Sender's "Always
   saved" reads "Design now, send later. Your cards are saved in Saved Cards & Songs for 15 months."
+- **More brand colour (owner, 2026-11-05):** "Top up credits" is the page's one forest band (ivory text, gold
+  accents and badge; the pack cards stay paper); selected Big Sender tier filled forest; step numbers in berry
+  circles; prices in berry. Box headings (name, labels, price, "How it works") are centred; steps stay
+  left-aligned and spread to fill the box. The back link now sits on ivory below the band.
+- **"More below" tab (owner, 2026-11-05):** no jump links at the top. Instead a forest folder tab, "More below:
+  top up credits ↓", rises from the top edge of the green band (`.pr-more-tab`, links to `#credit-top-ups`;
+  the arrow bobs gently, and stays still under reduced motion). It only appears once you scroll past the card
+  packs; the owner chose not to add a first-screen hint. In the first lede, "10 AI creation credits" has a 3px
+  gold underline with the text kept dark (gold is never text on ivory) and stays on one line.
+- **Reduced motion:** `styles/next-app.css` turns off the site-wide smooth scrolling when reduced motion is
+  requested, so in-page links jump instead of gliding.
 - **After paying for Print and Send** the cart stays on "Payment confirmed" and opens a pop-up explaining how to use
   the card (Saved Cards & Songs / Community Cards). The remembered "return to" page is dropped in that case,
   because Print and Send adds no credits. Other purchases still return to it.

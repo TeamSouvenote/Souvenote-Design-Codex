@@ -40,7 +40,7 @@ export default function PricingPage() {
               </h1>
               <p className="pr-lede">
                 Shipping is always included with your card. Send just one, or save with a Big Sender pack, which
-                adds 10 AI creation credits for every card.
+                adds <span className="pr-lede-mark">10 AI creation credits</span> for every card.
               </p>
             </header>
             <PricingCardPacks />
@@ -51,7 +51,13 @@ export default function PricingPage() {
           </div>
         </section>
 
-        <section className="l-section pr-credits" aria-labelledby="pr-credits-title">
+        {/* Forest band (owner, 2026-11-05): the page's one green section, so top-ups stand out. */}
+        <section id="credit-top-ups" className="pr-credits" aria-labelledby="pr-credits-title">
+          {/* Tab on the colour split (owner, 2026-11-05) so it's clear there's more below the card packs. */}
+          <a className="pr-more-tab" href="#credit-top-ups">
+            <span>More below: top up credits</span>
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" focusable="false"><path d="M12 5v14M6 13l6 6 6-6" /></svg>
+          </a>
           <div className="l-wrap">
             <header className="pr-head">
               <p className="pr-eyebrow">Pricing · AI credits</p>
@@ -65,9 +71,9 @@ export default function PricingPage() {
               </p>
             </header>
             <PricingCreditPacks />
-            <PricingBackLink />
           </div>
         </section>
+        <PricingBackLink />
       </main>
       <Footer variant="landing" communityCardsHref={COMMUNITY_CARDS_HREF} lede={FOOTER_LEDE} />
       <script

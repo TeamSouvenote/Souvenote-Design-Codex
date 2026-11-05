@@ -58,6 +58,18 @@
   .souv-pricing .pr-head { margin-bottom: 56px; }
 }
 
+/* "10 AI creation credits" in the first lede (owner, 2026-11-05): gold
+   underline, text stays dark (gold is never text on ivory). */
+.souv-pricing .pr-lede-mark {
+  color: var(--l-text);
+  text-decoration: underline;
+  text-decoration-color: var(--l-ai);
+  text-decoration-thickness: 3px;
+  text-underline-offset: 4px;
+  text-decoration-skip-ink: none;
+  white-space: nowrap;
+}
+
 /* Engravings either side of the first heading, only where there's room. */
 .souv-pricing .pr-eng { position: absolute; }
 .souv-pricing .pr-eng-left  { width: 128px; left: 1%; top: 18px; transform: rotate(-7deg); }
@@ -77,8 +89,9 @@
   .souv-pricing .pr-offers { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 24px; }
 }
 
-/* Compact (owner, 2026-11-04): each box fits on one 1440x900 screen. Name and
-   price share the top row; everything is left-aligned. */
+/* Compact (owner, 2026-11-04): each box fits on one 1440x900 screen.
+   2026-11-05: box headings (name, labels, price, "How it works") centred; the
+   steps stay left-aligned and spread to fill the box, so both boxes look even. */
 .souv-pricing .pr-offer {
   display: flex; flex-direction: column;
   min-width: 0;
@@ -93,8 +106,9 @@
   .souv-pricing .pr-offer { padding: 28px 32px; }
 }
 .souv-pricing .pr-offer-top {
-  display: flex; flex-wrap: wrap; align-items: flex-start; justify-content: space-between;
-  gap: 8px 16px;
+  display: flex; flex-direction: column; align-items: center;
+  gap: 10px;
+  text-align: center;
 }
 .souv-pricing .pr-offer-name {
   font-family: var(--l-font);
@@ -104,7 +118,7 @@
   color: var(--l-heading);
 }
 .souv-pricing .pr-meta {
-  display: flex; flex-direction: column; align-items: flex-start;
+  display: flex; flex-direction: column; align-items: center;
   margin-top: 6px;
   color: var(--l-label);
   font-size: 12px; font-weight: 700;
@@ -117,11 +131,11 @@
   border-radius: 50%;
   background: var(--l-stripe);
 }
-.souv-pricing .pr-meta-row { display: flex; align-items: center; gap: 10px; }
+.souv-pricing .pr-meta-row { display: flex; align-items: center; justify-content: center; gap: 10px; }
 /* A long row ("Send multiple different cards • Includes shipping") doesn't fit
    a phone: stack its items, without dots. */
 @media (max-width: 559px) {
-  .souv-pricing .pr-meta-row.is-long { flex-direction: column; align-items: flex-start; gap: 0; }
+  .souv-pricing .pr-meta-row.is-long { flex-direction: column; align-items: center; gap: 0; }
   .souv-pricing .pr-meta-row.is-long .pr-meta-dot { display: none; }
 }
 .souv-pricing .pr-how-item-title,
@@ -131,14 +145,21 @@
   .souv-pricing .pr-how-item-body { font-size: 16px; }
 }
 
+/* Prices in berry (emphasis): berry on paper is about 6:1. */
 .souv-pricing .pr-price {
   font-weight: 300;
   font-size: clamp(2.2rem, 2rem + 1vw, 2.8rem);
   line-height: 1;
-  color: var(--l-heading);
+  color: var(--l-script-color);
   font-variant-numeric: tabular-nums;
 }
-.souv-pricing .pr-offer-text { margin-top: 12px; color: var(--l-paper-ink-2); }
+.souv-pricing .pr-offer-text {
+  max-width: 40ch;
+  margin: 12px auto 0;
+  color: var(--l-paper-ink-2);
+  text-align: center;
+  text-wrap: pretty;
+}
 
 /* Big Sender tiers: a pressed tier is the one the quantity falls in. */
 .souv-pricing .pr-tiers {
@@ -161,11 +182,15 @@
   transition: border-color .25s var(--l-ease), background .25s var(--l-ease);
 }
 .souv-pricing .pr-tier:hover { border-color: var(--l-hover); }
+/* Selected tier: forest fill, ivory text (9.9:1), oat secondary text (7.3:1). */
 .souv-pricing .pr-tier.is-active {
-  border-color: var(--l-btn-bg);
-  background: var(--l-raised);
-  box-shadow: inset 0 0 0 1px var(--l-btn-bg);
+  border-color: var(--l-dark-bg);
+  background: var(--l-dark-bg);
+  color: var(--l-dark-ink);
 }
+.souv-pricing .pr-tier.is-active .pr-tier-range,
+.souv-pricing .pr-tier.is-active .pr-tier-unit { color: var(--l-dark-ink-2); }
+.souv-pricing .pr-tier.is-active:focus-visible { outline-color: var(--l-dark-bg); }
 .souv-pricing .pr-tier-range {
   color: var(--l-paper-ink-2);
   font-size: 12px; font-weight: 700;
@@ -243,7 +268,11 @@
 }
 
 /* How it works: numbered list inside each offer. */
+/* It grows to fill the box, and its steps spread evenly through that space,
+   so a shorter box (Print and Send) has no gap above its button. */
 .souv-pricing .pr-how {
+  display: flex; flex-direction: column;
+  flex: 1 0 auto;
   margin-top: 18px;
   padding-top: 14px;
   border-top: 1px solid var(--l-paper-line);
@@ -252,19 +281,28 @@
   color: var(--l-paper-ink);
   font-size: 12px; font-weight: 700;
   letter-spacing: 0.22em;
+  text-align: center;
   text-transform: uppercase;
 }
 .souv-pricing .pr-how-list {
-  display: grid; gap: 10px;
+  display: flex; flex-direction: column; justify-content: space-evenly;
+  flex: 1 0 auto;
+  gap: 10px;
   margin: 10px 0 0; padding: 0;
   list-style: none;
 }
-.souv-pricing .pr-how-item { display: grid; grid-template-columns: 34px minmax(0, 1fr); gap: 8px; }
+.souv-pricing .pr-how-item { display: grid; grid-template-columns: 28px minmax(0, 1fr); gap: 12px; }
+/* Step numbers in small berry circles (ivory on berry 5.7:1). */
 .souv-pricing .pr-how-num {
-  padding-top: 3px;
-  color: var(--l-label);
-  font-size: 13px; font-weight: 700;
-  letter-spacing: 0.18em;
+  display: grid; place-items: center;
+  width: 28px; height: 28px;
+  margin-top: -1px;
+  border-radius: 50%;
+  background: var(--l-script-color);
+  color: var(--l-bg);
+  font-size: 12px; font-weight: 700;
+  letter-spacing: 0.02em;
+  font-variant-numeric: tabular-nums;
 }
 .souv-pricing .pr-how-item-title { font-weight: 700; line-height: 1.35; }
 .souv-pricing .pr-how-item-body { color: var(--l-paper-ink-2); line-height: 1.5; }
@@ -276,6 +314,7 @@
   gap: 10px;
   width: 100%;
   margin-top: auto;
+  flex: none;
   padding: 10px 20px;
   font-size: 16px;
   line-height: 1.3;
@@ -298,7 +337,59 @@
   text-wrap: pretty;
 }
 
-/* ---------- Creation credits ---------- */
+/* ---------- Creation credits: the page's one forest band ----------
+   Roles re-map like the landing's comparison band: ivory text, oat secondary,
+   gold labels, script and focus (gold on forest 5.7:1; berry is never used on
+   forest). The pack cards stay paper and switch the roles back. */
+.souv-pricing .pr-credits {
+  --l-heading: var(--l-dark-ink);
+  --l-text: var(--l-dark-ink);
+  --l-text-2: var(--l-dark-ink-2);
+  --l-label: var(--l-dark-accent);
+  --l-script-color: var(--l-dark-accent);
+  --l-hover: var(--l-dark-accent);
+  --l-focus: var(--l-dark-accent);
+  padding: var(--l-section-space) var(--l-gutter);
+  background: var(--l-dark-bg);
+  color: var(--l-text);
+  scroll-margin-top: 0;
+  position: relative;
+}
+/* "More below" tab (owner, 2026-11-05): a forest folder tab rising from the
+   top edge of the band, at the ivory/forest split. Links to the band. */
+.souv-pricing .pr-more-tab {
+  position: absolute; left: 50%; top: 1px;
+  transform: translate(-50%, -100%);
+  display: inline-flex; align-items: center; gap: 8px;
+  min-height: 48px;
+  padding: 0 22px;
+  border-radius: 16px 16px 0 0;
+  background: var(--l-dark-bg);
+  color: var(--l-dark-ink);
+  font-size: 15px; font-weight: 700;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+  text-decoration: none;
+  transition: color .25s var(--l-ease);
+}
+.souv-pricing .pr-more-tab:hover { color: var(--l-dark-accent); }
+.souv-pricing .pr-more-tab:focus-visible { outline: 2px solid var(--l-dark-accent); outline-offset: -4px; }
+.souv-pricing .pr-more-tab svg { flex: none; animation: pr-more-bob 2.4s var(--l-ease) infinite; }
+@keyframes pr-more-bob {
+  0%, 100% { transform: none; }
+  50% { transform: translateY(3px); }
+}
+/* Pack cards switch back to the ivory roles (the paper/berry/forest tokens
+   aren't re-mapped by the band). */
+.souv-pricing .pr-credit article {
+  --l-heading: var(--l-paper-ink);
+  --l-text: var(--l-paper-ink);
+  --l-text-2: var(--l-paper-ink-2);
+  --l-label: var(--l-stripe-2);
+  --l-script-color: var(--l-stripe-2);
+  --l-hover: var(--l-stripe-2);
+  --l-focus: var(--l-dark-bg);
+}
 .souv-pricing .pr-credits-grid {
   display: grid;
   gap: 32px;
@@ -324,15 +415,16 @@
 }
 .souv-pricing .pr-credit.is-featured article {
   border-top-color: var(--l-stripe-2);
-  box-shadow: var(--l-shadow), 0 0 0 1.5px var(--l-ai);
+  box-shadow: var(--l-shadow), 0 0 0 2px var(--l-ai);
 }
+/* Gold badge (credits are AI): espresso on gold 5.5:1, and it reads on forest. */
 .souv-pricing .pr-badge {
   position: absolute; top: -15px; left: 50%;
   transform: translateX(-50%);
   padding: 5px 14px;
   border-radius: 999px;
-  background: var(--l-stripe-2);
-  color: var(--l-bg);
+  background: var(--l-ai);
+  color: var(--l-ai-ink);
   font-size: 12px; font-weight: 700;
   line-height: 1.4;
   letter-spacing: 0.16em;
@@ -347,6 +439,7 @@
 }
 .souv-pricing .pr-credit-price {
   margin-top: 6px;
+  color: var(--l-script-color);
   font-size: 2.2rem; font-weight: 300;
   line-height: 1.1;
   font-variant-numeric: tabular-nums;
@@ -364,14 +457,18 @@
   text-transform: uppercase;
 }
 .souv-pricing .pr-credit-count-num {
-  color: var(--l-label);
+  color: var(--l-heading);
   font-size: 1.6rem; font-weight: 400;
   font-variant-numeric: tabular-nums;
 }
 .souv-pricing .pr-credit-blurb { margin-top: 8px; color: var(--l-paper-ink-2); }
 
 /* ---------- Back link ---------- */
-.souv-pricing .pr-back-row { display: flex; justify-content: center; padding-top: 48px; }
+/* Below the forest band, on ivory, so the band doesn't run into the footer. */
+.souv-pricing .pr-back-row {
+  display: flex; justify-content: center;
+  padding: 40px var(--l-gutter) var(--l-section-space);
+}
 /* Hidden (but keeping its space) until we know whether someone is signed in. */
 .souv-pricing .pr-back-row.is-pending { visibility: hidden; }
 .souv-pricing .pr-back { gap: 8px; min-height: 48px; padding: 0 24px 0 18px; }
@@ -445,7 +542,9 @@
 /* ---------- Motion preferences ---------- */
 @media (prefers-reduced-motion: reduce) {
   .souv-pricing .pr-tier,
+  .souv-pricing .pr-more-tab,
   .souv-pricing .pr-stepper button,
   .pr-ready-overlay .pr-ready-close { transition: none; }
   .pr-ready-overlay .pr-ready { animation: none; }
+  .souv-pricing .pr-more-tab svg { animation: none; }
 }
