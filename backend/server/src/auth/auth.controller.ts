@@ -47,6 +47,15 @@ export class UpdateProfileDto {
   @IsOptional()
   @IsObject()
   preferences?: Record<string, unknown>;
+
+  @IsOptional()
+  @IsBoolean()
+  termsAccepted?: boolean;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(120)
+  termsVersion?: string;
 }
 
 export class SavePaymentMethodDto {

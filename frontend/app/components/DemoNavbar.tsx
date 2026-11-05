@@ -5,14 +5,13 @@ import { demoUser } from "./DemoUser";
 import { useAuth } from "./AuthProvider";
 import type { NavbarProps } from "./Navbar";
 
-type DemoNavbarProps = Pick<NavbarProps, "followUserOnScroll"> & {
-  cartCount?: number;
+type DemoNavbarProps = Pick<NavbarProps, "followUserOnScroll" | "navVariant" | "alwaysSignedIn"> & {
   onLoginClick?: () => void;
   onSignupClick?: () => void;
   variant?: string;
 };
 
-function DemoNavbar({ cartCount = 0, ...props }: DemoNavbarProps) {
+function DemoNavbar(props: DemoNavbarProps) {
   const auth = useAuth();
 
   return (
@@ -21,7 +20,6 @@ function DemoNavbar({ cartCount = 0, ...props }: DemoNavbarProps) {
       user={demoUser}
       credits={{ images: 0, songs: 0 }}
       cardBank={0}
-      cartCount={cartCount}
       {...props}
     />
   );

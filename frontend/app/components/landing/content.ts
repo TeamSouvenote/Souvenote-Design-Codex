@@ -1,5 +1,4 @@
-// Copy and data for the public landing page (`/`) only.
-// The signed-in home (`/home`) and `/faq` keep using their original components.
+// Shared by the public landing page (`/`) and the signed-in home (`/home`); `/faq` keeps its original component.
 
 export const COMMUNITY_CARDS_HREF = "/community-cards";
 
@@ -108,7 +107,6 @@ export type FaqItem = { q: string; a: string };
 export const FAQ_ITEMS: FaqItem[] = [
   {
     q: "Can I buy creation credits without buying a card?",
-    // DRAFT ANSWER: written for review; not supplied in the reference materials.
     a: "Yes. You can top up creation credits on the Pricing page at any time, without ordering a printed card. One credit covers one action — generating a design, editing an image, or creating an optional QR-code song — so you can explore ideas first and print only when you’re ready.",
   },
   {

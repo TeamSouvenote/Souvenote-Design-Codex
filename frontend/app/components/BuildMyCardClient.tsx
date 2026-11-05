@@ -60,7 +60,7 @@ export function BuildMyCardClient() {
     <div className="souv-route-page">
       <PageChrome variant="bmc" />
       <div className="bmc-page">
-        <Navbar loggedIn={isAuthenticated} user={demoUser} credits={{ images: creditBalance.balance, songs: 0 }} cardBank={0} cartCount={0} />
+        <Navbar loggedIn={isAuthenticated} user={demoUser} credits={{ images: creditBalance.balance, songs: 0 }} cardBank={0} />
         <main>
           <BmcWizard
             initialStep={initialStep}

@@ -3,7 +3,7 @@
 import * as React from "react";
 import { useRouter } from "next/navigation";
 import { BmcIcon } from "./BmcShared";
-import { BIG_SENDER_TIERS, MAX_BIG_SENDER_CARDS, MIN_BIG_SENDER_CARDS } from "./pricingCatalog";
+import { BIG_SENDER_TIERS, MIN_BIG_SENDER_CARDS } from "./pricingCatalog";
 
 type CheckoutTab = "cards" | "credits";
 
@@ -68,7 +68,8 @@ const CO_CARD_PACKS: PickerPack[] = [
   {
     id: "bigsender",
     name: "Big Sender",
-    cards: `${MIN_BIG_SENDER_CARDS}-${MAX_BIG_SENDER_CARDS}`,
+    // No maximum quantity.
+    cards: `${MIN_BIG_SENDER_CARDS}+`,
     price: BIG_SENDER_TIERS[0].pricePerCard,
     per: "Choose card count on the pricing page",
     tokens: "10 per card",

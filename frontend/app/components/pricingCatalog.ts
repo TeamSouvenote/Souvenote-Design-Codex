@@ -1,5 +1,18 @@
+import { SOUV_CART_KEY, notifyCartChanged } from "./cartStorage";
+
 export const MIN_BIG_SENDER_CARDS = 1;
+/**
+ * Where the last Big Sender tier's label stops ("21-30+ cards"). It is a
+ * label only: Big Sender has no maximum quantity (owner decision 2026-11-04,
+ * MVP PRD section 4), and every quantity in the last tier or above pays the
+ * last tier's price. The backend seed still stores 30 as that tier's
+ * card_count_max; see DEVELOPER_HANDOFF.md "Pricing".
+ */
 export const MAX_BIG_SENDER_CARDS = 30;
+
+/** Print and Send: one card, shipping included, no AI credits. Fixed CAD price (owner decision 2026-11-04). */
+export const PRINT_AND_SEND_PRICE = 8.99;
+export const PRINT_AND_SEND_CART_ID = "pack-print-and-send";
 
 export type BigSenderTier = {
   min: number;
@@ -30,7 +43,8 @@ export type TryRiskFreeCartItemOptions = {
   holdDays?: number;
 };
 
-export const SOUV_CART_KEY = "souv_cart";
+// The cart key lives in cartStorage.ts; re-exported here for existing imports.
+export { SOUV_CART_KEY };
 
 export type BigSenderPricing = {
   qty: number;
@@ -45,13 +59,14 @@ export const BIG_SENDER_TIERS: BigSenderTier[] = [
   { min: 21, max: 30, pricePerCard: 6.99, label: "21-30+ cards" },
 ];
 
+/** Whole-number quantity of at least `min`. No upper limit unless `max` is given. */
 export function clampBigSenderQuantity(
   nextRaw: unknown,
   min = MIN_BIG_SENDER_CARDS,
-  max = MAX_BIG_SENDER_CARDS,
+  max = Number.MAX_SAFE_INTEGER,
 ): number {
   const parsed = Math.floor(Number(nextRaw) || min);
-  return Math.max(min, Math.min(max, parsed));
+  return Math.max(min, Math.min(max, Number.isFinite(parsed) ? parsed : min));
 }
 
 export function getBigSenderTier(
@@ -59,8 +74,8 @@ export function getBigSenderTier(
   tiers: BigSenderTier[] = BIG_SENDER_TIERS,
 ): BigSenderTier {
   const min = tiers[0]?.min ?? MIN_BIG_SENDER_CARDS;
-  const max = tiers[tiers.length - 1]?.max ?? MAX_BIG_SENDER_CARDS;
-  const qty = clampBigSenderQuantity(quantity, min, max);
+  const qty = clampBigSenderQuantity(quantity, min);
+  // The last tier is open-ended: anything above its range pays its price.
   return tiers.find((tier) => qty >= tier.min && qty <= tier.max) || tiers[tiers.length - 1] || BIG_SENDER_TIERS[BIG_SENDER_TIERS.length - 1];
 }
 
@@ -69,8 +84,7 @@ export function getBigSenderPricing(
   tiers: BigSenderTier[] = BIG_SENDER_TIERS,
 ): BigSenderPricing {
   const min = tiers[0]?.min ?? MIN_BIG_SENDER_CARDS;
-  const max = tiers[tiers.length - 1]?.max ?? MAX_BIG_SENDER_CARDS;
-  const qty = clampBigSenderQuantity(quantity, min, max);
+  const qty = clampBigSenderQuantity(quantity, min);
   const tier = getBigSenderTier(qty, tiers);
   const total = +(qty * tier.pricePerCard).toFixed(2);
   return {
@@ -127,6 +141,24 @@ export function makeTryRiskFreeCartItem(
   };
 }
 
+/** Print and Send: one card to send from Saved Cards & Songs or Community Cards. No AI credits. */
+export function makePrintAndSendCartItem(): PricingCartItem {
+  return {
+    id: PRINT_AND_SEND_CART_ID,
+    type: "pack",
+    name: "Print and Send",
+    meta: "1 card · shipping included",
+    sub: "One flat price to print and send your card.",
+    price: PRINT_AND_SEND_PRICE,
+    qty: 1,
+    cardCount: 1,
+    creditsPerCard: 0,
+    lockedQuantity: true,
+    replaceGroup: PRINT_AND_SEND_CART_ID,
+    unitNote: `$${PRINT_AND_SEND_PRICE.toFixed(2)} / card`,
+  };
+}
+
 export function addPricingCartItemToCart(item: PricingCartItem): void {
   if (typeof window === "undefined") return;
 
@@ -140,6 +172,7 @@ export function addPricingCartItemToCart(item: PricingCartItem): void {
     if (existing) existing.qty += item.qty || 1;
     else current.push(item);
     window.localStorage.setItem(SOUV_CART_KEY, JSON.stringify(current));
+    notifyCartChanged();
   } catch {
     // Cart storage is best-effort in the local prototype.
   }

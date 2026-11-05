@@ -1,11 +1,9 @@
-import { AuthApp } from "../components/Auth";
-import { PageChrome } from "../components/PageChrome";
+import type { Metadata } from "next";
+import { AuthRoute, type AuthSearchParams } from "../components/AuthRoute";
+import { NOINDEX } from "../lib/site";
 
-export default function AuthPage() {
-  return (
-    <div className="souv-route-page">
-      <PageChrome variant="auth" />
-      <main><AuthApp initialState="reset" /></main>
-    </div>
-  );
+export const metadata: Metadata = { title: "Set a new password | Souvenote", robots: NOINDEX };
+
+export default function AuthPage({ searchParams }: { searchParams: AuthSearchParams }) {
+  return <AuthRoute initialState="reset" searchParams={searchParams} />;
 }

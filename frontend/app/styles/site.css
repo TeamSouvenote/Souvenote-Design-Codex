@@ -336,8 +336,6 @@ img { display: block; max-width: 100%; }
   letter-spacing: .14em;
 }
 .souv-credits-stack .souv-credit em { color: var(--platinum-mid); }
-.souv-credits-stack.is-loading .souv-credit:first-child em { color: var(--gold-hi); }
-.souv-credits-stack.is-error .souv-credit:first-child em { color: var(--rose-gold-hi); }
 .souv-credit-bank { position: relative; }
 .souv-credit-bank b { color: var(--rose-gold-hi); }
 
@@ -391,43 +389,6 @@ img { display: block; max-width: 100%; }
 }
 .souv-cardbank-sendlink:hover { filter: brightness(1.25); }
 
-/* "Send a Card" line in profile menu — gold accent */
-.souv-popmenu-item-send { color: var(--gold-hi); font-weight: 600; }
-
-/* Currency selector — sits between credits and profile */
-.souv-currency {
-  display: inline-flex; align-items: center; gap: 6px;
-  padding: 7px 10px 7px 12px;
-  background: rgba(232,234,238,0.04);
-  border: 1px solid var(--divider);
-  border-radius: var(--r-pill);
-  color: var(--gold-hi);
-  font-family: var(--font-sans);
-  font-size: 12px;
-  font-weight: 600;
-  letter-spacing: .08em;
-  text-transform: uppercase;
-  transition: border-color .25s var(--ease-brand), color .25s var(--ease-brand), background .25s var(--ease-brand);
-}
-.souv-currency:hover,
-.souv-currency.is-open {
-  color: var(--gold-hi);
-  border-color: rgba(212,175,55,0.45);
-  background: rgba(212,175,55,0.06);
-}
-.souv-currency-code { line-height: 1; }
-.souv-currency-chev { width: 12px; height: 12px; opacity: .75; transition: transform .25s var(--ease-brand); }
-.souv-currency.is-open .souv-currency-chev { transform: rotate(180deg); }
-.souv-popmenu-currency { min-width: 150px; }
-.souv-currency-option {
-  display: flex; align-items: center; gap: 10px;
-  font-family: var(--font-sans);
-  font-size: 13px; letter-spacing: .06em;
-  text-transform: uppercase;
-}
-.souv-currency-flag { font-size: 16px; line-height: 1; }
-.souv-currency-option.is-active { color: var(--gold-hi); }
-.souv-currency-check { width: 14px; height: 14px; margin-left: auto; color: var(--gold-hi); }
 
 /* Get Started CTA in the navbar — glass + platinum (matches the avatar treatment) */
 .souv-nav-login {
@@ -639,10 +600,6 @@ img { display: block; max-width: 100%; }
     font-size: 8px;
   }
   .souv-credit b { font-size: 13px; }
-  .souv-currency {
-    padding: 7px 8px;
-    font-size: 10px;
-  }
   .souv-iconbtn {
     width: 38px;
     height: 38px;
@@ -658,7 +615,10 @@ img { display: block; max-width: 100%; }
   .souv-nav { justify-content: space-between; }
 }
 
-.souv-overlay { position: fixed; inset: 0; z-index: 55; }
+/* Nav menus: fade in while settling 4px down.
+   Not souv-pop-in: that one also shifts left by half the width (it is for the
+   centred link popovers), which made these right-aligned menus jump sideways. */
+@keyframes souv-menu-in { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: none; } }
 .souv-popmenu {
   position: absolute; top: calc(100% + 10px); right: 0;
   min-width: 220px;
@@ -669,8 +629,14 @@ img { display: block; max-width: 100%; }
   box-shadow: var(--shadow-card);
   padding: 12px;
   z-index: 60;
-  animation: souv-pop-in .2s var(--ease-brand);
+  max-height: calc(100dvh - 120px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  animation: souv-menu-in .2s var(--ease-brand);
   display: flex; flex-direction: column; gap: 2px;
+}
+@media (prefers-reduced-motion: reduce) {
+  .souv-popmenu { animation: none; }
 }
 .souv-popmenu-wide { min-width: 240px; }
 .souv-popmenu-item {
@@ -685,6 +651,8 @@ img { display: block; max-width: 100%; }
 .souv-popmenu-item:hover { color: var(--gold-hi); background: rgba(212,175,55,0.05); }
 a.souv-popmenu-item { display: block; text-decoration: none; }
 .souv-popmenu-sep { height: 1px; background: var(--divider); margin: 4px 0; }
+/* A menu taller than the screen scrolls; without this its 1px dividers get squeezed to nothing. */
+.souv-popmenu > * { flex-shrink: 0; }
 .souv-popmenu-logout {
   display: block;
   width: 100%;
@@ -749,6 +717,11 @@ a.souv-popmenu-logout { text-decoration: none; }
 .souv-popmenu-email {
   font-family: var(--font-sans); font-size: 10.5px; letter-spacing: .04em;
   color: var(--text-muted); margin-top: 2px;
+}
+/* Credits and card bank under the email (older screens; landing.css restyles it). */
+.souv-popmenu-balance {
+  font-family: var(--font-sans); font-size: 12px; font-weight: 600;
+  color: var(--platinum-hi); margin-top: 4px;
 }
 
 /* Cart badge */

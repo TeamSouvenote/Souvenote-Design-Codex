@@ -53,7 +53,6 @@ type ReferItem = {
 const AccIco = {
   card: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="5" width="18" height="14" rx="2" /><path d="M3 10h18" /></svg>,
   note: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"><path d="M9 17V5l11-2v12" /><circle cx="6.5" cy="17.5" r="2.5" fill="currentColor" stroke="none" /><circle cx="17.5" cy="15.5" r="2.5" fill="currentColor" stroke="none" /></svg>,
-  send: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"><path d="M21 4 3 11l7 3 3 7 8-17z" /><path d="M10 14l4-4" /></svg>,
   gift: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="9" width="18" height="12" rx="1.5" /><path d="M3 9V8a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v1M12 6v15M12 6S10.5 3 8.5 3 5.5 5 7 6h5M12 6s1.5-3 3.5-3 2.5 2 1 3h-5" /></svg>,
   cal: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="5" width="18" height="16" rx="2" /><path d="M3 9h18M8 3v4M16 3v4" /></svg>,
   users: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"><circle cx="9" cy="8" r="3.2" /><path d="M3.5 20a5.5 5.5 0 0 1 11 0" /><path d="M16 5.2a3.2 3.2 0 0 1 0 6.1M17.5 20a5.5 5.5 0 0 0-2.5-4.6" /></svg>,
@@ -66,8 +65,6 @@ const PROFILE_ACTIVITY: ProfileActivity[] = [];
 
 const PROFILE_LINKS: ProfileLink[] = [
   { ico: AccIco.card, label: "Saved Cards & Songs", href: "/create/my-cards-and-songs" },
-  { ico: AccIco.send, label: "Gift a Souvenote", href: "/gift" },
-  { ico: AccIco.gift, label: "Refer a Friend", href: "/refer" },
 ];
 
 function ProfilePage({ user }: AccountPageProps) {

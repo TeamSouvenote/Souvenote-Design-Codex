@@ -1,7 +1,9 @@
 /* ==========================================================================
-   Souvenote public landing page (`/`): berry & ivory palette.
-   Every rule is scoped under `.souv-landing`, which exists only on `/`,
-   so the signed-in home and all other screens are unaffected.
+   Souvenote landing pages: berry & ivory palette.
+   Every rule is scoped under `.souv-landing`, which exists only on the
+   public landing (`/`), the signed-in home (`/home`) and Create Options
+   (`/create`, for its nav, backdrop, buttons and footer), so all other
+   screens are unaffected.
    Mobile-first: base rules target phones; min-width queries scale up.
 
    Colours are set once, by role, in the PALETTE block below. To test
@@ -252,6 +254,13 @@ body:has(.souv-landing) { background: #F7F0E8; } /* keep in sync with --l-bg */
 /* The gold logo is a real image (navVariant="landing"); the shared navbar's
    shimmer layer is not used on this page. */
 .souv-landing .souv-nav-logo::after { display: none; }
+/* The narrow "S" mark gets an invisible 44px-wide tap area; the logo doesn't move. */
+.souv-landing .souv-nav-logo::before {
+  content: "";
+  position: absolute; top: 0; bottom: 0; left: 50%;
+  width: max(100%, 44px);
+  transform: translateX(-50%);
+}
 .souv-landing .souv-nav-logo.is-wordmark img { height: 34px; max-width: 140px; }
 
 .souv-landing .souv-nav-link,
@@ -337,6 +346,179 @@ body:has(.souv-landing) { background: #F7F0E8; } /* keep in sync with --l-bg */
 @media (min-width: 1221px) {
   .souv-landing .souv-nav { min-height: 76px; padding: 10px 14px 10px 26px; }
   .souv-landing .souv-nav-logo.is-wordmark img { height: 42px; max-width: 190px; }
+}
+
+/* --------------------------------------------------------------------------
+   Navbar, signed in (`/home`, and `/` while signed in): gold "S" mark,
+   credits/cards ticker, cart and menu on forest. Below 701px the four
+   links move into the menu instead of being squeezed.
+   -------------------------------------------------------------------------- */
+.souv-landing .souv-nav-logo.is-mark img { height: 44px; width: auto; }
+.souv-landing .souv-nav.is-signed-in .souv-nav-right { gap: 8px; }
+.souv-landing .souv-nav-sep { width: 1px; height: 28px; margin: 0 4px; background: var(--l-line-strong); }
+
+/* Credits / cards ticker (a link to Saved Cards & Songs) */
+.souv-landing .souv-credits-stack {
+  min-width: 0; min-height: 52px;
+  padding: 5px 14px;
+  gap: 0;
+  color: var(--l-text);
+  background: transparent;
+  border: 1.5px solid var(--l-line-strong);
+  border-radius: 14px;
+  transition: border-color .25s var(--l-ease), background .25s var(--l-ease);
+}
+.souv-landing .souv-credits-link:hover,
+.souv-landing .souv-credits-link:focus-visible {
+  border-color: var(--l-hover);
+  background: var(--l-hover-tint);
+  box-shadow: none;
+}
+.souv-landing .souv-credits-link:focus-visible { outline: 2px solid var(--l-focus); outline-offset: 3px; }
+.souv-landing .souv-credits-stack .souv-credit {
+  grid-template-columns: 1fr auto;
+  gap: 14px;
+  width: 100%;
+  font-family: var(--l-font);
+  font-size: 12px; letter-spacing: 0.14em;
+  line-height: 1.3;
+}
+.souv-landing .souv-credits-stack .souv-credit em { color: var(--l-text-2); font-weight: 700; }
+.souv-landing .souv-credit b {
+  color: var(--l-hover);
+  font-size: 17px; font-weight: 700;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.souv-landing .souv-cardbank-pop-card {
+  background: var(--l-raised);
+  border: 1px solid var(--l-line);
+  border-radius: 16px;
+  box-shadow: var(--l-shadow);
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+}
+.souv-landing .souv-cardbank-pop-arrow { background: var(--l-raised); border-color: var(--l-line); }
+.souv-landing .souv-cardbank-pop .souv-rule-gold { background: var(--l-line); }
+.souv-landing .souv-cardbank-sendlink {
+  display: flex; align-items: center; justify-content: center;
+  min-height: 44px; margin-top: 4px;
+  font-family: var(--l-font);
+  font-size: 12px; letter-spacing: 0.14em;
+  color: var(--l-hover);
+  text-decoration: none;
+}
+.souv-landing .souv-cardbank-sendlink:hover { filter: none; text-decoration: underline; text-underline-offset: 4px; }
+
+/* Cart and menu buttons */
+.souv-landing .souv-iconbtn {
+  width: 44px; height: 44px;
+  color: var(--l-text);
+  background: transparent;
+  border: 1.5px solid var(--l-line-strong);
+  transition: color .25s var(--l-ease), border-color .25s var(--l-ease), background .25s var(--l-ease);
+}
+.souv-landing .souv-iconbtn svg { width: 21px; height: 21px; }
+.souv-landing .souv-iconbtn:hover,
+.souv-landing .souv-iconbtn.is-open { color: var(--l-hover); border-color: var(--l-hover); background: var(--l-hover-tint); }
+.souv-landing .souv-cart-badge {
+  top: -4px; right: -4px;
+  min-width: 20px; height: 20px; padding: 0 5px;
+  border-radius: 999px;
+  background: var(--l-btn-bg);
+  color: var(--l-btn-ink);
+  box-shadow: 0 0 0 2px var(--l-raised);
+  font-family: var(--l-font);
+  font-size: 12px; font-weight: 700; line-height: 20px;
+  text-align: center;
+}
+
+/* Menu */
+.souv-landing .souv-popmenu {
+  top: calc(100% + 12px);
+  min-width: 240px;
+  max-width: calc(100vw - 32px);
+  max-height: calc(100dvh - 120px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 8px;
+  gap: 0;
+  background: var(--l-raised);
+  border: 1px solid var(--l-line);
+  border-radius: 18px;
+  box-shadow: var(--l-shadow);
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+}
+.souv-landing .souv-popmenu-wide { min-width: 280px; }
+.souv-landing .souv-popmenu-item,
+.souv-landing .souv-popmenu-logout {
+  display: flex; align-items: center;
+  width: 100%; min-height: 44px;
+  padding: 0 14px;
+  border: 0; border-radius: 10px;
+  background: transparent;
+  color: var(--l-text);
+  font-family: var(--l-font);
+  font-size: 16px; font-weight: 400;
+  letter-spacing: 0.01em; text-transform: none;
+  text-align: left; text-decoration: none;
+  cursor: pointer;
+  transition: color .2s var(--l-ease), background .2s var(--l-ease);
+}
+.souv-landing .souv-popmenu-logout { font-weight: 700; }
+.souv-landing .souv-popmenu-item:hover,
+.souv-landing .souv-popmenu-logout:hover { color: var(--l-hover); background: var(--l-hover-tint); }
+.souv-landing .souv-popmenu-sep { margin: 6px 8px; background: var(--l-line); }
+.souv-landing .souv-popmenu-userhead { padding: 10px 14px 12px; }
+.souv-landing .souv-popmenu-avatar {
+  color: var(--l-text);
+  background: transparent;
+  border: 1.5px solid var(--l-line-strong);
+  box-shadow: none;
+  font-family: var(--l-font); font-weight: 700; font-size: 14px;
+}
+.souv-landing .souv-popmenu-name { color: var(--l-text); font-family: var(--l-font); font-size: 16px; font-weight: 700; }
+.souv-landing .souv-popmenu-email {
+  color: var(--l-text-2);
+  font-family: var(--l-font); font-size: 14px; letter-spacing: 0;
+  overflow-wrap: anywhere;
+}
+/* Credits and card bank under the email (same numbers as the bar's box). */
+.souv-landing .souv-popmenu-balance {
+  margin-top: 4px;
+  color: var(--l-text);
+  font-family: var(--l-font); font-size: 14px; font-weight: 700;
+  letter-spacing: 0;
+  font-variant-numeric: tabular-nums;
+}
+
+/* The menu repeats the bar's links only where the bar hides them (phones). */
+@media (min-width: 701px) {
+  .souv-landing .souv-popmenu-compact-links { display: none; }
+}
+/* Tablets: four links plus the cluster */
+@media (min-width: 701px) and (max-width: 1023px) {
+  .souv-landing .souv-nav.is-signed-in .souv-nav-right { gap: 6px; }
+}
+/* Phones: logo, ticker, cart, menu */
+@media (max-width: 700px) {
+  .souv-landing .souv-nav.is-signed-in .souv-nav-sep { display: none; }
+  .souv-landing .souv-nav-logo.is-mark img { height: 40px; }
+  /* Menus line up with the bar's right edge, not their button, so they stay on screen. */
+  .souv-landing .souv-nav.is-signed-in .souv-iconbtn-wrap { position: static; }
+  .souv-landing .souv-nav.is-signed-in .souv-popmenu { right: 8px; top: calc(100% + 10px); max-width: calc(100% - 16px); }
+}
+@media (max-width: 380px) {
+  .souv-landing .souv-nav.is-signed-in { padding-left: 12px; padding-right: 8px; }
+  .souv-landing .souv-nav.is-signed-in .souv-nav-right { gap: 4px; }
+  .souv-landing .souv-credits-stack { padding: 4px 10px; }
+  .souv-landing .souv-credits-stack .souv-credit { gap: 8px; font-size: 11px; letter-spacing: 0.1em; }
+  .souv-landing .souv-credit b { font-size: 15px; }
+}
+@media (min-width: 1221px) {
+  .souv-landing .souv-nav-logo.is-mark img { height: 52px; }
 }
 
 /* --------------------------------------------------------------------------
@@ -426,6 +608,8 @@ body:has(.souv-landing) { background: #F7F0E8; } /* keep in sync with --l-bg */
   font-size: 13px; font-weight: 700;
   letter-spacing: 0.14em; text-transform: uppercase;
 }
+/* Signed-in balance line: keeps its height while the balance loads. */
+.souv-landing .l-hero-balance { min-height: 1.65em; }
 @media (min-width: 480px) {
   .souv-landing .l-hero-ctas { flex-direction: row; flex-wrap: wrap; }
 }
@@ -745,7 +929,7 @@ body:has(.souv-landing) { background: #F7F0E8; } /* keep in sync with --l-bg */
 .souv-landing .l-compare + .l-section { padding-top: var(--l-section-space); }
 .souv-landing .l-compare .l-sub { color: var(--l-text); }
 .souv-landing .l-compare-title { line-height: 1.3; }
-.souv-landing .l-compare-logo { height: 1.15em; vertical-align: -0.28em; }
+.souv-landing .l-compare-logo { height: 1.15em; vertical-align: -0.2em; }
 .souv-landing .l-compare-logo img { height: 100%; width: auto; }
 .souv-landing .l-compare-frame {
   max-width: 880px;
@@ -876,6 +1060,13 @@ body:has(.souv-landing) { background: #F7F0E8; } /* keep in sync with --l-bg */
   font-size: 16px;
 }
 .souv-landing .souv-footer-link::after { background: var(--l-hover); bottom: 8px; }
+/* Short links ("FAQ") get an invisible 44px-wide tap area; the text doesn't move. */
+.souv-landing .souv-footer-link::before {
+  content: "";
+  position: absolute; top: 0; bottom: 0; left: 50%;
+  width: max(100%, 44px);
+  transform: translateX(-50%);
+}
 .souv-landing .souv-footer-link:hover { color: var(--l-hover); }
 .souv-landing .souv-footer-link.is-disabled:hover { color: var(--l-text); }
 .souv-landing .souv-footer-base {

@@ -8,7 +8,6 @@ body { min-height: 100vh; }
      first visible content, not just the raw hero padding. */
   --souv-page-top-space: 160px;
   --souv-page-visual-start: var(--souv-page-top-space);
-  --souv-auth-topbar-height: 86px;
 }
 
 @media (max-width: 1220px) {
@@ -22,7 +21,6 @@ body { min-height: 100vh; }
   :root {
     --souv-page-top-space: 104px;
     --souv-page-visual-start: var(--souv-page-top-space);
-    --souv-auth-topbar-height: 70px;
   }
 }
 
@@ -90,8 +88,4 @@ a.opt-back {
 
 .pg-faq-wrap .souv-faq {
   padding-top: 8px;
-}
-
-.auth-stage-secondary {
-  padding-top: max(20px, calc(var(--souv-page-top-space) - var(--souv-auth-topbar-height)));
 }

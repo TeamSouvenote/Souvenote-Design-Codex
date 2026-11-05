@@ -45,6 +45,9 @@ export type LocalUser = {
   language?: string | null;
   marketing_opt_in?: boolean | null;
   preferences?: Record<string, unknown> | null;
+  /** When the Terms and Privacy Policy were accepted; null if never recorded (e.g. a new social sign-up). */
+  terms_accepted_at?: string | null;
+  terms_version?: string | null;
   created_at?: string;
   updated_at?: string;
 };
@@ -133,12 +136,14 @@ let pendingHostedUiReturnTo: string | null = null;
 export type CognitoSocialProvider = "Google" | "Facebook" | "SignInWithApple";
 
 export class CognitoClientError extends Error {
-  constructor(
-    message: string,
-    readonly code: string,
-  ) {
+  // Declared as a plain field (not a constructor parameter property) so Node's
+  // built-in TypeScript type stripping can load this module in unit tests.
+  readonly code: string;
+
+  constructor(message: string, code: string) {
     super(message);
     this.name = "CognitoClientError";
+    this.code = code;
   }
 }
 
@@ -216,6 +221,8 @@ function getCognitoUserPool() {
   return new CognitoUserPool({
     UserPoolId: userPoolId,
     ClientId: clientId,
+    // The SDK's own token cache follows the same "Remember me" choice.
+    Storage: typeof window === "undefined" ? undefined : authStorage(),
   });
 }
 
@@ -390,7 +397,7 @@ export function getStoredCognitoSession(options: { allowExpired?: boolean } = {}
   if (typeof window === "undefined") return null;
 
   try {
-    const raw = window.localStorage.getItem(AUTH_SESSION_STORAGE_KEY);
+    const raw = readAuthItem(AUTH_SESSION_STORAGE_KEY);
     if (!raw) return null;
 
     const parsed = JSON.parse(raw) as Partial<CognitoSession>;
@@ -510,9 +517,65 @@ function cleanHostedUiCallbackUrl(url: URL) {
   window.history.replaceState(null, "", `${url.pathname}${nextSearch ? `?${nextSearch}` : ""}${url.hash}`);
 }
 
+// "Remember me": a remembered session is kept in localStorage and survives a
+// browser restart; an unremembered one is kept in sessionStorage and ends when
+// the browser closes. The choice itself lives in sessionStorage, so a fresh
+// browser session falls back to remembered (the default).
+const SESSION_PERSISTENCE_KEY = "souv_session_persistence";
+
+function authStorage(): Storage {
+  try {
+    if (window.sessionStorage.getItem(SESSION_PERSISTENCE_KEY) === "session") return window.sessionStorage;
+  } catch {
+    // sessionStorage unavailable: fall back to localStorage.
+  }
+  return window.localStorage;
+}
+
+function otherAuthStorage(): Storage {
+  return authStorage() === window.localStorage ? window.sessionStorage : window.localStorage;
+}
+
+function readAuthItem(key: string) {
+  return authStorage().getItem(key) ?? otherAuthStorage().getItem(key);
+}
+
+function writeAuthItem(key: string, value: string) {
+  authStorage().setItem(key, value);
+  otherAuthStorage().removeItem(key);
+}
+
+function removeAuthItems() {
+  for (const storage of [window.localStorage, window.sessionStorage]) {
+    storage.removeItem(AUTH_SESSION_STORAGE_KEY);
+    storage.removeItem(AUTH_LOCAL_USER_STORAGE_KEY);
+  }
+}
+
+// The Cognito SDK caches its own copy of the tokens under these keys.
+function removeCognitoSdkCache() {
+  const prefix = "CognitoIdentityServiceProvider.";
+  for (const storage of [window.localStorage, window.sessionStorage]) {
+    for (const key of Object.keys(storage)) {
+      if (key.startsWith(prefix)) storage.removeItem(key);
+    }
+  }
+}
+
+/** Call before an email/password sign-in. `false` ends the session when the browser closes. */
+export function setSessionPersistence(remember: boolean) {
+  if (typeof window === "undefined") return;
+  try {
+    if (remember) window.sessionStorage.removeItem(SESSION_PERSISTENCE_KEY);
+    else window.sessionStorage.setItem(SESSION_PERSISTENCE_KEY, "session");
+  } catch {
+    // Without sessionStorage the session is always remembered.
+  }
+}
+
 export function storeCognitoSession(session: CognitoSession) {
   if (typeof window === "undefined") return;
-  window.localStorage.setItem(AUTH_SESSION_STORAGE_KEY, JSON.stringify(session));
+  writeAuthItem(AUTH_SESSION_STORAGE_KEY, JSON.stringify(session));
   dispatchAuthUpdate();
 }
 
@@ -520,7 +583,7 @@ export function getStoredLocalUser(): LocalUser | null {
   if (typeof window === "undefined") return null;
 
   try {
-    const raw = window.localStorage.getItem(AUTH_LOCAL_USER_STORAGE_KEY);
+    const raw = readAuthItem(AUTH_LOCAL_USER_STORAGE_KEY);
     if (!raw) return null;
 
     const parsed = JSON.parse(raw) as Partial<LocalUser>;
@@ -533,14 +596,14 @@ export function getStoredLocalUser(): LocalUser | null {
 
 export function storeLocalUser(user: LocalUser) {
   if (typeof window === "undefined") return;
-  window.localStorage.setItem(AUTH_LOCAL_USER_STORAGE_KEY, JSON.stringify(user));
+  writeAuthItem(AUTH_LOCAL_USER_STORAGE_KEY, JSON.stringify(user));
   dispatchAuthUpdate();
 }
 
 export function clearCognitoAuthState() {
   if (typeof window === "undefined") return;
-  window.localStorage.removeItem(AUTH_SESSION_STORAGE_KEY);
-  window.localStorage.removeItem(AUTH_LOCAL_USER_STORAGE_KEY);
+  removeAuthItems();
+  removeCognitoSdkCache();
   pendingHostedUiError = null;
   pendingHostedUiAttempt = null;
   pendingHostedUiReturnTo = null;
@@ -566,8 +629,9 @@ export async function startHostedUiSignIn(provider?: CognitoSocialProvider, retu
     ? currentAuthPath
     : "/login");
 
-  window.localStorage.removeItem(AUTH_SESSION_STORAGE_KEY);
-  window.localStorage.removeItem(AUTH_LOCAL_USER_STORAGE_KEY);
+  // Social sign-ins are always remembered.
+  setSessionPersistence(true);
+  removeAuthItems();
   pendingHostedUiError = null;
   pendingHostedUiAttempt = null;
   pendingHostedUiReturnTo = null;
@@ -804,17 +868,16 @@ export async function confirmCognitoSignUp(email: string, confirmationCode: stri
   });
 }
 
-export async function signInWithCognito(email: string, password: string): Promise<CognitoSession> {
-  const user = getCognitoUser(email);
+function authenticateCognitoUser(user: CognitoUser, email: string, password: string) {
   const authenticationDetails = new AuthenticationDetails({
     Username: email.trim().toLowerCase(),
     Password: password,
   });
 
-  const session = await new Promise<CognitoSession>((resolve, reject) => {
+  return new Promise<CognitoUserSession>((resolve, reject) => {
     user.authenticateUser(authenticationDetails, {
       onSuccess: (cognitoSession) => {
-        resolve(buildSessionFromCognitoUserSession(cognitoSession));
+        resolve(cognitoSession);
       },
       onFailure: (error) => {
         reject(toCognitoClientError(error));
@@ -833,9 +896,67 @@ export async function signInWithCognito(email: string, password: string): Promis
       },
     });
   });
+}
 
+export async function signInWithCognito(email: string, password: string): Promise<CognitoSession> {
+  const cognitoSession = await authenticateCognitoUser(getCognitoUser(email), email, password);
+  const session = buildSessionFromCognitoUserSession(cognitoSession);
   storeCognitoSession(session);
   return session;
+}
+
+/** Sends a password-reset code to the account's verified email. */
+export async function requestCognitoPasswordReset(email: string) {
+  const user = getCognitoUser(email);
+
+  await new Promise<void>((resolve, reject) => {
+    user.forgotPassword({
+      onSuccess: () => resolve(),
+      inputVerificationCode: () => resolve(),
+      onFailure: (error) => reject(toCognitoClientError(error)),
+    });
+  });
+}
+
+/** Sets a new password using the code from the reset email. */
+export async function confirmCognitoPasswordReset(email: string, resetCode: string, newPassword: string) {
+  const user = getCognitoUser(email);
+
+  await new Promise<void>((resolve, reject) => {
+    user.confirmPassword(resetCode.trim(), newPassword, {
+      onSuccess: () => resolve(),
+      onFailure: (error) => reject(toCognitoClientError(error)),
+    });
+  });
+}
+
+/** Sends a fresh sign-up confirmation code. */
+export async function resendCognitoSignUpCode(email: string) {
+  const user = getCognitoUser(email);
+
+  await new Promise<void>((resolve, reject) => {
+    user.resendConfirmationCode((error) => {
+      if (error) {
+        reject(toCognitoClientError(error));
+        return;
+      }
+
+      resolve();
+    });
+  });
+}
+
+/** Revokes every refresh token for the account, signing it out on all devices. */
+export async function signOutCognitoEverywhere(email: string, password: string) {
+  const user = getCognitoUser(email);
+  await authenticateCognitoUser(user, email, password);
+
+  await new Promise<void>((resolve, reject) => {
+    user.globalSignOut({
+      onSuccess: () => resolve(),
+      onFailure: (error) => reject(toCognitoClientError(error)),
+    });
+  });
 }
 
 async function refreshCognitoSession(session: CognitoSession): Promise<CognitoSession | null> {

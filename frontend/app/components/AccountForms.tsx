@@ -261,8 +261,6 @@ function SettingsPersonal({ user }: RequiredAccountUserProps) {
   const [phone, setPhone] = React.useState(profile?.phone || "");
   const [birthday, setBirthday] = React.useState(profile?.birthday?.slice(0, 10) || "");
   const [country, setCountry] = React.useState(profile?.country || "CA");
-  const [currency, setCurrency] = React.useState(profile?.currency || "CAD");
-  const [language, setLanguage] = React.useState(profile?.language || "English");
   const [marketingOptIn, setMarketingOptIn] = React.useState(profile?.marketing_opt_in ?? true);
   const [saving, setSaving] = React.useState(false);
   const [message, setMessage] = React.useState<string | null>(null);
@@ -275,8 +273,6 @@ function SettingsPersonal({ user }: RequiredAccountUserProps) {
     setPhone(profile?.phone || "");
     setBirthday(profile?.birthday?.slice(0, 10) || "");
     setCountry(profile?.country || "CA");
-    setCurrency(profile?.currency || "CAD");
-    setLanguage(profile?.language || "English");
     setMarketingOptIn(profile?.marketing_opt_in ?? true);
   }, [profile, user.name]);
 
@@ -292,8 +288,6 @@ function SettingsPersonal({ user }: RequiredAccountUserProps) {
         phone,
         birthday,
         country,
-        currency,
-        language,
         marketingOptIn,
       });
       await auth.refreshUser();
@@ -337,20 +331,6 @@ function SettingsPersonal({ user }: RequiredAccountUserProps) {
               <option value="US">United States</option>
             </select>
           </div>
-          <div className="acc-field">
-            <span className="acc-flabel">Currency</span>
-            <select className="input-dark" value={currency} onChange={(event) => setCurrency(event.target.value)}>
-              <option value="CAD">CAD</option>
-              <option value="USD">USD</option>
-            </select>
-          </div>
-        </div>
-        <div className="acc-field">
-          <span className="acc-flabel">Language</span>
-          <select className="input-dark" value={language} onChange={(event) => setLanguage(event.target.value)}>
-            <option value="English">English</option>
-            <option value="Francais">Francais</option>
-          </select>
         </div>
         <div className="acc-row">
           <div className="acc-row-info"><div className="acc-row-label">Seasonal ideas and reminders</div><div className="acc-row-desc">Occasional emails for gifts, birthdays, and new card styles.</div></div>
@@ -628,20 +608,131 @@ function SettingsPayments() {
   );
 }
 
+/**
+ * The account's currency (it used to be a CAD/USD button in the nav).
+ * Saves to the profile as soon as it's changed; on failure it goes back to
+ * the saved value and says so.
+ */
+function PrefsCurrency() {
+  const auth = useAuth();
+  // While the profile is being re-fetched after a save, auth.user is briefly
+  // null: keep showing the last known value rather than flicking to CAD.
+  const savedCurrency = auth.user?.currency;
+  const lastSavedRef = React.useRef(savedCurrency || "CAD");
+  if (savedCurrency) lastSavedRef.current = savedCurrency;
+  const [currency, setCurrency] = React.useState(lastSavedRef.current);
+  const [saving, setSaving] = React.useState(false);
+  const [message, setMessage] = React.useState<string | null>(null);
+  const [error, setError] = React.useState<string | null>(null);
+
+  React.useEffect(() => {
+    if (savedCurrency) setCurrency(savedCurrency);
+  }, [savedCurrency]);
+
+  async function saveCurrency(next: string) {
+    setCurrency(next);
+    setSaving(true);
+    setMessage(null);
+    setError(null);
+    try {
+      await updateAuthenticatedUser({ currency: next });
+      await auth.refreshUser();
+      setMessage("Currency saved.");
+    } catch (unknownError) {
+      setCurrency(lastSavedRef.current);
+      setError(unknownError instanceof Error ? unknownError.message : "Currency could not be saved.");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <div className="acc-field">
+      <label className="acc-flabel" htmlFor="prefs-currency">Currency</label>
+      <select
+        id="prefs-currency"
+        className="input-dark"
+        value={currency}
+        disabled={saving}
+        onChange={(event) => saveCurrency(event.target.value)}
+      >
+        <option value="CAD">CAD (Canadian Dollar)</option>
+        <option value="USD">USD (US Dollar)</option>
+      </select>
+      <div role="status">
+        {saving && <p className="acc-save-state">Saving...</p>}
+        {message && <p className="acc-save-state is-success">{message}</p>}
+        {error && <p className="acc-save-state is-error">{error}</p>}
+      </div>
+    </div>
+  );
+}
+
+/**
+ * The account's language (it used to be under Personal info). Saves as soon as
+ * it's changed, like Currency. Stored values stay "English" / "Francais".
+ */
+function PrefsLanguage() {
+  const auth = useAuth();
+  const savedLanguage = auth.user?.language;
+  const lastSavedRef = React.useRef(savedLanguage || "English");
+  if (savedLanguage) lastSavedRef.current = savedLanguage;
+  const [language, setLanguage] = React.useState(lastSavedRef.current);
+  const [saving, setSaving] = React.useState(false);
+  const [message, setMessage] = React.useState<string | null>(null);
+  const [error, setError] = React.useState<string | null>(null);
+
+  React.useEffect(() => {
+    if (savedLanguage) setLanguage(savedLanguage);
+  }, [savedLanguage]);
+
+  async function saveLanguage(next: string) {
+    setLanguage(next);
+    setSaving(true);
+    setMessage(null);
+    setError(null);
+    try {
+      await updateAuthenticatedUser({ language: next });
+      await auth.refreshUser();
+      setMessage("Language saved.");
+    } catch (unknownError) {
+      setLanguage(lastSavedRef.current);
+      setError(unknownError instanceof Error ? unknownError.message : "Language could not be saved.");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <div className="acc-field">
+      <label className="acc-flabel" htmlFor="prefs-language">Language</label>
+      <select
+        id="prefs-language"
+        className="input-dark"
+        value={language}
+        disabled={saving}
+        onChange={(event) => saveLanguage(event.target.value)}
+      >
+        <option value="English">English</option>
+        <option value="Francais">Français</option>
+      </select>
+      <div role="status">
+        {saving && <p className="acc-save-state">Saving...</p>}
+        {message && <p className="acc-save-state is-success">{message}</p>}
+        {error && <p className="acc-save-state is-error">{error}</p>}
+      </div>
+    </div>
+  );
+}
+
 function SettingsPrefs() {
   return (
     <div className="acc-set-group">
       <h2 className="acc-set-h">Preferences</h2>
       <p className="acc-set-sub">Tailor how Souvenote works for you.</p>
       <div className="acc-field-row">
-        <div className="acc-field">
-          <span className="acc-flabel">Currency</span>
-          <select className="input-dark"><option>CAD (Canadian Dollar)</option><option>USD (US Dollar)</option></select>
-        </div>
-        <div className="acc-field">
-          <span className="acc-flabel">Language</span>
-          <select className="input-dark"><option>English</option><option>Français</option></select>
-        </div>
+        <PrefsCurrency />
+        <PrefsLanguage />
       </div>
       <div className="acc-row">
         <div className="acc-row-info"><div className="acc-row-label">Save my spot automatically</div><div className="acc-row-desc">Keep drafts in Saved Cards & Songs for 30 days.</div></div>

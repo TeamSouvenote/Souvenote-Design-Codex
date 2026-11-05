@@ -1,11 +1,7 @@
-import { AuthApp } from "../components/Auth";
-import { PageChrome } from "../components/PageChrome";
+import { redirect } from "next/navigation";
 
-export default function AuthPage() {
-  return (
-    <div className="souv-route-page">
-      <PageChrome variant="auth" />
-      <main><AuthApp initialState="welcome" /></main>
-    </div>
-  );
+// The Welcome modal now opens over the signed-in Home page. This route stays
+// so existing links and the post-sign-up returnTo default keep working.
+export default function WelcomePage() {
+  redirect("/home?welcome=1");
 }
