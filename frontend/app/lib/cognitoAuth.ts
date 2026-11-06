@@ -124,6 +124,18 @@ export const AUTH_SESSION_UPDATED_EVENT = "souv-auth-session-updated";
 const HOSTED_UI_STATE_STORAGE_KEY = "souv_cognito_oauth_state";
 const HOSTED_UI_ERROR_PARAM = "souvOauthError";
 const HOSTED_UI_PROVIDER_PARAM = "souvOauthProvider";
+// Only these public error categories may survive a full-page redirect. Never
+// put provider error descriptions, account details, or tokens in the retry URL.
+const HOSTED_UI_ERROR_CODES = new Set([
+  "access_denied",
+  "HostedUiError",
+  "HostedUiTokenError",
+  "InvalidHostedUiState",
+  "HostedUiConfigurationError",
+  "HostedUiAccountSyncError",
+  "HostedUiAccountConflict",
+  "HostedUiServiceUnavailable",
+]);
 const LEGACY_HOSTED_UI_RETURN_STORAGE_KEY = "souv_cognito_oauth_return_to";
 const LEGACY_HOSTED_UI_ERROR_STORAGE_KEY = "souv_cognito_oauth_error";
 const LEGACY_HOSTED_UI_ATTEMPT_STORAGE_KEY = "souv_cognito_oauth_attempt";
@@ -469,9 +481,31 @@ function cleanAuthPath(value: string | undefined) {
 }
 
 function hostedUiErrorMessage(errorCode: string | undefined) {
-  return errorCode === "access_denied"
-    ? "Social sign-in was cancelled or denied. Please try again."
-    : "Could not finish social sign-in. Please try again.";
+  return socialAuthFailureMessage({ code: errorCode || "HostedUiError" });
+}
+
+export function socialAuthFailureMessage(error: Pick<HostedUiError, "code" | "provider">) {
+  const provider = error.provider === "SignInWithApple" ? "Apple" : error.provider || "Social";
+  if (error.code === "access_denied") {
+    return `${provider} sign-in was cancelled or denied. Please try again or use email and password.`;
+  }
+  if (error.code === "InvalidHostedUiState") {
+    return "Your social sign-in session could not be verified. Please start sign-in again in this browser.";
+  }
+  if (error.code === "HostedUiConfigurationError") {
+    return `${provider} sign-in is not configured correctly. Please use email and password or contact support.`;
+  }
+  if (error.code === "HostedUiAccountConflict") {
+    return `${provider} signed in, but this email is already linked to another Souvenote sign-in. Use your original sign-in method to access that account.`;
+  }
+  if (error.code === "HostedUiAccountSyncError" || error.code === "HostedUiServiceUnavailable") {
+    return `${provider} signed in, but Souvenote could not open your account. Please try again in a moment.`;
+  }
+  return `${provider} sign-in could not be completed. Please try again or use email and password.`;
+}
+
+function cleanHostedUiErrorCode(code: string | undefined) {
+  return code && HOSTED_UI_ERROR_CODES.has(code) ? code : "HostedUiError";
 }
 
 function cleanProvider(value: string | undefined): CognitoSocialProvider | undefined {
@@ -480,7 +514,7 @@ function cleanProvider(value: string | undefined): CognitoSocialProvider | undef
 
 function hostedUiErrorPath(authPath: string, error: HostedUiError) {
   const url = new URL(cleanAuthPath(authPath), "https://souvenote.invalid");
-  url.searchParams.set(HOSTED_UI_ERROR_PARAM, error.code === "access_denied" ? "access_denied" : "failed");
+  url.searchParams.set(HOSTED_UI_ERROR_PARAM, cleanHostedUiErrorCode(error.code));
   if (error.provider) url.searchParams.set(HOSTED_UI_PROVIDER_PARAM, error.provider);
   return `${url.pathname}${url.search}${url.hash}`;
 }
@@ -515,6 +549,22 @@ function cleanHostedUiCallbackUrl(url: URL) {
   url.searchParams.delete("error_description");
   const nextSearch = url.searchParams.toString();
   window.history.replaceState(null, "", `${url.pathname}${nextSearch ? `?${nextSearch}` : ""}${url.hash}`);
+}
+
+function failHostedUiSignIn(url: URL, authPath: string | undefined, error: HostedUiError): never {
+  storeHostedUiError(error);
+  clearHostedUiState();
+  cleanHostedUiCallbackUrl(url);
+  const retryPath = hostedUiErrorPath(cleanAuthPath(authPath), error);
+  if (`${window.location.pathname}${window.location.search}` !== retryPath) {
+    window.location.replace(retryPath);
+  }
+  throw new CognitoClientError(error.message, error.code);
+}
+
+function isHostedUiConfigurationError(code: string | undefined) {
+  return code === "invalid_scope" || code === "redirect_mismatch"
+    || code === "unauthorized_client" || code === "invalid_client";
 }
 
 // "Remember me": a remembered session is kept in localStorage and survives a
@@ -600,11 +650,11 @@ export function storeLocalUser(user: LocalUser) {
   dispatchAuthUpdate();
 }
 
-export function clearCognitoAuthState() {
+export function clearCognitoAuthState(options: { preserveHostedUiError?: boolean } = {}) {
   if (typeof window === "undefined") return;
   removeAuthItems();
   removeCognitoSdkCache();
-  pendingHostedUiError = null;
+  if (!options.preserveHostedUiError) pendingHostedUiError = null;
   pendingHostedUiAttempt = null;
   pendingHostedUiReturnTo = null;
   clearLegacyHostedUiStorage();
@@ -699,80 +749,67 @@ async function completeHostedUiSignInOnce(
   const hostedUiContext = storedState && decodedContext?.nonce === storedState.state ? decodedContext : null;
 
   if (oauthError) {
-    const error = {
-      code: oauthError === "access_denied" ? "access_denied" : "HostedUiError",
-      message: hostedUiErrorMessage(oauthError),
+    const errorCode = oauthError === "access_denied" ? "access_denied"
+      : isHostedUiConfigurationError(oauthError) ? "HostedUiConfigurationError" : "HostedUiError";
+    return failHostedUiSignIn(url, hostedUiContext?.authPath, {
+      code: errorCode,
+      message: hostedUiErrorMessage(errorCode),
       provider: hostedUiContext?.provider,
-    } satisfies HostedUiError;
-    storeHostedUiError(error);
-    clearHostedUiState();
-    cleanHostedUiCallbackUrl(url);
-    const authPath = hostedUiErrorPath(cleanAuthPath(hostedUiContext?.authPath), error);
-    if (`${window.location.pathname}${window.location.search}` !== authPath) {
-      window.location.replace(authPath);
-    }
-    throw new CognitoClientError(hostedUiErrorMessage(oauthError), "HostedUiError");
+    });
   }
 
   if (!code || !state) return null;
 
   if (!storedState || !hostedUiContext) {
-    const error = {
+    return failHostedUiSignIn(url, "/login", {
       code: "InvalidHostedUiState",
       message: "The social sign-in response could not be verified. Please try again.",
       provider: undefined,
-    } satisfies HostedUiError;
-    storeHostedUiError(error);
-    clearHostedUiState();
-    cleanHostedUiCallbackUrl(url);
-    const authPath = hostedUiErrorPath("/login", error);
-    if (`${window.location.pathname}${window.location.search}` !== authPath) {
-      window.location.replace(authPath);
-    }
-    throw new CognitoClientError("The social sign-in response could not be verified. Please try again.", "InvalidHostedUiState");
+    });
   }
 
-  const config = getHostedUiConfig();
-  const response = await fetch(`${config.domain}/oauth2/token`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/x-www-form-urlencoded",
-    },
-    body: new URLSearchParams({
-      client_id: config.clientId,
-      code,
-      code_verifier: storedState.verifier,
-      grant_type: "authorization_code",
-      redirect_uri: storedState.redirectUri,
-    }),
-  });
+  let session: CognitoSession;
+  try {
+    const config = getHostedUiConfig();
+    const response = await fetch(`${config.domain}/oauth2/token`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/x-www-form-urlencoded",
+      },
+      body: new URLSearchParams({
+        client_id: config.clientId,
+        code,
+        code_verifier: storedState.verifier,
+        grant_type: "authorization_code",
+        redirect_uri: storedState.redirectUri,
+      }),
+    });
 
-  const payload = await response.json().catch(() => ({})) as HostedUiTokenResponse;
-  if (!response.ok) {
-    const error = {
-      code: payload.error === "access_denied" ? "access_denied" : "HostedUiTokenError",
-      message: hostedUiErrorMessage(payload.error),
+    const payload = await response.json().catch(() => ({})) as HostedUiTokenResponse;
+    if (!response.ok) {
+      const errorCode = payload.error === "access_denied" ? "access_denied"
+        : isHostedUiConfigurationError(payload.error) ? "HostedUiConfigurationError" : "HostedUiTokenError";
+      throw new CognitoClientError(hostedUiErrorMessage(errorCode), errorCode);
+    }
+
+    session = buildSession({
+      IdToken: payload.id_token,
+      AccessToken: payload.access_token,
+      RefreshToken: payload.refresh_token,
+      ExpiresIn: payload.expires_in,
+    });
+  } catch (unknownError) {
+    const errorCode = unknownError instanceof CognitoClientError
+      ? unknownError.code === "MissingClaims" || unknownError.code === "MissingHostedUiConfig"
+        ? "HostedUiConfigurationError"
+        : cleanHostedUiErrorCode(unknownError.code)
+      : "HostedUiTokenError";
+    return failHostedUiSignIn(url, hostedUiContext.authPath, {
+      code: errorCode,
+      message: hostedUiErrorMessage(errorCode),
       provider: hostedUiContext.provider,
-    } satisfies HostedUiError;
-    storeHostedUiError(error);
-    clearHostedUiState();
-    cleanHostedUiCallbackUrl(url);
-    const authPath = hostedUiErrorPath(cleanAuthPath(hostedUiContext.authPath), error);
-    if (`${window.location.pathname}${window.location.search}` !== authPath) {
-      window.location.replace(authPath);
-    }
-    throw new CognitoClientError(
-      "Could not finish social sign-in. Please try again.",
-      "HostedUiTokenError",
-    );
+    });
   }
-
-  const session = buildSession({
-    IdToken: payload.id_token,
-    AccessToken: payload.access_token,
-    RefreshToken: payload.refresh_token,
-    ExpiresIn: payload.expires_in,
-  });
 
   clearHostedUiState();
   cleanHostedUiCallbackUrl(url);
@@ -793,8 +830,8 @@ export function consumeHostedUiError(): HostedUiError | null {
   const errorCode = url.searchParams.get(HOSTED_UI_ERROR_PARAM) || undefined;
   const provider = cleanProvider(url.searchParams.get(HOSTED_UI_PROVIDER_PARAM) || undefined);
   const error = pendingHostedUiError || (errorCode ? {
-    code: errorCode === "access_denied" ? "access_denied" : "HostedUiError",
-    message: hostedUiErrorMessage(errorCode),
+    code: cleanHostedUiErrorCode(errorCode),
+    message: hostedUiErrorMessage(cleanHostedUiErrorCode(errorCode)),
     provider,
   } : null);
   pendingHostedUiError = null;

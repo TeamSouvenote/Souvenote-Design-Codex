@@ -42,6 +42,7 @@ async function main() {
   const migrationFiles = [
     '002_phase1_mock_backend.sql',
     '003_account_profile_payments.sql',
+    '004_consent_terms_marketing.sql',
   ];
   const sql = migrationFiles
     .map((fileName) => fs.readFileSync(path.join(migrationDir, fileName), 'utf8'))

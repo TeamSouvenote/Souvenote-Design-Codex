@@ -14,8 +14,8 @@ import {
   CognitoClientError,
   cleanHostedUiReturnPath,
   consumeHostedUiError,
+  socialAuthFailureMessage,
   type CognitoSocialProvider,
-  type HostedUiError,
 } from "../lib/cognitoAuth";
 import { useModalDialog } from "./useModalDialog";
 
@@ -313,27 +313,6 @@ function useResendCountdown(initialSeconds = 0) {
     return () => window.clearTimeout(timer);
   }, [secondsLeft]);
   return { secondsLeft, start: () => setSecondsLeft(RESEND_WAIT_SECONDS) };
-}
-
-function socialProviderLabel(provider?: CognitoSocialProvider) {
-  if (provider === "Google") return "Google";
-  if (provider === "Facebook") return "Facebook";
-  if (provider === "SignInWithApple") return "Apple";
-  return "that social provider";
-}
-
-function socialAuthFailureMessage(error: HostedUiError) {
-  const provider = socialProviderLabel(error.provider);
-  if (error.code === "access_denied") {
-    return `${provider} sign-in was cancelled or blocked. Choose a ${provider} account that can sign in, then try again below, or use email and password.`;
-  }
-
-  if (error.code === "HostedUiAccountSyncError") {
-    const detail = error.message ? ` ${error.message}` : "";
-    return `${provider} signed in, but Souvenote could not connect that login to your account.${detail} You can try again below.`;
-  }
-
-  return `${provider} could not finish sign-in. If that email is not connected to ${provider}, choose a different ${provider} account or use email and password. You can try again below.`;
 }
 
 // Same-site paths only: rejects "//host", backslashes ("/\host" resolves to

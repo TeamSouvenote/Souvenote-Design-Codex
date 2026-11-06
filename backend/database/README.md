@@ -17,6 +17,10 @@ This folder contains the PostgreSQL database setup for the Souvenote backend.
 
 `006_print_and_send_offer.sql` adds the Print and Send offer (`print_and_send`: 999 CAD cents, 1 card, 0 credits, shipping included) to `pricing_catalog`, so the Pricing page reads its price from the database. Run it on any database seeded before 2026-11-05; fresh databases get the row from the seed. Safe to re-run.
 
+After the initial schema exists, `npm run db:migrate:phase1` from `backend/server/`
+applies the repeatable schema migrations 002, 003, and 004. It includes the consent
+columns required by sign-in. Migration 005 remains a separate, one-time data fix.
+
 Planned core tables:
 - users
 - credit_ledger

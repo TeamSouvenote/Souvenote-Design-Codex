@@ -1,12 +1,19 @@
 # Developer handoff notes
 
 Open items from the landing, auth, Welcome modal, signed-in Home and Create Options redesign (branch `landing-page-redesign`).
-Keep this list current as items are resolved. Last reviewed 2026-11-05.
+Keep this list current as items are resolved. Last reviewed 2026-11-06.
 
-Latest snapshot of the working tree: `saved-ui/create-options-2026-11-04/` (README there explains how to restore it).
+The earlier `saved-ui/create-options-2026-11-04/` snapshot is not present in this checkout.
+Use Git history to recover committed versions; local design references are not part of a clone.
 
 ## Before merging
 
+- **Integration validation (2026-11-06):** `codex/merge-landing-auth-fix` combines the latest design
+  branch (`07ac063`) with the local Google sign-in repair. The logo-style conflict keeps the current
+  image-based logos; the database documentation retains both migrations 004 and 006. Frontend tests
+  (11), backend tests (10), frontend type-check, and both production builds pass locally. Builds ran
+  in isolated temporary copies so the running development servers' output was not overwritten.
+  GitHub-hosted results must be checked on the pull request for its exact head commit.
 - **The redesign is committed on `landing-page-redesign`, not merged into `main`.** Landing (`a731844`,
   `65367c4`, `4bc032f`, `a90ed6b`); auth, Welcome modal, `/home` + nav, `/create`, Pricing, backend consent
   changes and migrations 004/005 (`51dabff`); the 2026-11-05 Pricing pass in the commit after that. Merge
@@ -37,10 +44,9 @@ Latest snapshot of the working tree: `saved-ui/create-options-2026-11-04/` (READ
 
 Check these in the Cognito console; the UI copy assumes them:
 
-- **Social sign-in isn't enabled on the app client.** The Google, Apple and Facebook buttons show on Sign Up
-  and Log In, but the 2026-11-02 integration test found Cognito answers "Login option is not available" for
-  all three. Configure the providers and enable them on the app client. The owner chose (2026-11-04) to keep the
-  buttons showing until then.
+- **Google is enabled; Apple and Facebook still need setup.** A 2026-11-05 authorize-endpoint check
+  redirects Google to `accounts.google.com` with `openid email profile`. Apple and Facebook still
+  return to Cognito's login page. The owner chose (2026-11-04) to keep the buttons showing.
 - **Email verification must use codes, not links.** Sign-up and password reset both ask the user to type a
   6-digit code. The pool's verification type must be "Code".
 - **Password policy must allow the UI's rule.** The forms say "At least 12 characters". Set the pool minimum
@@ -52,6 +58,15 @@ Check these in the Cognito console; the UI copy assumes them:
 ## How the new auth behaviour works
 
 Worth knowing before changing these areas:
+
+- **Local sign-in repair (2026-11-05).** The local database was missing migration 004, so account sync
+  failed when selecting the consent columns. Applied it locally and added it to `db:migrate:phase1`;
+  verified existing-account sync against PostgreSQL inside a rolled-back transaction. Social error
+  handling now captures the provider before clearing auth state, preserves allowlisted error categories
+  across retry redirects, and distinguishes account conflicts from backend failures. A registered email
+  alone does not link separate Cognito identities; the existing conflict protection remains in place.
+  The owner confirmed Google sign-in works after the repair. Token renewal after expiry still needs
+  a real Google-session check.
 
 - **Remember me.** Ticked (default): session stored in `localStorage`, survives a browser restart. Unticked:
   stored in `sessionStorage`, ends when the browser closes. The Cognito SDK's own token cache follows the same
@@ -290,7 +305,7 @@ behaviour below was approved by the owner on 2026-11-04.
 7. **Big Sender minimum:** the frontend fallback (`MIN_BIG_SENDER_CARDS = 1`, fallback tiers "1-10") differs from
    the seed (2). Pricing uses the seed; the cart/Delivery fallback still allows 1. Align on 2.
 
-## Paper texture on every screen (2026-11-05, uncommitted)
+## Paper texture on every screen (2026-11-05, committed in `07ac063`)
 
 Owner-approved. A fine paper grain on the page background of every screen, keeping the background colour
 (ivory measures #F7F0E8 with and without it).
@@ -308,7 +323,7 @@ Owner-approved. A fine paper grain on the page background of every screen, keepi
   child process exceptions"). A production build prerenders all four fine, so it is a dev-server hiccup; restarting `next dev`
   should clear it. An unknown slug like `/legal/terms` also gives 500 instead of 404.
 
-## Top-up credits pop-up and nav menu (2026-11-05, uncommitted)
+## Top-up credits pop-up and nav menu (2026-11-05, committed in `07ac063`)
 
 Owner-approved.
 - **Nav Credits/Cards box menu** (hover or keyboard focus, every signed-in screen): Top up credits (opens the pop-up),
@@ -333,7 +348,8 @@ Owner-approved.
 - **Never run `next build` inside `frontend/` while `npm run dev` is running.** They share `.next/`; the dev
   server then serves 404s for its JS and CSS (buttons do nothing, fonts look wrong). Fix: stop the dev server,
   delete `frontend/.next`, start it again. For production-build testing, build a copy elsewhere.
-- The local database already has migration 004's columns (checked 2026-11-04).
+- Migration 004 was applied to the local database on 2026-11-05 after missing consent columns broke
+  sign-in. Other databases must apply it separately before running this backend.
 
 ## Other loose ends
 

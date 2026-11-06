@@ -253,16 +253,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }
 
         let syncedUser: LocalUser;
+        // Account-sync failure clears auth state, including the pending attempt.
+        // Capture it first so the retry still identifies the provider and route.
+        const hostedUiAttempt = hostedUiSession ? consumeHostedUiAttempt() : null;
         try {
           syncedUser = await syncLocalUser(activeSession);
         } catch (unknownError) {
           if (hostedUiSession) {
-            const attempt = consumeHostedUiAttempt();
             const authPath = rememberHostedUiError({
-              code: "HostedUiAccountSyncError",
+              code: unknownError instanceof ApiRequestError && unknownError.status === 409
+                ? "HostedUiAccountConflict"
+                : unknownError instanceof ApiRequestError && unknownError.status >= 500
+                  ? "HostedUiServiceUnavailable"
+                  : "HostedUiAccountSyncError",
               message: errorMessageFromUnknown(unknownError, "Could not connect that social login to your Souvenote account."),
-              provider: attempt?.provider,
-            }, attempt?.authPath || "/login");
+              provider: hostedUiAttempt?.provider,
+            }, hostedUiAttempt?.authPath || "/login");
 
             if (authPath && `${window.location.pathname}${window.location.search}` !== authPath) {
               window.location.replace(authPath);
@@ -285,7 +291,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }
       } catch (unknownError) {
         if (cancelled) return;
-        clearCognitoAuthState();
+        clearCognitoAuthState({ preserveHostedUiError: true });
         setSession(null);
         setUser(null);
         setStatus("unauthenticated");

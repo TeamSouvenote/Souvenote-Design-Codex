@@ -350,7 +350,7 @@ export async function fetchAuthenticatedUser(): Promise<LocalUser> {
 
   if (!response.ok) {
     const message = await readErrorMessage(response, `Authenticated user request failed with status ${response.status}.`);
-    throw new Error(message);
+    throw new ApiRequestError(message, response.status);
   }
 
   const payload = (await response.json()) as Partial<AuthMeResponse>;
