@@ -650,6 +650,7 @@ img { display: block; max-width: 100%; }
 }
 .souv-popmenu-item:hover { color: var(--gold-hi); background: rgba(212,175,55,0.05); }
 a.souv-popmenu-item { display: block; text-decoration: none; }
+button.souv-popmenu-item { display: block; width: 100%; text-align: left; } /* "Top Up Credits" opens a pop-up, so it is a button */
 .souv-popmenu-sep { height: 1px; background: var(--divider); margin: 4px 0; }
 /* A menu taller than the screen scrolls; without this its 1px dividers get squeezed to nothing. */
 .souv-popmenu > * { flex-shrink: 0; }

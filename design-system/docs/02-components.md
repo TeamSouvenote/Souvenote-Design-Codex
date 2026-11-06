@@ -131,11 +131,26 @@ Paths are relative to `frontend/app/`. Landing class names start with `l-`. Shar
 
 **Parts:** a number in spaced capitals ("01") · a title (h3, 400) · body text (max 38ch).
 
-**Look:** a paper tile with an 18px radius and a 4px terracotta top stripe.
+**Look:** solid brand-colour tiles with an 18px radius, one colour per step, in this order (owner, 2026-11-05):
 
-**AI variant:** the step where AI does the work is gold, with a berry stripe.
+| Step | Fill | Text | Contrast |
+|---|---|---|---|
+| 1 | Berry | Ivory | 5.70 |
+| 2 (the AI step) | Gold | Espresso | 5.45 |
+| 3 | Terracotta | Deep espresso `#2E2422` | 5.30 |
+
+No top stripe: its 4px goes into the top padding, so the tiles keep their size. A soft layered shadow, a faint top-lit sheen and a light top edge make them read as raised card stock; with a mouse, a tile lifts 6px and tilts 4° on hover (none with reduced motion). Gold stays on the step where AI does the work.
 
 **Layout:** stacked, then three across from 900px.
+
+## 2.9a Pen-stroke underline
+
+**For:** one short phrase that carries the page's feeling (today: "its own personalized song" in the hero lede). At most one per screen.
+**Source:** `components/landing/LandingHero.tsx` (`.l-hero-mark`, `.l-hero-mark-line` in `landing.css`).
+
+**Look:** a hand-drawn berry stroke (2.4px, round caps, slightly wavy) just under the phrase; the text itself stays espresso, so contrast doesn't change. The phrase doesn't wrap, so keep it to a few words.
+
+**Motion:** the stroke draws in once on load (1.1s, after 0.6s). With reduced motion it's simply shown. In forced-colours mode it uses the system text colour.
 
 ## 2.10 Comparison table
 

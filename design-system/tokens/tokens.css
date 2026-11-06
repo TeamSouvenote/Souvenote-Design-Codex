@@ -26,6 +26,7 @@
   /* Espresso: ink */
   --sv-espresso-500: #655250; /* cocoa: secondary ink */
   --sv-espresso-700: #4A3B39; /* primary ink */
+  --sv-espresso-900: #2E2422; /* deep espresso: text on terracotta fills (5.3) */
   /* Forest: primary actions, dark surfaces */
   --sv-forest-500: #3A4C48;
   --sv-forest-600: #3B4D49;  /* hover */
@@ -54,6 +55,7 @@
   --sv-text-script: var(--sv-berry-500);       /* --l-script-color */
   --sv-text-label: var(--sv-berry-500);        /* --l-label */
   --sv-text-on-ai: var(--sv-espresso-700);     /* --l-ai-ink */
+  --sv-text-on-terracotta: var(--sv-espresso-900); /* --l-terracotta-ink */
   --sv-text-on-paper: var(--sv-espresso-700);  /* --l-paper-ink */
   --sv-text-on-paper-muted: var(--sv-espresso-500);
 
@@ -77,6 +79,12 @@
   --sv-engrave-opacity: 0.55;                  /* --l-engrave-opacity */
   --sv-glow-1: rgba(201, 138, 118, 0.2);       /* --l-glow-1 (terracotta) */
   --sv-glow-2: rgba(216, 182, 90, 0.16);       /* --l-glow-2 (gold) */
+
+  /* Paper texture: fine grain over the page background only (v1.2). Live: --souv-paper-* in next-app.css */
+  --sv-paper-texture: url("../assets/paper-texture.svg"); /* live: /assets/paper-texture.svg */
+  --sv-paper-size: 320px;                      /* tile size */
+  --sv-paper-opacity: 0.9;
+  --sv-paper-blend: soft-light;                /* keeps the background colour; never multiply */
 
   /* Vinyl (song player) */
   --sv-vinyl-disc: var(--sv-espresso-700);

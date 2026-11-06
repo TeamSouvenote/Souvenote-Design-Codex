@@ -43,11 +43,14 @@ export default async function SignedInHomePage({ searchParams }: { searchParams:
           titleId="home-title"
           actions={(
             <>
-              <Link className="l-btn l-btn-primary" href="/create">Create a Card</Link>
+              {/* The balance is centred under Create a Card (owner, 2026-11-05). */}
+              <div className="l-hero-cta-stack">
+                <Link className="l-btn l-btn-primary" href="/create">Create a Card</Link>
+                <CreditsLine />
+              </div>
               <Link className="l-btn l-btn-secondary" href="/create/my-cards-and-songs">Saved Cards &amp; Songs</Link>
             </>
           )}
-          note={<CreditsLine />}
         />
         <LandingGallery />
         <LandingSteps />

@@ -5,11 +5,24 @@ export const COMMUNITY_CARDS_HREF = "/community-cards";
 /** Slogan under the logo in the landing footer. */
 export const FOOTER_LEDE = "Because the card you give should be as unique as they are.";
 
+// Owner copy, 2026-11-05. "different" is berry; the second sentence is on its own line and
+// `closeMark` gets the hand-drawn berry pen stroke.
+const HERO_LEDE = {
+  leadBefore: "Everyone is ",
+  leadAccent: "different",
+  leadAfter: ", and their card should be too.",
+  closeBefore: "Introducing the first greeting card with ",
+  closeMark: "its own personalized song",
+  closeAfter: ".",
+};
+
 export const HERO_COPY = {
   titleLead: "A card worth",
   titleAccent: "keeping",
-  lede: "Create custom cards with a song meant just for them. Because the card you give should be as unique as they are.",
-  trial: "Includes 2 free credits to create a complete card",
+  ledeParts: HERO_LEDE,
+  /** Plain-text lede, also the landing page's meta description. */
+  lede: `${HERO_LEDE.leadBefore}${HERO_LEDE.leadAccent}${HERO_LEDE.leadAfter} ${HERO_LEDE.closeBefore}${HERO_LEDE.closeMark}${HERO_LEDE.closeAfter}`,
+  trial: "Includes 2 free credits",
 };
 
 // The song that comes with the hero comic card (spelling matches the comic).
@@ -62,22 +75,23 @@ export const GALLERY_TEMPLATES: GalleryTemplate[] = [
 
 export type Step = { n: string; title: string; body: string };
 
+// Owner copy, 2026-11-05 (exact wording, including the unspaced dashes).
 export const STEPS: Step[] = [
   {
     n: "01",
-    title: "Choose a moment",
-    body: "Pick the occasion and tell us who it’s for. Or upload a photo that tells the story for you.",
+    title: "Choose your moment",
+    body: "Pick an occasion and share a memory—or select a ready-made template to help guide your story.",
   },
   {
     n: "02",
-    title: "Let AI craft the card",
-    body: "Souvenote writes the words, designs the face, and composes a song — tailored to your moment.",
+    title: "Let AI bring it to life",
+    body: "Souvenote automatically composes a custom song, designs original cover art, and writes a heartfelt inside message tailored to your story.",
   },
   {
     n: "03",
-    title: "Print, send, keep",
-    // "$6.99" confirmed by the project owner (2026-11-01).
-    body: "Order and send the physical card to their door for as little as $6.99 — or save it for a rainy day.",
+    title: "Print, send, or keep",
+    // "$6.99" = Big Sender's lowest per-card price (21+ cards), confirmed by the owner 2026-11-01.
+    body: "Send a premium physical card directly to their mailbox from $6.99—or keep it as a digital keepsake for a rainy day.",
   },
 ];
 

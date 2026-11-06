@@ -18,7 +18,9 @@
      Derived tints: paper #FFFAF3, raised ivory #EFE3D5.
      Contrast (AA): espresso/ivory 9.4, berry/ivory 5.7, ivory/green 9.9,
      espresso/gold 5.5. Gold (1.7) and terracotta (2.5) are never used as
-     text on ivory; they appear only as fills, stripes and decoration. */
+     text on ivory; they appear only as fills, stripes and decoration.
+     Paper texture: shared by every screen, so it lives in next-app.css
+     (--souv-paper-*), layered on .l-backdrop below. */
   --l-bg: #F7F0E8;              /* page background */
   --l-heading: #4A3B39;         /* headings */
   --l-text: #4A3B39;            /* body text */
@@ -46,6 +48,7 @@
   --l-no: #655250;
   --l-stripe: #C98A76;          /* terracotta top stripes */
   --l-stripe-2: #9E3D58;
+  --l-terracotta-ink: #2E2422;  /* deep espresso: text on terracotta fills (5.3) */
   --l-card-back: #2F3E3B;       /* gallery card backs (gold logo on green) */
   --l-focus: #2F3E3B;
   /* Logo: antique gold (#D8B65A) on this page only, always on forest green
@@ -410,6 +413,12 @@ body:has(.souv-landing) { background: #F7F0E8; } /* keep in sync with --l-bg */
   text-decoration: none;
 }
 .souv-landing .souv-cardbank-sendlink:hover { filter: none; text-decoration: underline; text-underline-offset: 4px; }
+/* Three stacked options (Top up credits, See pricing, Saved Cards & Songs). */
+.souv-landing .souv-cardbank-pop-card { min-width: 230px; padding: 10px 14px; }
+.souv-landing .souv-cardbank-pop .souv-rule-gold { display: none; }
+.souv-landing .souv-cardbank-sendlink { width: 100%; margin-top: 0; background: none; border: 0; cursor: pointer; }
+.souv-landing .souv-cardbank-sendlink + .souv-cardbank-sendlink { border-top: 1px solid var(--l-line); }
+.souv-landing .souv-cardbank-sendlink:focus-visible { outline: 2px solid var(--l-focus); outline-offset: -2px; border-radius: 8px; }
 
 /* Cart and menu buttons */
 .souv-landing .souv-iconbtn {
@@ -601,6 +610,34 @@ body:has(.souv-landing) { background: #F7F0E8; } /* keep in sync with --l-bg */
   color: var(--l-text);
   font-size: clamp(1.1rem, 1rem + 0.45vw, 1.3rem);
 }
+/* Lede (owner copy, 2026-11-05): "different" in berry; the second sentence on its own line, with a
+   hand-drawn berry pen stroke under "its own personalized song" that draws in once on load.
+   The text stays espresso, so contrast is unchanged; the stroke is decoration only. */
+.souv-landing .l-hero-lede-close { display: block; margin-top: 0.3em; }
+/* One coloured word in the first sentence: berry on ivory is 5.7:1. */
+.souv-landing .l-hero-accent { color: var(--l-script-color); }
+.souv-landing .l-hero-mark { position: relative; white-space: nowrap; }
+.souv-landing .l-hero-mark-line {
+  position: absolute; left: -2px; right: -4px; bottom: -0.32em;
+  width: calc(100% + 6px); height: 0.5em;
+  overflow: visible; pointer-events: none;
+}
+.souv-landing .l-hero-mark-line path {
+  fill: none;
+  stroke: var(--l-script-color);
+  stroke-width: 2.4px;
+  stroke-linecap: round;
+  vector-effect: non-scaling-stroke;
+}
+/* Drawn in by wiping the stroke in from the left (a dash-offset draw is cut short in Chromium
+   when the stroke is stretched with non-scaling-stroke). */
+@media (prefers-reduced-motion: no-preference) {
+  .souv-landing .l-hero-mark-line { animation: l-pen-draw 1.1s 0.6s var(--l-ease) both; }
+}
+@keyframes l-pen-draw { from { clip-path: inset(-50% 100% -50% 0); } to { clip-path: inset(-50% -2% -50% 0); } }
+@media (forced-colors: active) {
+  .souv-landing .l-hero-mark-line path { stroke: CanvasText; }
+}
 .souv-landing .l-hero-ctas { display: flex; flex-direction: column; gap: 12px; margin-top: 32px; }
 .souv-landing .l-hero-trial {
   margin-top: 18px;
@@ -610,8 +647,17 @@ body:has(.souv-landing) { background: #F7F0E8; } /* keep in sync with --l-bg */
 }
 /* Signed-in balance line: keeps its height while the balance loads. */
 .souv-landing .l-hero-balance { min-height: 1.65em; }
+/* A button with its note centred under it: Start for Free + "Includes 2 free credits" on /,
+   Create a Card + the balance on /home. Full width on phones like the other buttons. */
+.souv-landing .l-hero-cta-stack { display: flex; flex-direction: column; }
+.souv-landing .l-hero-cta-stack .l-hero-note { text-align: center; }
 @media (min-width: 480px) {
-  .souv-landing .l-hero-ctas { flex-direction: row; flex-wrap: wrap; }
+  /* flex-start so the button beside the stack keeps its own height. */
+  .souv-landing .l-hero-ctas { flex-direction: row; flex-wrap: wrap; align-items: flex-start; }
+  .souv-landing .l-hero-cta-stack { align-items: center; }
+  /* The note may be wider than its button: the negative side margins let it overhang both
+     sides evenly without widening the stack, so the button stays in line with the lede. */
+  .souv-landing .l-hero-cta-stack .l-hero-note { margin-inline: -48px; }
 }
 @media (min-width: 960px) {
   .souv-landing .l-hero-inner { grid-template-columns: 1.1fr 0.9fr; gap: 48px; }
@@ -902,10 +948,45 @@ body:has(.souv-landing) { background: #F7F0E8; } /* keep in sync with --l-bg */
   color: var(--l-paper-ink);
   border-top: 4px solid var(--l-stripe);
 }
+/* Brand colours, one per step (owner, 2026-11-05): berry, gold (the AI step), terracotta.
+   Solid fills, so there's no top stripe; its 4px goes into the top padding (tile size unchanged).
+   Contrast: ivory on berry 5.7, espresso on gold 5.5, deep espresso #2E2422 on terracotta 5.3. */
+.souv-landing .l-step { border-top: 0; padding-top: 32px; }
+/* Raised card stock (owner, 2026-11-05: "too flat, subtle shadow or 3D"): a soft layered shadow,
+   a faint top-lit sheen and a light top edge. With a mouse, a tile lifts and tilts slightly on
+   hover; no motion with reduced motion. Sheen keeps contrast: ivory on berry stays above 5:1. */
+.souv-landing .l-steps-list { perspective: 1400px; }
+.souv-landing .l-step {
+  background-image: linear-gradient(170deg, rgba(255, 255, 255, 0.12), rgba(255, 255, 255, 0) 45%, rgba(46, 36, 34, 0.05));
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.28),
+    0 1px 2px rgba(74, 59, 57, 0.10),
+    0 10px 24px -8px rgba(74, 59, 57, 0.30),
+    0 24px 48px -24px rgba(74, 59, 57, 0.28);
+  transform-origin: 50% 100%;
+  transition: transform 0.6s var(--l-ease), box-shadow 0.6s var(--l-ease);
+}
+@media (hover: hover) and (pointer: fine) and (prefers-reduced-motion: no-preference) {
+  .souv-landing .l-step:hover {
+    transform: translateY(-6px) rotateX(4deg);
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.32),
+      0 2px 4px rgba(74, 59, 57, 0.10),
+      0 18px 32px -10px rgba(74, 59, 57, 0.34),
+      0 36px 64px -28px rgba(74, 59, 57, 0.30);
+  }
+}
+.souv-landing .l-step:nth-child(1) {
+  background-color: var(--l-script-color);
+  color: var(--l-bg);
+}
 .souv-landing .l-step:nth-child(2) {
-  background: var(--l-ai);
+  background-color: var(--l-ai);
   color: var(--l-ai-ink);
-  border-top-color: var(--l-stripe-2);
+}
+.souv-landing .l-step:nth-child(3) {
+  background-color: var(--l-stripe);
+  color: var(--l-terracotta-ink);
 }
 .souv-landing .l-step-num { display: block; font-size: 13px; font-weight: 700; letter-spacing: 0.22em; }
 .souv-landing .l-step-title {

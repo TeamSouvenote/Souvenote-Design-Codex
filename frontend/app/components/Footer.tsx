@@ -53,7 +53,7 @@ const PAGE_HREFS = {
 } as const satisfies Record<string, string | null>;
 
 const FOOTER_COLS: FooterColumn[] = [
-  { title: "Create", items: ["Build My Card", "Personalize a Template", "Saved Cards & Songs", "Community Cards"] },
+  { title: "Create", items: ["Build My Card", "Personalize a Template", "Community Cards", "Saved Cards & Songs"] },
   // Gift a Souvenote and Refer a Friend are not linked anywhere (owner decision 2026-11-04).
   { title: "Account", items: ["Profile", "Account Settings"] },
   // About is hidden until an About page exists (owner decision 2026-11-04).
@@ -62,7 +62,7 @@ const FOOTER_COLS: FooterColumn[] = [
 
 // Landing footer: Pricing added to the Account column.
 const LANDING_FOOTER_COLS: FooterColumn[] = FOOTER_COLS.map((col) =>
-  col.title === "Account" ? { ...col, items: ["Profile", "Pricing", "Account Settings"] } : col,
+  col.title === "Account" ? { ...col, items: ["Profile", "Account Settings", "Pricing"] } : col,
 );
 
 const DEFAULT_LEDE = "Because the card you send should be as unique as they are.";

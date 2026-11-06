@@ -14,6 +14,43 @@ body { min-height: 100vh; }
   --souv-page-visual-start: var(--souv-page-top-space);
 }
 
+/* ---------- Paper texture (every screen; owner-approved 2026-11-05) ----------
+   Lives here, not in a page stylesheet, because every screen loads this file.
+   A fine paper grain over the PAGE BACKGROUND only: cards, photos, buttons,
+   the nav, popovers and forest bands stay smooth. Generated asset
+   (/assets/paper-texture.svg, mid-grey on average) blended with soft-light,
+   so the background keeps its colour (ivory #F7F0E8 measures the same with
+   and without it). Design-system tokens: --sv-paper-*.
+   - Redesigned screens: a layer on top of their fixed backdrop
+     (.l-backdrop on landing/home/create/pricing, .auth-backdrop on auth).
+   - Older screens: a fixed layer behind the page content, over the body colour.
+   New screens get it automatically if their background is one of these
+   backdrops or the body. Off in forced-colours mode and in print. */
+:root {
+  --souv-paper-texture: url("/assets/paper-texture.svg");
+  --souv-paper-size: 320px;
+  --souv-paper-opacity: 0.9;
+}
+body::before,
+.souv-landing .l-backdrop::after,
+.souv-auth .auth-backdrop::after {
+  content: "";
+  inset: 0;
+  pointer-events: none;
+  background-image: var(--souv-paper-texture);
+  background-size: var(--souv-paper-size) var(--souv-paper-size);
+  mix-blend-mode: soft-light;
+  opacity: var(--souv-paper-opacity);
+}
+body::before { position: fixed; z-index: -1; }
+.souv-landing .l-backdrop::after,
+.souv-auth .auth-backdrop::after { position: absolute; }
+@media (forced-colors: active), print {
+  body::before,
+  .souv-landing .l-backdrop::after,
+  .souv-auth .auth-backdrop::after { content: none; }
+}
+
 @media (max-width: 1220px) {
   :root {
     --souv-page-top-space: 120px;

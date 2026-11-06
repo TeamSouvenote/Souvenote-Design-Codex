@@ -18,7 +18,7 @@ export function CreditsLine() {
     : "";
 
   return (
-    <p className="l-hero-trial l-hero-balance" aria-live="polite">
+    <p className="l-hero-trial l-hero-balance l-hero-note" aria-live="polite">
       {text}
     </p>
   );

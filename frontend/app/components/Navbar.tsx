@@ -2,6 +2,7 @@
 
 import * as React from "react";
 import Link from "next/link";
+import dynamic from "next/dynamic";
 import { usePathname, useRouter } from "next/navigation";
 import { useAuth } from "./AuthProvider";
 import { useCreditBalance } from "../lib/creditBalance";
@@ -9,6 +10,9 @@ import type { CreditBalanceStatus } from "../lib/creditBalance";
 import type { DemoCredits, DemoUser } from "./DemoUser";
 import { useDemoBalance } from "./DemoBalance";
 import { useCartCount } from "./cartCount";
+
+// Top-up pop-up: loaded the first time it opens, so its code and styles aren't on every page.
+const TopUpCreditsModal = dynamic(() => import("./pricing/TopUpCreditsModal"), { ssr: false });
 
 type NavLink = {
   label: string;
@@ -22,6 +26,8 @@ type CreditsTickerProps = {
   credits?: number;
   cardBank?: number;
   status?: CreditBalanceStatus;
+  /** Opens the top-up credits pop-up (owned by NavRight, so the hamburger can open it too). */
+  onTopUp: () => void;
 };
 
 type NavRightProps = {
@@ -120,7 +126,7 @@ function plural(count: number, noun: string) {
   return `${count} ${noun}${count === 1 ? "" : "s"}`;
 }
 
-function CreditsTicker({ credits = 0, cardBank = 0, status = "idle" }: CreditsTickerProps) {
+function CreditsTicker({ credits = 0, cardBank = 0, status = "idle", onTopUp }: CreditsTickerProps) {
   const loading = status === "loading";
   const error = status === "error";
   // The box always reads "Credits N": 0 while the balance loads or if it
@@ -149,10 +155,16 @@ function CreditsTicker({ credits = 0, cardBank = 0, status = "idle" }: CreditsTi
           <em>Cards</em><b>{cardBank}</b>
         </span>
       </Link>
+      {/* Shown on hover and on keyboard focus (owner, 2026-11-05): top up in a pop-up, see pricing, or
+          go to Saved Cards & Songs (where the box itself also links). */}
       <div className="souv-cardbank-pop">
         <div className="souv-cardbank-pop-card">
           <div className="souv-cardbank-pop-arrow" />
           <div className="souv-rule-gold" />
+          <button type="button" className="souv-cardbank-sendlink" onClick={onTopUp} aria-haspopup="dialog">
+            Top up credits
+          </button>
+          <Link className="souv-cardbank-sendlink" href="/pricing">See pricing</Link>
           <Link className="souv-cardbank-sendlink" href="/create/my-cards-and-songs">Saved Cards &amp; Songs</Link>
         </div>
       </div>
@@ -243,6 +255,7 @@ function NavRight({
   const cartCount = useCartCount();
   const pathname = usePathname();
   const menuButtonRef = React.useRef<HTMLButtonElement | null>(null);
+  const [topUpOpen, setTopUpOpen] = React.useState(false);
   const menuWrapRef = React.useRef<HTMLDivElement | null>(null);
   const siteMenuId = React.useId();
   const onMenuBlur = useMenuDismiss(menuOpen, () => setMenuOpen(false), menuWrapRef, menuButtonRef);
@@ -259,7 +272,8 @@ function NavRight({
 
   return (
     <div className="souv-nav-right">
-      <CreditsTicker credits={creditBalance} cardBank={cardBank} status={creditStatus} />
+      <CreditsTicker credits={creditBalance} cardBank={cardBank} status={creditStatus} onTopUp={() => setTopUpOpen(true)} />
+      {topUpOpen && <TopUpCreditsModal onClose={() => setTopUpOpen(false)} />}
       <span className="souv-nav-sep" aria-hidden="true" />
 
       <div className="souv-iconbtn-wrap">
@@ -309,7 +323,21 @@ function NavRight({
             <Link href="/account/settings" className="souv-popmenu-item">Account Settings</Link>
             <div className="souv-popmenu-sep" />
             <Link href="/create/my-cards-and-songs" className="souv-popmenu-item">Saved Cards &amp; Songs</Link>
-            <Link href="/pricing" className="souv-popmenu-item">Top Up Cards/Credits</Link>
+            {/* Owner, 2026-11-05: cards go to Pricing (card packs are at the top); credits open the top-up pop-up. */}
+            <Link href="/pricing" className="souv-popmenu-item">Top Up Cards</Link>
+            <button
+              type="button"
+              className="souv-popmenu-item"
+              aria-haspopup="dialog"
+              onClick={() => {
+                setMenuOpen(false);
+                // Focus returns to the menu button when the pop-up closes.
+                menuButtonRef.current?.focus();
+                setTopUpOpen(true);
+              }}
+            >
+              Top Up Credits
+            </button>
             <div className="souv-popmenu-sep" />
             {compactLinks && (
               // Phones only (hidden from 701px up, where the bar shows these).

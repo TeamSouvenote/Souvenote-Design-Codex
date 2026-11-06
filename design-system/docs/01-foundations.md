@@ -11,14 +11,15 @@ The token names are in `tokens/tokens.css` and `tokens/tokens.json`.
 |---|---|---|---|
 | Dusty berry | `#9E3D58` | `--sv-berry-500` | Brand voice: script accent words, small labels, hover and active states |
 | Warm ivory | `#F7F0E8` | `--sv-ivory-200` | Page background; text and buttons on forest |
-| Paper | `#FFFAF3` | `--sv-ivory-100` | Step tiles, comparison table |
+| Paper | `#FFFAF3` | `--sv-ivory-100` | Comparison table, tiles and cards |
 | Raised ivory | `#EFE3D5` | `--sv-ivory-300` | Open FAQ item, menus |
 | Soft espresso | `#4A3B39` | `--sv-espresso-700` | All main text and headings; engravings |
 | Cocoa | `#655250` | `--sv-espresso-500` | Secondary text, "no" marks |
+| Deep espresso | `#2E2422` | `--sv-espresso-900` | Text on terracotta fills only (the third step tile) |
 | Forest green | `#2F3E3B` | `--sv-forest-700` | Primary buttons; nav, footer and comparison band |
 | Antique gold | `#D8B65A` | `--sv-gold-400` | Means "AI made this"; the logo on forest |
 | Platinum | `#CBCFD6` | `--sv-platinum-400` | Only the music note in the "S" mark (the app's existing `--platinum-mid`). Not for text or surfaces |
-| Muted terracotta | `#C98A76` | `--sv-terracotta-400` | Top stripes on tiles and footer; background glow |
+| Muted terracotta | `#C98A76` | `--sv-terracotta-400` | Top stripes on tiles and footer; background glow; the third step tile's fill |
 | Oat | `#D9CFC3` | `--sv-ivory-400` | Secondary text on forest |
 
 The real colours are shown in `reference/index.html`.
@@ -29,14 +30,14 @@ The page should feel mostly ivory, held together by forest, and lifted by berry 
 
 - **About 70% ivory and paper.** Content sits on light surfaces.
 - **About 20% forest.** The nav, the comparison band, the footer and the main buttons.
-- **About 10% accents.** Berry for words that matter, gold for anything AI-made, terracotta for stripes.
+- **About 10% accents.** Berry for words that matter, gold for anything AI-made, terracotta for stripes. The three step tiles are the one place all three accents appear side by side as fills.
 
 ### Colour meanings
 
 - **Gold means AI.** The AI step tile, the song chip and the Souvenote row in the comparison table are gold. Don't use gold for anything that isn't AI-made, or the signal stops working.
 - **Berry means emphasis.** One script word per heading, small spaced-capital labels, and every hover or active state on ivory.
 - **Forest means action or structure.** Primary buttons, and the bands that frame the page.
-- **Terracotta is decoration only.** It appears in stripes and the background glow, never as text.
+- **Terracotta is decoration.** It appears in stripes, the background glow and the third step tile's fill, never as text. On a terracotta fill, text is deep espresso (`--sv-text-on-terracotta`).
 
 ### Contrast (measured, WCAG 2.2)
 
@@ -58,6 +59,8 @@ The page should feel mostly ivory, held together by forest, and lifted by berry 
 | Ivory | Berry | 5.70 | Any text |
 | Berry | Gold | 3.30 | Large text only (24px+, or 19px+ bold) |
 | Espresso | Terracotta | 3.74 | Large text only (the terracotta card's script title) |
+| Deep espresso | Terracotta | 5.30 | Any text (the third step tile) |
+| Ivory | Terracotta | 2.52 | **Never.** Use deep espresso on terracotta |
 | **Gold** | **Ivory** | **1.73** | **Never text.** Fills only |
 | **Terracotta** | **Ivory** | **2.52** | **Never text.** Stripes only |
 | **Berry** | **Forest** | **1.74** | **Never.** Use gold for accents on forest |
@@ -74,6 +77,16 @@ There are two surface themes. Components never pick colours directly: they use r
 | Primary button | Forest with ivory text | Ivory with forest text (white on hover) |
 | Lines | Espresso at 14% / 34% | Ivory at 16% / 40% |
 
+### Paper texture
+
+Every screen has a fine paper grain on its **page background** (v1.2, 2026-11-05). It makes the ivory feel like card stock without changing its colour.
+
+- **Asset:** `assets/paper-texture.svg` (live copy `frontend/public/assets/paper-texture.svg`). Generated, not a photo: fractal noise lit from the upper right so the fibres look slightly raised, shifted to mid-grey on average. Tiles seamlessly at 320px.
+- **Blend:** `soft-light` at 0.9 opacity. Soft-light adds light and dark grain around the base colour, so the ivory measures the same with and without it (#F7F0E8). **Never use `multiply`**: that darkens the background.
+- **Where:** the page background only. Cards, paper tiles, photos, buttons, inputs, the nav, popovers and forest bands stay smooth. On forest or other dark backgrounds the grain is barely visible, and that's fine.
+- **Off** in forced-colours (high contrast) mode and in print.
+- **Tokens:** `--sv-paper-texture`, `--sv-paper-size`, `--sv-paper-opacity`, `--sv-paper-blend` (live: `--souv-paper-*` in `next-app.css`).
+
 ## 1.2 Typography
 
 Two families, both from Google Fonts.
@@ -89,7 +102,7 @@ Two families, both from Google Fonts.
 | Display script | Lobster Two | 400 | 1.12em of the display line | 1.08 | 0 | "keeping" |
 | Section heading (h2) | Lato | 300 | `clamp(2.1rem, 1.5rem + 2.8vw, 3.5rem)` (34-56px) | 1.15 | -0.01em | "Three steps," |
 | Heading script | Lobster Two | 400 | 1.1em | inherit | 0 | "one keepsake" |
-| Title (h3) | Lato | 400 | `clamp(1.45rem, 1.3rem + 0.6vw, 1.75rem)` | 1.25 | 0 | "Choose a moment" |
+| Title (h3) | Lato | 400 | `clamp(1.45rem, 1.3rem + 0.6vw, 1.75rem)` | 1.25 | 0 | "Choose your moment" |
 | Lede | Lato | 400 | `clamp(1.1rem, 1rem + 0.45vw, 1.3rem)` | 1.65 | 0 | Hero paragraph |
 | Body | Lato | 400 | 17px (18px from 600px) | 1.65 | 0 | Paragraphs |
 | Question | Lato | 400 | `clamp(1.06rem, 1rem + 0.3vw, 1.2rem)` | 1.4 | 0 | FAQ questions |

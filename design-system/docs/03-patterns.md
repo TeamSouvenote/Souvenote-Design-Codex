@@ -6,9 +6,9 @@
 |---|---|---|---|
 | 0 | Skip link | n/a | Skip link |
 | 1 | Nav | Forest (floating) | Gold wordmark, 4 links, Log In, Start for Free |
-| 2 | Hero | Ivory with glow | Display heading, lede, buttons, free-credits line, keepsake card, song chip |
+| 2 | Hero | Ivory with glow | Display heading, lede (second sentence on its own line with a pen-stroke underline), buttons with the free-credits line centred under Start for Free, keepsake card, song chip |
 | 3 | Gallery | Ivory | Section heading (start-aligned) in a left rail, arrows, flip cards |
-| 4 | Steps | Ivory | Section heading, 3 step tiles (the middle one AI gold) |
+| 4 | Steps | Ivory | Section heading, 3 step tiles: berry, gold (AI), terracotta |
 | 5 | Comparison | Forest band | Heading with logo, paper table |
 | 6 | FAQ | Ivory | Section heading, accordion |
 | 7 | Footer | Forest, terracotta stripe | Wordmark, slogan, social, link columns |
@@ -28,6 +28,18 @@
 
 - Every section is labelled by its heading (`aria-labelledby`).
 - There is one h1 per page (the hero). Sections use h2; cards, steps and questions use h3.
+
+### Paper texture on every screen
+
+The grain (see [Foundations: Paper texture](01-foundations.md#paper-texture)) is applied once, in `frontend/app/styles/next-app.css`, so a new screen gets it automatically when its background is painted by one of:
+
+| Screen type | Background element | Texture layer |
+|---|---|---|
+| Landing-style screens (`.souv-landing`: landing, home, create, pricing) | `.l-backdrop` (fixed) | `.l-backdrop::after` |
+| Auth screens (`.souv-auth`) | `.auth-backdrop` (fixed) | `.auth-backdrop::after` |
+| Anything else | the page `body` colour | `body::before` (fixed, behind content) |
+
+When building a new screen, paint its ivory with one of these, not with a full-page section background. A section that paints its own opaque full-width background (like the forest band) covers the grain. If a new screen needs its own backdrop element, add its `::after` to the shared rule in `next-app.css`; don't copy the texture into a page stylesheet.
 
 ## 3.3 Forest surfaces
 

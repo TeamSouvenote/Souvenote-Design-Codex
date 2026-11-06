@@ -146,8 +146,9 @@
 }
 
 /* Prices in berry (emphasis): berry on paper is about 6:1. */
+/* Prices one weight step heavier (owner, 2026-11-05): big prices 300 -> 400, tier prices and total 400 -> 700. */
 .souv-pricing .pr-price {
-  font-weight: 300;
+  font-weight: 400;
   font-size: clamp(2.2rem, 2rem + 1vw, 2.8rem);
   line-height: 1;
   color: var(--l-script-color);
@@ -204,7 +205,7 @@
 }
 .souv-pricing .pr-tier-price {
   font-size: clamp(1.2rem, 1.1rem + 0.4vw, 1.4rem);
-  font-weight: 400;
+  font-weight: 700;
   line-height: 1.2;
   font-variant-numeric: tabular-nums;
 }
@@ -263,7 +264,7 @@
 .souv-pricing .pr-qty-total {
   margin-left: auto;
   color: var(--l-heading);
-  font-size: 1.5rem; font-weight: 400;
+  font-size: 1.5rem; font-weight: 700;
   font-variant-numeric: tabular-nums;
 }
 
@@ -440,7 +441,7 @@
 .souv-pricing .pr-credit-price {
   margin-top: 6px;
   color: var(--l-script-color);
-  font-size: 2.2rem; font-weight: 300;
+  font-size: 2.2rem; font-weight: 400;
   line-height: 1.1;
   font-variant-numeric: tabular-nums;
 }
@@ -547,4 +548,55 @@
   .pr-ready-overlay .pr-ready-close { transition: none; }
   .pr-ready-overlay .pr-ready { animation: none; }
   .souv-pricing .pr-more-tab svg { animation: none; }
+}
+
+/* ==========================================================================
+   Top-up credits pop-up (TopUpCreditsModal.tsx; owner, 2026-11-05)
+   Opened from the nav's Credits/Cards menu. The root is also `.souv-landing
+   .souv-pricing`, so the Pricing page's pack cards (.pr-credit*) look the same.
+   ========================================================================== */
+.souv-landing.tu-overlay {
+  position: fixed; inset: 0; z-index: 1000;
+  display: flex;               /* the dialog's auto margins centre it, and a tall one still scrolls from the top */
+  padding: 20px;
+  background: transparent;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+.tu-overlay .tu-scrim {
+  position: fixed; inset: 0;
+  background: rgba(47, 62, 59, 0.6);
+}
+.tu-overlay .tu-dialog {
+  position: relative;
+  width: 100%; max-width: 1120px;
+  margin: auto;
+  padding: 48px 20px 32px;
+  border-radius: 22px;
+  border-top: 4px solid var(--l-ai);   /* credits are AI: gold */
+  background: var(--l-bg);
+  color: var(--l-text);
+  box-shadow: var(--l-shadow);
+  animation: pr-ready-in .35s var(--l-ease) both;
+}
+.tu-overlay .tu-dialog:focus { outline: none; }
+@media (min-width: 600px) {
+  .tu-overlay .tu-dialog { padding: 52px 36px 40px; }
+}
+.tu-overlay .tu-close {
+  position: absolute; top: 10px; right: 10px;
+  display: grid; place-items: center;
+  width: 44px; height: 44px;
+  border: 0; border-radius: 50%;
+  background: transparent;
+  color: var(--l-text);
+  cursor: pointer;
+  transition: background .25s var(--l-ease), color .25s var(--l-ease);
+}
+.tu-overlay .tu-close:hover { background: var(--l-raised); color: var(--l-hover); }
+.tu-overlay .tu-close:focus-visible { outline: 2px solid var(--l-focus); outline-offset: 2px; }
+.tu-overlay .tu-head { margin-bottom: 40px; }
+@media (prefers-reduced-motion: reduce) {
+  .tu-overlay .tu-dialog { animation: none; }
+  .tu-overlay .tu-close { transition: none; }
 }

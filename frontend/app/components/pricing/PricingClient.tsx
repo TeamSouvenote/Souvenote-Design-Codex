@@ -26,7 +26,8 @@ import { CREDIT_PACKS, type CreditPack } from "./pricingContent";
 // - Buying while signed out goes to /signup?returnTo=/pricing; signed in, the
 //   item is added to the cart (localStorage "souv_cart") and the cart opens.
 // Changed (owner decisions 2026-11-04):
-// - Print and Send ($8.99, fixed in pricingCatalog.ts) replaces Try Risk-Free.
+// - Print and Send ($9.99) replaces Try Risk-Free. Its price comes from the catalog
+//   (migration 006), falling back to PRINT_AND_SEND_PRICE in pricingCatalog.ts.
 // - Big Sender has no maximum quantity (the last tier is open-ended).
 
 type CartItem = {
@@ -68,17 +69,18 @@ function addToCart(item: CartItem) {
   }
 }
 
-function useBuy() {
+/** Signed out: sign up, then come back to `returnTo`. Signed in: add to the cart and open it. */
+function useBuy(returnTo = "/pricing") {
   const router = useRouter();
   const auth = useAuth();
   return React.useCallback((item: CartItem) => {
     if (auth.status !== "authenticated") {
-      router.push(`/signup?returnTo=${encodeURIComponent("/pricing")}`);
+      router.push(`/signup?returnTo=${encodeURIComponent(returnTo)}`);
       return;
     }
     addToCart(item);
     router.push("/cart");
-  }, [auth.status, router]);
+  }, [auth.status, returnTo, router]);
 }
 
 function IconArrow() {
@@ -136,9 +138,25 @@ function HowItWorks({ id, items }: { id: string; items: HowItem[] }) {
 // Print and Send (condensed copy approved 2026-11-04: shorter intro, and the
 // card-bank explanation is now step 1 of How it works)
 // ============================================================
-function PrintAndSendCard() {
+/**
+ * Print and Send's price from the pricing catalog (`print_and_send`, migration 006), in dollars.
+ * Falls back to PRINT_AND_SEND_PRICE while loading or if the backend is down, so the card never waits.
+ * The cart and checkout still price it from PRINT_AND_SEND_PRICE (like Big Sender's tiers), so a
+ * mismatch is logged in development; keep the two equal until checkout reads the catalog.
+ */
+function printAndSendPriceFrom(offers: PricingOffer[]): number {
+  const offer = offers.find((candidate) => candidate.type === "print_and_send" || candidate.id === "print_and_send");
+  const price = offer && Number.isFinite(offer.priceCents) && offer.priceCents > 0 ? offer.priceCents / 100 : null;
+  if (price === null) return PRINT_AND_SEND_PRICE;
+  if (price !== PRINT_AND_SEND_PRICE && process.env.NODE_ENV !== "production") {
+    console.warn(`Print and Send: catalog says $${price.toFixed(2)} but the cart uses $${PRINT_AND_SEND_PRICE.toFixed(2)} (pricingCatalog.ts).`);
+  }
+  return price;
+}
+
+function PrintAndSendCard({ price: priceValue }: { price: number }) {
   const buy = useBuy();
-  const price = money(PRINT_AND_SEND_PRICE);
+  const price = money(priceValue);
 
   return (
     <article className="pr-offer" aria-labelledby="pr-ps-name">
@@ -306,12 +324,14 @@ export function PricingCardPacks() {
   const [state, setState] = React.useState<
     { status: "loading" } | { status: "error" } | { status: "ready"; data: BigSenderData }
   >({ status: "loading" });
+  const [printAndSendPrice, setPrintAndSendPrice] = React.useState(PRINT_AND_SEND_PRICE);
 
   React.useEffect(() => {
     let active = true;
     fetchPricingOffers()
       .then((offers) => {
         if (!active) return;
+        setPrintAndSendPrice(printAndSendPriceFrom(offers));
         const data = buildBigSender(offers);
         setState(data ? { status: "ready", data } : { status: "error" });
       })
@@ -323,7 +343,7 @@ export function PricingCardPacks() {
 
   return (
     <div className="pr-offers">
-      <PrintAndSendCard />
+      <PrintAndSendCard price={printAndSendPrice} />
       {state.status === "ready"
         ? <BigSenderCard data={state.data} />
         : <BigSenderPlaceholder status={state.status} />}
@@ -334,8 +354,15 @@ export function PricingCardPacks() {
 // ============================================================
 // Creation credits (Starter / Creator / Power; copy unchanged)
 // ============================================================
-function CreditPackCard({ pack }: { pack: CreditPack }) {
-  const buy = useBuy();
+type CreditPacksProps = {
+  /** Where a signed-out visitor returns after signing up. */
+  returnTo?: string;
+  /** Called after a pack is chosen, before the cart opens (the top-up modal closes itself). */
+  onChosen?: () => void;
+};
+
+function CreditPackCard({ pack, returnTo, onChosen }: CreditPacksProps & { pack: CreditPack }) {
+  const buy = useBuy(returnTo);
   const titleId = `pr-credit-${pack.id}`;
   return (
     <li className={`pr-credit ${pack.featured ? "is-featured" : ""}`}>
@@ -351,7 +378,7 @@ function CreditPackCard({ pack }: { pack: CreditPack }) {
         <button
           type="button"
           className={`l-btn ${pack.featured ? "l-btn-primary" : "l-btn-secondary"} pr-cta`}
-          onClick={() => buy({
+          onClick={() => { onChosen?.(); buy({
             id: `credit-${pack.id}`,
             type: "credits",
             name: `${pack.name} credits`,
@@ -361,7 +388,7 @@ function CreditPackCard({ pack }: { pack: CreditPack }) {
             qty: 1,
             unitNote: "one-time top-up",
             tokens: String(pack.tokens),
-          })}
+          }); }}
         >
           <span>Choose {pack.name}</span>
           <IconArrow />
@@ -371,10 +398,11 @@ function CreditPackCard({ pack }: { pack: CreditPack }) {
   );
 }
 
-export function PricingCreditPacks() {
+/** The three credit packs. Used by the Pricing page and the top-up modal (TopUpCreditsModal.tsx). */
+export function PricingCreditPacks({ returnTo, onChosen }: CreditPacksProps = {}) {
   return (
     <ul className="pr-credits-grid">
-      {CREDIT_PACKS.map((pack) => <CreditPackCard key={pack.id} pack={pack} />)}
+      {CREDIT_PACKS.map((pack) => <CreditPackCard key={pack.id} pack={pack} returnTo={returnTo} onChosen={onChosen} />)}
     </ul>
   );
 }

@@ -24,6 +24,8 @@ Latest snapshot of the working tree: `saved-ui/create-options-2026-11-04/` (READ
   Every user read and profile update in the backend selects these columns, so on a database without 004
   the API returns errors and sign-in breaks. Migration 005 is a one-time data fix to run once after 004 on
   existing databases (see `backend/database/README.md`).
+- **Run migration 006 on existing databases** (`006_print_and_send_offer.sql`, safe to re-run): it adds the
+  `print_and_send` offer that the Pricing page now reads. Without it the page still shows $9.99 (its fallback).
 - **Staging and preview deploys would be indexed by search engines.** `SITE_URL` is hard-coded to
   `https://souvenote.com` (`frontend/app/lib/site.ts`), and `robots.txt` allows everything. Any non-production
   deploy will (a) set canonical, Open Graph and sitemap URLs to production and (b) be crawlable. Make
@@ -236,9 +238,9 @@ behaviour below was approved by the owner on 2026-11-04.
   `components/pricing/pricingContent.ts` (credit packs, title/description, structured data),
   `components/pricing/PrintSendReadyModal.tsx`, `styles/pricing.css`. The old `CardPacks`/`CreditPacks`/
   `TryRiskFreeCard` etc. in `Options.tsx` are no longer used by any page (not deleted).
-- **Print and Send replaces Try Risk-Free:** $8.99 CAD, 1 card, shipping included, **0 AI credits**, button "Buy
+- **Print and Send replaces Try Risk-Free:** $9.99 CAD, 1 card, shipping included, **0 AI credits**, button "Buy
   Print and Send". The price is fixed in the frontend (`PRINT_AND_SEND_PRICE` in `pricingCatalog.ts`); the cart
-  rebuilds the item from there, so a stored price can't drift. (The MVP PRD says $7.99; the owner chose $8.99.)
+  rebuilds the item from there, so a stored price can't drift. (The MVP PRD says $7.99; the owner chose $9.99.)
 - **Compact boxes (owner, 2026-11-04):** each offer box fits one 1440x900 screen (about 630px). Print and Send's
   copy is condensed: intro "One flat price, shipping included Canada-wide. Prices in CAD; tax is extra." and the
   steps are Buy your card (the card-bank explanation) / Choose a card / Add the details. Big Sender's "Always
@@ -273,8 +275,10 @@ behaviour below was approved by the owner on 2026-11-04.
 1. **Big Sender maximum:** the seed (`backend/database/seeds/001_pricing_catalog.sql`) still stores
    `card_count_max = 30` on `big_sender_21_30`. Make the last tier open-ended (e.g. a nullable max meaning "no
    limit") and make sure order/checkout validation accepts any quantity of 2 or more.
-2. **Print and Send isn't in the catalog.** Add a `print_and_send` offer (899 CAD cents, 1 card, 0 credits,
-   shipping included) so the price comes from PostgreSQL like Big Sender, then read it in `PricingClient.tsx`.
+2. **Print and Send is in the catalog now** (done 2026-11-05: migration 006 + seed, `print_and_send`, 999 CAD cents,
+   1 card, 0 credits; the Pricing page reads it and falls back to $9.99). **Still to do:** the cart and checkout price
+   both Print and Send and Big Sender from the frontend constants in `pricingCatalog.ts`, not the catalog, so keep
+   them equal (a dev-only console warning flags a Print and Send mismatch) until checkout reads prices from the backend.
 3. **Try Risk-Free is still the default offer** in `orders.service.ts` (`try_risk_free_one_card`, 999) and
    `checkout.service.ts`. Retire it (set `is_active = FALSE`, keep history) and change the defaults.
 4. **Currency:** catalog rows are `usd`, but all MVP prices are CAD. Change to `cad` with a migration.
@@ -285,6 +289,39 @@ behaviour below was approved by the owner on 2026-11-04.
    checkout picker still lists Try Risk-Free. Not changed: copy outside Pricing wasn't approved.
 7. **Big Sender minimum:** the frontend fallback (`MIN_BIG_SENDER_CARDS = 1`, fallback tiers "1-10") differs from
    the seed (2). Pricing uses the seed; the cart/Delivery fallback still allows 1. Align on 2.
+
+## Paper texture on every screen (2026-11-05, uncommitted)
+
+Owner-approved. A fine paper grain on the page background of every screen, keeping the background colour
+(ivory measures #F7F0E8 with and without it).
+
+- **Asset:** `frontend/public/assets/paper-texture.svg`, a generated grain (fractal noise with side lighting), not a
+  photo. Inspired by scribeless.co's paper look; their image is not used.
+- **Rule:** one shared block in `frontend/app/styles/next-app.css` (`--souv-paper-*`). Soft-light at 0.9 on
+  `.l-backdrop::after` (landing, home, create, pricing), `.auth-backdrop::after` (auth) and `body::before` (all other
+  screens). Cards, photos, buttons, nav, popovers and forest bands stay smooth. Off in forced-colours mode and print.
+- **Older dark screens** (FAQ, Contact, Community Cards, templates, etc., still on the old #08080B design) get it too,
+  but it's barely visible there until they're redesigned onto ivory.
+- **New screens:** paint the background with one of those backdrops or the body and the grain comes for free. See
+  design system v1.2: `design-system/docs/01-foundations.md` (Paper texture) and `03-patterns.md` (3.2).
+- **Seen while testing (not caused by this):** in the dev server, `/legal/*` pages returned 500 ("Jest worker encountered 2
+  child process exceptions"). A production build prerenders all four fine, so it is a dev-server hiccup; restarting `next dev`
+  should clear it. An unknown slug like `/legal/terms` also gives 500 instead of 404.
+
+## Top-up credits pop-up and nav menu (2026-11-05, uncommitted)
+
+Owner-approved.
+- **Nav Credits/Cards box menu** (hover or keyboard focus, every signed-in screen): Top up credits (opens the pop-up),
+  See pricing (`/pricing`), Saved Cards & Songs. Clicking the box itself still goes to Saved Cards & Songs. On touch
+  screens there's no hover, so the menu doesn't appear there; use the hamburger instead.
+- **Hamburger:** "Top Up Cards/Credits" is now two items: **Top Up Cards** (`/pricing`, card packs at the top) and
+  **Top Up Credits** (opens the same pop-up; focus returns to the menu button when it closes). The pop-up's open state
+  lives in `NavRight` so both menus share it.
+- **`components/pricing/TopUpCreditsModal.tsx`**: the Pricing page's three packs and buy flow (choose -> pop-up closes,
+  pack added to the cart, cart opens), with the Pricing page's approved "Top up credits" heading and intro. Shared dialog
+  behaviour from `useModalDialog.ts`. Loaded with `next/dynamic` on first open, so its code and CSS aren't on every page.
+  Styles: `.tu-*` in `styles/pricing.css`. `PricingCreditPacks` now takes `returnTo` and `onChosen`.
+- **Not built:** buying credits is still the frontend demo cart; no backend top-up.
 
 ## Running it locally
 

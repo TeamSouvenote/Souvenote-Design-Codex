@@ -11,7 +11,7 @@ export const MIN_BIG_SENDER_CARDS = 1;
 export const MAX_BIG_SENDER_CARDS = 30;
 
 /** Print and Send: one card, shipping included, no AI credits. Fixed CAD price (owner decision 2026-11-04). */
-export const PRINT_AND_SEND_PRICE = 8.99;
+export const PRINT_AND_SEND_PRICE = 9.99;
 export const PRINT_AND_SEND_CART_ID = "pack-print-and-send";
 
 export type BigSenderTier = {

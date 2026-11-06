@@ -23,7 +23,7 @@ export const CREDIT_PACKS: CreditPack[] = [
 /** Page title and description (approved 2026-11-04). */
 export const PRICING_TITLE = "Pricing | Souvenote";
 export const PRICING_DESCRIPTION =
-  "Print and send a card for $8.99 with shipping included, save with Big Sender from $6.99 a card, or top up creation credits from $2. All prices in CAD.";
+  "Print and send a card for $9.99 with shipping included, save with Big Sender from $6.99 a card, or top up creation credits from $2. All prices in CAD.";
 
 /**
  * Structured data (schema.org) for search and AI answer engines. Big Sender
