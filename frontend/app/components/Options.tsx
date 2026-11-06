@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { fetchPricingOffers, type PricingOffer } from "../lib/api";
 import { StampCorners } from "./Ornaments";
 import { useAuth } from "./AuthProvider";
+import { notifyCartChanged } from "./cartStorage";
 import {
   BIG_SENDER_TIERS,
   type BigSenderTier,
@@ -16,7 +17,6 @@ import {
   makeBigSenderCartItem,
   makeTryRiskFreeCartItem,
 } from "./pricingCatalog";
-import { MIN_GENERATION_CREDITS } from "./createFlowRules";
 
 // Options.tsx - dedicated to the create-options, pricing, referral, and modal surfaces.
 // Independent copy: edits here do NOT affect the "0 Credits · Modal" view (Options.intercept.jsx).
@@ -30,49 +30,6 @@ type CurrencyCode = "CAD" | "USD" | (string & {});
 type BackButtonProps = {
   href?: string;
   label?: string;
-};
-
-type OptionsHeaderProps = {
-  user?: unknown;
-  credits: number;
-  lowBalance: boolean;
-};
-
-type OptionTileTone = "gold" | "rose" | "silver" | "bronze";
-
-type OptionTileBase = {
-  id: string;
-  tone: OptionTileTone;
-  title: string;
-  sub: string;
-  gated: boolean;
-  requiresCredits?: boolean;
-  badge?: string;
-};
-
-type SelectableOptionTile = OptionTileBase & {
-  href: string;
-  comingSoon?: false;
-};
-
-type StaticOptionTile = OptionTileBase & {
-  comingSoon: true;
-  href?: never;
-};
-
-type OptionTile = SelectableOptionTile | StaticOptionTile;
-
-type TileSelectContext = {
-  credits: number;
-  cardBank: number;
-  locked: boolean;
-};
-
-type TileGridProps = {
-  credits: number;
-  cardBank?: number;
-  onGated?: (tile: SelectableOptionTile) => void;
-  onSelect?: (tile: SelectableOptionTile, context: TileSelectContext) => void;
 };
 
 type CardPack = {
@@ -279,164 +236,6 @@ function BackButton({ href = '/', label = 'Back' }: BackButtonProps) {
         <span>{label}</span>
       </Link>
     </div>
-  );
-}
-
-// ============================================================
-// SECTION — HEADER (heading + welcome)
-// ============================================================
-function OptionsHeader({ user, credits, lowBalance }: OptionsHeaderProps) {
-  return (
-    <section className="opt-head" data-screen-label="01 Header">
-      <div className="opt-head-inner">
-        <h1 className="souv-hero-title opt-title">
-          Choose how to{' '}
-          <span className="souv-hero-italic text-metallic-rose-gold">create your card</span>
-        </h1>
-        <p className="opt-lede">
-          Every generation path lets you add an optional personalized song by QR code.
-        </p>
-      </div>
-    </section>
-  );
-}
-
-// ============================================================
-// SECTION — TILE GRID (2×2)
-// ============================================================
-function TileGrid({ credits, cardBank = 0, onGated = undefined, onSelect = undefined }: TileGridProps) {
-  const TILES: OptionTile[] = [
-    {
-      id: 'personalize',
-      tone: 'gold',
-      title: 'Personalize a Template',
-      sub: 'Need inspiration? Personalize one of our pre-built cards like Horoscope or Comic cards!',
-      gated: true,
-      requiresCredits: true,
-      badge: 'Most popular',
-      href: '/create/personalize-a-template',
-    },
-    {
-      id: 'build',
-      tone: 'rose',
-      title: 'Build My Card',
-      sub: 'Have your own idea? Answer a few questions and watch your card come to life.',
-      gated: true,
-      requiresCredits: true,
-      href: '/create/build-my-card',
-    },
-    {
-      id: 'community',
-      tone: 'silver',
-      title: 'Community Cards',
-      sub: 'Browse, send, or remix cards shared by the Souvenote community.',
-      gated: false,
-      comingSoon: true,
-      badge: 'Coming soon',
-    },
-    {
-      id: 'library',
-      tone: 'bronze',
-      title: 'Saved Cards & Songs',
-      sub: 'Resume a draft. Re-send a saved card. Queue another song.',
-      gated: false,
-      href: '/create/my-cards-and-songs',
-    },
-  ];
-
-  return (
-    <section className="opt-tiles" data-screen-label="02 Tile Grid">
-      <div className="opt-tiles-inner">
-        {TILES.map((t) => {
-          const locked = Boolean(t.requiresCredits && credits < MIN_GENERATION_CREDITS);
-          const comingSoon = t.comingSoon;
-          const tileClassName = `opt-tile opt-tile-${t.tone} ${locked ? 'is-locked' : ''} ${comingSoon ? 'is-coming-soon' : ''}`;
-          const tileContent = (
-            <>
-              <span className="opt-tile-surface" aria-hidden="true"></span>
-              <span className="opt-tile-grain" aria-hidden="true"></span>
-              {t.badge && (
-                <span className="opt-tile-badge">
-                  <IconStar />
-                  <em>{t.badge}</em>
-                </span>
-              )}
-              <div className="opt-tile-body">
-                <div className="opt-tile-title">
-                  {t.title}
-                </div>
-                <div className="opt-tile-sub">{t.sub}</div>
-              </div>
-              <span className="opt-tile-music" aria-hidden="true">
-                <IconMusic />
-              </span>
-              {locked && (
-                <span className="opt-tile-lock" aria-hidden="true">
-                  <LockGlyph />
-                </span>
-              )}
-            </>
-          );
-
-          if (comingSoon) {
-            return (
-              <button
-                key={t.id}
-                type="button"
-                className={tileClassName}
-                disabled
-                aria-label={`${t.title} coming soon`}
-              >
-                {tileContent}
-              </button>
-            );
-          }
-
-          const selectableTile = t as SelectableOptionTile;
-
-          return (
-            <Link
-              key={t.id}
-              href={selectableTile.href}
-              className={tileClassName}
-              onClick={(event) => {
-                if (onSelect) {
-                  event.preventDefault();
-                  onSelect(selectableTile, { credits, cardBank, locked });
-                  return;
-                }
-                if (locked) {
-                  event.preventDefault();
-                  if (onGated) onGated(selectableTile);
-                }
-              }}
-              aria-label={t.title}
-            >
-              {tileContent}
-            </Link>
-          );
-        })}
-      </div>
-    </section>
-  );
-}
-
-function IconMusic() {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <path d="M9 18V6l11-2v12" />
-      <circle cx="6.5" cy="18" r="2.5" fill="currentColor" stroke="none" />
-      <circle cx="17.5" cy="16" r="2.5" fill="currentColor" stroke="none" />
-    </svg>
-  );
-}
-
-function LockGlyph() {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <rect x="5" y="11" width="14" height="9" rx="1.6" />
-      <path d="M8 11V7.5a4 4 0 0 1 8 0V11" />
-    </svg>
   );
 }
 
@@ -815,6 +614,7 @@ function souvAddToCart(item: CartItem) {
     if (hit) hit.qty += item.qty || 1;
     else cur.push(item);
     window.localStorage.setItem(key, JSON.stringify(cur));
+    notifyCartChanged();
   } catch (e) {
     // Local storage may be unavailable; routing still lets the user continue.
   }
@@ -1200,8 +1000,6 @@ function RiskFreeCallout({ inline }: RiskFreeCalloutProps) {
 
 export {
   BackButton,
-  OptionsHeader,
-  TileGrid,
   ReferralBlock,
   CardPacks,
   CreditPacks,

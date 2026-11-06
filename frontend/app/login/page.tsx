@@ -1,12 +1,18 @@
-import { AuthApp } from "../components/Auth";
-import { PageChrome } from "../components/PageChrome";
-import { Suspense } from "react";
+import type { Metadata } from "next";
+import { AuthRoute, type AuthSearchParams } from "../components/AuthRoute";
+import { openGraphFor } from "../lib/site";
 
-export default function AuthPage() {
-  return (
-    <div className="souv-route-page">
-      <PageChrome variant="auth" />
-      <main><Suspense fallback={null}><AuthApp initialState="login" /></Suspense></main>
-    </div>
-  );
+const TITLE = "Log in | Souvenote";
+const DESCRIPTION =
+  "Log in to Souvenote to get back to your saved cards and songs.";
+
+export const metadata: Metadata = {
+  title: TITLE,
+  description: DESCRIPTION,
+  alternates: { canonical: "/login" },
+  openGraph: openGraphFor("/login", TITLE, DESCRIPTION),
+};
+
+export default function AuthPage({ searchParams }: { searchParams: AuthSearchParams }) {
+  return <AuthRoute initialState="login" searchParams={searchParams} />;
 }

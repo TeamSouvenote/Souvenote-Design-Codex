@@ -15,7 +15,8 @@ import { useAuth } from "./AuthProvider";
 import { AuthGatePrompt } from "./AuthGatePrompt";
 
 type MyCardsAppProps = {
-  user: DemoUser;
+  /** Fallback display user; the signed-in user from useAuth wins when present. */
+  user?: DemoUser;
   full?: boolean;
 };
 
@@ -477,7 +478,7 @@ function MyCardsApp({ user, full = true }: MyCardsAppProps) {
   if (!isAuthenticated) {
     return (
       <>
-        <Navbar loggedIn={false} user={user} credits={{ images: 0, songs: 0 }} cardBank={0} cartCount={0} />
+        <Navbar loggedIn={false} user={user} credits={{ images: 0, songs: 0 }} cardBank={0} />
 
         <div className="bmc-shell" data-screen-label="05a Saved Cards & Songs">
           <div className="bmc-head" style={{ margin: "0 0 40px", maxWidth: 820 }}>
@@ -542,7 +543,7 @@ function MyCardsApp({ user, full = true }: MyCardsAppProps) {
 
   return (
     <>
-      <Navbar loggedIn={isAuthenticated} user={user} credits={{ images: 0, songs: 0 }} cardBank={0} cartCount={0} />
+      <Navbar loggedIn={isAuthenticated} user={user} credits={{ images: 0, songs: 0 }} cardBank={0} />
 
       <div className="bmc-shell" data-screen-label="05a Saved Cards & Songs">
         <div className="bmc-head" style={{ margin: "0 0 40px", maxWidth: 820 }}>

@@ -11,6 +11,11 @@ This folder contains the PostgreSQL database setup for the Souvenote backend.
 
 `001_initial_schema.sql` will create the first version of the database schema.
 `002_phase1_mock_backend.sql` adds the Phase 1 local mock upload, checkout, and fulfillment storage needed for the end-to-end MVP flow.
+`003_account_profile_payments.sql` adds account profile fields (birthday, country, currency, marketing opt-in) and payment-method metadata.
+`004_consent_terms_marketing.sql` makes marketing email opt-in by default and records Terms/Privacy acceptance (`terms_accepted_at`, `terms_version`). **Required before deploying this backend:** every user read and profile update selects these columns, so the API returns errors on a database without 004.
+`005_reset_unconsented_marketing_opt_in.sql` is a **one-time data fix** for existing databases: it sets every user's `marketing_opt_in` to false, because no earlier opt-in was recorded as express consent (CASL). Run it once, after 004 and before sending any marketing email. Do not re-run it, as that would clear opt-ins given since. Fresh databases don't need it.
+
+`006_print_and_send_offer.sql` adds the Print and Send offer (`print_and_send`: 999 CAD cents, 1 card, 0 credits, shipping included) to `pricing_catalog`, so the Pricing page reads its price from the database. Run it on any database seeded before 2026-11-05; fresh databases get the row from the seed. Safe to re-run.
 
 Planned core tables:
 - users
@@ -71,6 +76,8 @@ From the `backend/` folder, run:
 createdb -U postgres souvenote_dev
 psql -U postgres -d souvenote_dev -f database/migrations/001_initial_schema.sql
 psql -U postgres -d souvenote_dev -f database/migrations/002_phase1_mock_backend.sql
+psql -U postgres -d souvenote_dev -f database/migrations/003_account_profile_payments.sql
+psql -U postgres -d souvenote_dev -f database/migrations/004_consent_terms_marketing.sql
 psql -U postgres -d souvenote_dev -f database/seeds/001_pricing_catalog.sql
 ```
 
@@ -132,6 +139,8 @@ dropdb -U postgres souvenote_dev
 createdb -U postgres souvenote_dev
 psql -U postgres -d souvenote_dev -f database/migrations/001_initial_schema.sql
 psql -U postgres -d souvenote_dev -f database/migrations/002_phase1_mock_backend.sql
+psql -U postgres -d souvenote_dev -f database/migrations/003_account_profile_payments.sql
+psql -U postgres -d souvenote_dev -f database/migrations/004_consent_terms_marketing.sql
 psql -U postgres -d souvenote_dev -f database/seeds/001_pricing_catalog.sql
 ```
 
@@ -183,6 +192,8 @@ From the `backend/` folder, run:
 createdb -U postgres souvenote_dev
 psql -U postgres -d souvenote_dev -f database/migrations/001_initial_schema.sql
 psql -U postgres -d souvenote_dev -f database/migrations/002_phase1_mock_backend.sql
+psql -U postgres -d souvenote_dev -f database/migrations/003_account_profile_payments.sql
+psql -U postgres -d souvenote_dev -f database/migrations/004_consent_terms_marketing.sql
 psql -U postgres -d souvenote_dev -f database/seeds/001_pricing_catalog.sql
 ```
 
@@ -246,6 +257,8 @@ dropdb -U postgres souvenote_dev
 createdb -U postgres souvenote_dev
 psql -U postgres -d souvenote_dev -f database/migrations/001_initial_schema.sql
 psql -U postgres -d souvenote_dev -f database/migrations/002_phase1_mock_backend.sql
+psql -U postgres -d souvenote_dev -f database/migrations/003_account_profile_payments.sql
+psql -U postgres -d souvenote_dev -f database/migrations/004_consent_terms_marketing.sql
 psql -U postgres -d souvenote_dev -f database/seeds/001_pricing_catalog.sql
 ```
 

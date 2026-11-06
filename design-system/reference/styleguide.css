@@ -31,6 +31,15 @@ code, .mono { font-family: ui-monospace, "Cascadia Code", Consolas, monospace; f
     radial-gradient(44rem 30rem at -8% 62%, var(--sv-glow-2), transparent 65%),
     var(--sv-bg);
 }
+/* Paper texture (v1.2): same as the live site, background only. */
+.sg-backdrop::after {
+  content: ""; position: absolute; inset: 0; pointer-events: none;
+  background-image: var(--sv-paper-texture);
+  background-size: var(--sv-paper-size) var(--sv-paper-size);
+  mix-blend-mode: var(--sv-paper-blend);
+  opacity: var(--sv-paper-opacity);
+}
+@media (forced-colors: active), print { .sg-backdrop::after { content: none; } }
 .sg-shell { display: grid; min-height: 100vh; }
 .sg-side {
   padding: var(--sv-space-6) var(--sv-gutter);
@@ -260,7 +269,10 @@ code, .mono { font-family: ui-monospace, "Cascadia Code", Consolas, monospace; f
 .sv-steps { display: grid; gap: 18px; margin: 0; padding: 0; list-style: none; }
 @media (min-width: 900px) { .sv-steps { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 24px; } }
 .sv-step { padding: 28px 24px 30px; border-radius: var(--sv-radius-lg); background: var(--sv-surface-paper); color: var(--sv-text-on-paper); border-top: var(--sv-border-stripe) solid var(--sv-stripe); }
-.sv-step.is-ai { background: var(--sv-surface-ai); color: var(--sv-text-on-ai); border-top-color: var(--sv-stripe-ai); }
+.sv-step { border-top: 0; padding-top: 32px; }
+.sv-steps .sv-step:nth-child(1) { background: var(--sv-berry-500); color: var(--sv-ivory-200); }
+.sv-step.is-ai { background: var(--sv-surface-ai); color: var(--sv-text-on-ai); }
+.sv-steps .sv-step:nth-child(3) { background: var(--sv-terracotta-400); color: var(--sv-text-on-terracotta); }
 .sv-step-num { display: block; font-size: 13px; font-weight: 700; letter-spacing: 0.22em; }
 .sv-step-title { margin-top: 14px; font-size: var(--sv-text-h3); font-weight: 400; line-height: 1.25; }
 .sv-step-body { margin-top: 12px; max-width: 38ch; }

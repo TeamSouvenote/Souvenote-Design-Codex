@@ -5,7 +5,8 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
-    "start": "next start"
+    "start": "next start",
+    "test": "node --experimental-strip-types --test app/lib/cognitoAuth.test.mjs"
   },
   "dependencies": {
     "amazon-cognito-identity-js": "^6.3.18",

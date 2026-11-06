@@ -1,7 +1,9 @@
 /* ==========================================================================
-   Souvenote public landing page (`/`): berry & ivory palette.
-   Every rule is scoped under `.souv-landing`, which exists only on `/`,
-   so the signed-in home and all other screens are unaffected.
+   Souvenote landing pages: berry & ivory palette.
+   Every rule is scoped under `.souv-landing`, which exists only on the
+   public landing (`/`), the signed-in home (`/home`) and Create Options
+   (`/create`, for its nav, backdrop, buttons and footer), so all other
+   screens are unaffected.
    Mobile-first: base rules target phones; min-width queries scale up.
 
    Colours are set once, by role, in the PALETTE block below. To test
@@ -16,7 +18,9 @@
      Derived tints: paper #FFFAF3, raised ivory #EFE3D5.
      Contrast (AA): espresso/ivory 9.4, berry/ivory 5.7, ivory/green 9.9,
      espresso/gold 5.5. Gold (1.7) and terracotta (2.5) are never used as
-     text on ivory; they appear only as fills, stripes and decoration. */
+     text on ivory; they appear only as fills, stripes and decoration.
+     Paper texture: shared by every screen, so it lives in next-app.css
+     (--souv-paper-*), layered on .l-backdrop below. */
   --l-bg: #F7F0E8;              /* page background */
   --l-heading: #4A3B39;         /* headings */
   --l-text: #4A3B39;            /* body text */
@@ -44,14 +48,15 @@
   --l-no: #655250;
   --l-stripe: #C98A76;          /* terracotta top stripes */
   --l-stripe-2: #9E3D58;
+  --l-terracotta-ink: #2E2422;  /* deep espresso: text on terracotta fills (5.3) */
   --l-card-back: #2F3E3B;       /* gallery card backs (gold logo on green) */
   --l-focus: #2F3E3B;
-  /* Logo: tinted antique gold on this page only (original files unchanged).
-     It always sits on forest green (gold/green 5.7). For the original
-     logo set display: none and opacity: 1. */
-  --l-logo-tint: #D8B65A;
-  --l-logo-tint-display: block;
-  --l-logo-img-opacity: 0;
+  /* Logo: antique gold (#D8B65A) on this page only, always on forest green
+     (gold/green 5.7). Drawn from pre-tinted files (/assets/wordmark-gold.png,
+     /assets/logomark-gold-silver.png: gold "S", platinum #CBCFD6 note) as
+     plain images, never with CSS masks or opacity tricks, so it shows with
+     reduced motion and high contrast too.
+     The original logo files are unchanged. */
   --l-line: rgba(74, 59, 57, 0.14);
   --l-line-strong: rgba(74, 59, 57, 0.34);
   --l-paper-line: rgba(74, 59, 57, 0.16);
@@ -249,17 +254,16 @@ body:has(.souv-landing) { background: #F7F0E8; } /* keep in sync with --l-bg */
   justify-content: space-between;
 }
 .souv-landing .souv-nav-logo { min-height: 44px; }
-/* Logo tint: the shared navbar's shimmer layer (already masked to the logo
-   shape) becomes a solid tint; the original image stays for layout and alt. */
-.souv-landing .souv-nav-logo::after {
-  display: var(--l-logo-tint-display);
-  background: var(--l-logo-tint);
-  /* This is the visible logo, not the shared animated sheen. */
-  opacity: 1;
-  animation: none;
-  mix-blend-mode: normal;
+/* The gold logo is a real image (navVariant="landing"); the shared navbar's
+   shimmer layer is not used on this page. */
+.souv-landing .souv-nav-logo::after { display: none; }
+/* The narrow "S" mark gets an invisible 44px-wide tap area; the logo doesn't move. */
+.souv-landing .souv-nav-logo::before {
+  content: "";
+  position: absolute; top: 0; bottom: 0; left: 50%;
+  width: max(100%, 44px);
+  transform: translateX(-50%);
 }
-.souv-landing .souv-nav-logo img { opacity: var(--l-logo-img-opacity); }
 .souv-landing .souv-nav-logo.is-wordmark img { height: 34px; max-width: 140px; }
 
 .souv-landing .souv-nav-link,
@@ -348,6 +352,185 @@ body:has(.souv-landing) { background: #F7F0E8; } /* keep in sync with --l-bg */
 }
 
 /* --------------------------------------------------------------------------
+   Navbar, signed in (`/home`, and `/` while signed in): gold "S" mark,
+   credits/cards ticker, cart and menu on forest. Below 701px the four
+   links move into the menu instead of being squeezed.
+   -------------------------------------------------------------------------- */
+.souv-landing .souv-nav-logo.is-mark img { height: 44px; width: auto; }
+.souv-landing .souv-nav.is-signed-in .souv-nav-right { gap: 8px; }
+.souv-landing .souv-nav-sep { width: 1px; height: 28px; margin: 0 4px; background: var(--l-line-strong); }
+
+/* Credits / cards ticker (a link to Saved Cards & Songs) */
+.souv-landing .souv-credits-stack {
+  min-width: 0; min-height: 52px;
+  padding: 5px 14px;
+  gap: 0;
+  color: var(--l-text);
+  background: transparent;
+  border: 1.5px solid var(--l-line-strong);
+  border-radius: 14px;
+  transition: border-color .25s var(--l-ease), background .25s var(--l-ease);
+}
+.souv-landing .souv-credits-link:hover,
+.souv-landing .souv-credits-link:focus-visible {
+  border-color: var(--l-hover);
+  background: var(--l-hover-tint);
+  box-shadow: none;
+}
+.souv-landing .souv-credits-link:focus-visible { outline: 2px solid var(--l-focus); outline-offset: 3px; }
+.souv-landing .souv-credits-stack .souv-credit {
+  grid-template-columns: 1fr auto;
+  gap: 14px;
+  width: 100%;
+  font-family: var(--l-font);
+  font-size: 12px; letter-spacing: 0.14em;
+  line-height: 1.3;
+}
+.souv-landing .souv-credits-stack .souv-credit em { color: var(--l-text-2); font-weight: 700; }
+.souv-landing .souv-credit b {
+  color: var(--l-hover);
+  font-size: 17px; font-weight: 700;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.souv-landing .souv-cardbank-pop-card {
+  background: var(--l-raised);
+  border: 1px solid var(--l-line);
+  border-radius: 16px;
+  box-shadow: var(--l-shadow);
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+}
+.souv-landing .souv-cardbank-pop-arrow { background: var(--l-raised); border-color: var(--l-line); }
+.souv-landing .souv-cardbank-pop .souv-rule-gold { background: var(--l-line); }
+.souv-landing .souv-cardbank-sendlink {
+  display: flex; align-items: center; justify-content: center;
+  min-height: 44px; margin-top: 4px;
+  font-family: var(--l-font);
+  font-size: 12px; letter-spacing: 0.14em;
+  color: var(--l-hover);
+  text-decoration: none;
+}
+.souv-landing .souv-cardbank-sendlink:hover { filter: none; text-decoration: underline; text-underline-offset: 4px; }
+/* Three stacked options (Top up credits, See pricing, Saved Cards & Songs). */
+.souv-landing .souv-cardbank-pop-card { min-width: 230px; padding: 10px 14px; }
+.souv-landing .souv-cardbank-pop .souv-rule-gold { display: none; }
+.souv-landing .souv-cardbank-sendlink { width: 100%; margin-top: 0; background: none; border: 0; cursor: pointer; }
+.souv-landing .souv-cardbank-sendlink + .souv-cardbank-sendlink { border-top: 1px solid var(--l-line); }
+.souv-landing .souv-cardbank-sendlink:focus-visible { outline: 2px solid var(--l-focus); outline-offset: -2px; border-radius: 8px; }
+
+/* Cart and menu buttons */
+.souv-landing .souv-iconbtn {
+  width: 44px; height: 44px;
+  color: var(--l-text);
+  background: transparent;
+  border: 1.5px solid var(--l-line-strong);
+  transition: color .25s var(--l-ease), border-color .25s var(--l-ease), background .25s var(--l-ease);
+}
+.souv-landing .souv-iconbtn svg { width: 21px; height: 21px; }
+.souv-landing .souv-iconbtn:hover,
+.souv-landing .souv-iconbtn.is-open { color: var(--l-hover); border-color: var(--l-hover); background: var(--l-hover-tint); }
+.souv-landing .souv-cart-badge {
+  top: -4px; right: -4px;
+  min-width: 20px; height: 20px; padding: 0 5px;
+  border-radius: 999px;
+  background: var(--l-btn-bg);
+  color: var(--l-btn-ink);
+  box-shadow: 0 0 0 2px var(--l-raised);
+  font-family: var(--l-font);
+  font-size: 12px; font-weight: 700; line-height: 20px;
+  text-align: center;
+}
+
+/* Menu */
+.souv-landing .souv-popmenu {
+  top: calc(100% + 12px);
+  min-width: 240px;
+  max-width: calc(100vw - 32px);
+  max-height: calc(100dvh - 120px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 8px;
+  gap: 0;
+  background: var(--l-raised);
+  border: 1px solid var(--l-line);
+  border-radius: 18px;
+  box-shadow: var(--l-shadow);
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+}
+.souv-landing .souv-popmenu-wide { min-width: 280px; }
+.souv-landing .souv-popmenu-item,
+.souv-landing .souv-popmenu-logout {
+  display: flex; align-items: center;
+  width: 100%; min-height: 44px;
+  padding: 0 14px;
+  border: 0; border-radius: 10px;
+  background: transparent;
+  color: var(--l-text);
+  font-family: var(--l-font);
+  font-size: 16px; font-weight: 400;
+  letter-spacing: 0.01em; text-transform: none;
+  text-align: left; text-decoration: none;
+  cursor: pointer;
+  transition: color .2s var(--l-ease), background .2s var(--l-ease);
+}
+.souv-landing .souv-popmenu-logout { font-weight: 700; }
+.souv-landing .souv-popmenu-item:hover,
+.souv-landing .souv-popmenu-logout:hover { color: var(--l-hover); background: var(--l-hover-tint); }
+.souv-landing .souv-popmenu-sep { margin: 6px 8px; background: var(--l-line); }
+.souv-landing .souv-popmenu-userhead { padding: 10px 14px 12px; }
+.souv-landing .souv-popmenu-avatar {
+  color: var(--l-text);
+  background: transparent;
+  border: 1.5px solid var(--l-line-strong);
+  box-shadow: none;
+  font-family: var(--l-font); font-weight: 700; font-size: 14px;
+}
+.souv-landing .souv-popmenu-name { color: var(--l-text); font-family: var(--l-font); font-size: 16px; font-weight: 700; }
+.souv-landing .souv-popmenu-email {
+  color: var(--l-text-2);
+  font-family: var(--l-font); font-size: 14px; letter-spacing: 0;
+  overflow-wrap: anywhere;
+}
+/* Credits and card bank under the email (same numbers as the bar's box). */
+.souv-landing .souv-popmenu-balance {
+  margin-top: 4px;
+  color: var(--l-text);
+  font-family: var(--l-font); font-size: 14px; font-weight: 700;
+  letter-spacing: 0;
+  font-variant-numeric: tabular-nums;
+}
+
+/* The menu repeats the bar's links only where the bar hides them (phones). */
+@media (min-width: 701px) {
+  .souv-landing .souv-popmenu-compact-links { display: none; }
+}
+/* Tablets: four links plus the cluster */
+@media (min-width: 701px) and (max-width: 1023px) {
+  .souv-landing .souv-nav.is-signed-in .souv-nav-right { gap: 6px; }
+}
+/* Phones: logo, ticker, cart, menu */
+@media (max-width: 700px) {
+  .souv-landing .souv-nav.is-signed-in .souv-nav-sep { display: none; }
+  .souv-landing .souv-nav-logo.is-mark img { height: 40px; }
+  /* Menus line up with the bar's right edge, not their button, so they stay on screen. */
+  .souv-landing .souv-nav.is-signed-in .souv-iconbtn-wrap { position: static; }
+  .souv-landing .souv-nav.is-signed-in .souv-popmenu { right: 8px; top: calc(100% + 10px); max-width: calc(100% - 16px); }
+}
+@media (max-width: 380px) {
+  .souv-landing .souv-nav.is-signed-in { padding-left: 12px; padding-right: 8px; }
+  .souv-landing .souv-nav.is-signed-in .souv-nav-right { gap: 4px; }
+  .souv-landing .souv-credits-stack { padding: 4px 10px; }
+  .souv-landing .souv-credits-stack .souv-credit { gap: 8px; font-size: 11px; letter-spacing: 0.1em; }
+  .souv-landing .souv-credit b { font-size: 15px; }
+}
+@media (min-width: 1221px) {
+  .souv-landing .souv-nav-logo.is-mark img { height: 52px; }
+}
+
+/* --------------------------------------------------------------------------
    Buttons
    -------------------------------------------------------------------------- */
 .souv-landing .l-btn {
@@ -427,6 +610,34 @@ body:has(.souv-landing) { background: #F7F0E8; } /* keep in sync with --l-bg */
   color: var(--l-text);
   font-size: clamp(1.1rem, 1rem + 0.45vw, 1.3rem);
 }
+/* Lede (owner copy, 2026-11-05): "different" in berry; the second sentence on its own line, with a
+   hand-drawn berry pen stroke under "its own personalized song" that draws in once on load.
+   The text stays espresso, so contrast is unchanged; the stroke is decoration only. */
+.souv-landing .l-hero-lede-close { display: block; margin-top: 0.3em; }
+/* One coloured word in the first sentence: berry on ivory is 5.7:1. */
+.souv-landing .l-hero-accent { color: var(--l-script-color); }
+.souv-landing .l-hero-mark { position: relative; white-space: nowrap; }
+.souv-landing .l-hero-mark-line {
+  position: absolute; left: -2px; right: -4px; bottom: -0.32em;
+  width: calc(100% + 6px); height: 0.5em;
+  overflow: visible; pointer-events: none;
+}
+.souv-landing .l-hero-mark-line path {
+  fill: none;
+  stroke: var(--l-script-color);
+  stroke-width: 2.4px;
+  stroke-linecap: round;
+  vector-effect: non-scaling-stroke;
+}
+/* Drawn in by wiping the stroke in from the left (a dash-offset draw is cut short in Chromium
+   when the stroke is stretched with non-scaling-stroke). */
+@media (prefers-reduced-motion: no-preference) {
+  .souv-landing .l-hero-mark-line { animation: l-pen-draw 1.1s 0.6s var(--l-ease) both; }
+}
+@keyframes l-pen-draw { from { clip-path: inset(-50% 100% -50% 0); } to { clip-path: inset(-50% -2% -50% 0); } }
+@media (forced-colors: active) {
+  .souv-landing .l-hero-mark-line path { stroke: CanvasText; }
+}
 .souv-landing .l-hero-ctas { display: flex; flex-direction: column; gap: 12px; margin-top: 32px; }
 .souv-landing .l-hero-trial {
   margin-top: 18px;
@@ -434,8 +645,19 @@ body:has(.souv-landing) { background: #F7F0E8; } /* keep in sync with --l-bg */
   font-size: 13px; font-weight: 700;
   letter-spacing: 0.14em; text-transform: uppercase;
 }
+/* Signed-in balance line: keeps its height while the balance loads. */
+.souv-landing .l-hero-balance { min-height: 1.65em; }
+/* A button with its note centred under it: Start for Free + "Includes 2 free credits" on /,
+   Create a Card + the balance on /home. Full width on phones like the other buttons. */
+.souv-landing .l-hero-cta-stack { display: flex; flex-direction: column; }
+.souv-landing .l-hero-cta-stack .l-hero-note { text-align: center; }
 @media (min-width: 480px) {
-  .souv-landing .l-hero-ctas { flex-direction: row; flex-wrap: wrap; }
+  /* flex-start so the button beside the stack keeps its own height. */
+  .souv-landing .l-hero-ctas { flex-direction: row; flex-wrap: wrap; align-items: flex-start; }
+  .souv-landing .l-hero-cta-stack { align-items: center; }
+  /* The note may be wider than its button: the negative side margins let it overhang both
+     sides evenly without widening the stack, so the button stays in line with the lede. */
+  .souv-landing .l-hero-cta-stack .l-hero-note { margin-inline: -48px; }
 }
 @media (min-width: 960px) {
   .souv-landing .l-hero-inner { grid-template-columns: 1.1fr 0.9fr; gap: 48px; }
@@ -649,17 +871,9 @@ body:has(.souv-landing) { background: #F7F0E8; } /* keep in sync with --l-bg */
 .souv-landing .l-gcard-logo { width: 30%; }
 .souv-landing .l-gcard-logo img { width: 100%; height: auto; }
 
-/* Tintable logo (see TintedLogo.tsx); the palette decides whether it tints. */
-.souv-landing .l-tinted { position: relative; display: inline-block; line-height: 0; }
-.souv-landing .l-tinted img { display: block; opacity: var(--l-logo-img-opacity); }
-.souv-landing .l-tinted::after {
-  content: "";
-  position: absolute; inset: 0;
-  display: var(--l-logo-tint-display);
-  background: var(--l-logo-tint);
-  -webkit-mask: var(--l-mask) no-repeat center / contain;
-  mask: var(--l-mask) no-repeat center / contain;
-}
+/* Gold logo (see TintedLogo.tsx): a plain image of the pre-tinted artwork. */
+.souv-landing .l-tinted { display: inline-block; line-height: 0; }
+.souv-landing .l-tinted img { display: block; }
 
 .souv-landing .l-tone-1 { background: var(--l-tone-1); --l-occasion: var(--l-tone-1-ink); }
 .souv-landing .l-tone-2 { background: var(--l-tone-2); --l-occasion: var(--l-tone-2-ink); }
@@ -734,10 +948,45 @@ body:has(.souv-landing) { background: #F7F0E8; } /* keep in sync with --l-bg */
   color: var(--l-paper-ink);
   border-top: 4px solid var(--l-stripe);
 }
+/* Brand colours, one per step (owner, 2026-11-05): berry, gold (the AI step), terracotta.
+   Solid fills, so there's no top stripe; its 4px goes into the top padding (tile size unchanged).
+   Contrast: ivory on berry 5.7, espresso on gold 5.5, deep espresso #2E2422 on terracotta 5.3. */
+.souv-landing .l-step { border-top: 0; padding-top: 32px; }
+/* Raised card stock (owner, 2026-11-05: "too flat, subtle shadow or 3D"): a soft layered shadow,
+   a faint top-lit sheen and a light top edge. With a mouse, a tile lifts and tilts slightly on
+   hover; no motion with reduced motion. Sheen keeps contrast: ivory on berry stays above 5:1. */
+.souv-landing .l-steps-list { perspective: 1400px; }
+.souv-landing .l-step {
+  background-image: linear-gradient(170deg, rgba(255, 255, 255, 0.12), rgba(255, 255, 255, 0) 45%, rgba(46, 36, 34, 0.05));
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.28),
+    0 1px 2px rgba(74, 59, 57, 0.10),
+    0 10px 24px -8px rgba(74, 59, 57, 0.30),
+    0 24px 48px -24px rgba(74, 59, 57, 0.28);
+  transform-origin: 50% 100%;
+  transition: transform 0.6s var(--l-ease), box-shadow 0.6s var(--l-ease);
+}
+@media (hover: hover) and (pointer: fine) and (prefers-reduced-motion: no-preference) {
+  .souv-landing .l-step:hover {
+    transform: translateY(-6px) rotateX(4deg);
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.32),
+      0 2px 4px rgba(74, 59, 57, 0.10),
+      0 18px 32px -10px rgba(74, 59, 57, 0.34),
+      0 36px 64px -28px rgba(74, 59, 57, 0.30);
+  }
+}
+.souv-landing .l-step:nth-child(1) {
+  background-color: var(--l-script-color);
+  color: var(--l-bg);
+}
 .souv-landing .l-step:nth-child(2) {
-  background: var(--l-ai);
+  background-color: var(--l-ai);
   color: var(--l-ai-ink);
-  border-top-color: var(--l-stripe-2);
+}
+.souv-landing .l-step:nth-child(3) {
+  background-color: var(--l-stripe);
+  color: var(--l-terracotta-ink);
 }
 .souv-landing .l-step-num { display: block; font-size: 13px; font-weight: 700; letter-spacing: 0.22em; }
 .souv-landing .l-step-title {
@@ -761,7 +1010,7 @@ body:has(.souv-landing) { background: #F7F0E8; } /* keep in sync with --l-bg */
 .souv-landing .l-compare + .l-section { padding-top: var(--l-section-space); }
 .souv-landing .l-compare .l-sub { color: var(--l-text); }
 .souv-landing .l-compare-title { line-height: 1.3; }
-.souv-landing .l-compare-logo { height: 1.15em; vertical-align: -0.28em; }
+.souv-landing .l-compare-logo { height: 1.15em; vertical-align: -0.2em; }
 .souv-landing .l-compare-logo img { height: 100%; width: auto; }
 .souv-landing .l-compare-frame {
   max-width: 880px;
@@ -866,14 +1115,8 @@ body:has(.souv-landing) { background: #F7F0E8; } /* keep in sync with --l-bg */
   border-top: 4px solid var(--l-stripe);
 }
 .souv-landing .souv-footer .souv-orn { display: none; }
-.souv-landing .souv-footer-wordmark-wrap::after {
-  display: var(--l-logo-tint-display);
-  background: var(--l-logo-tint);
-  opacity: 1;
-  animation: none;
-  mix-blend-mode: normal;
-}
-.souv-landing .souv-footer-wordmark-img { opacity: var(--l-logo-img-opacity); }
+/* Gold wordmark is a real image (variant="landing"); no shimmer layer. */
+.souv-landing .souv-footer-wordmark-wrap::after { display: none; }
 .souv-landing .souv-footer-wordmark-img { height: 48px; }
 .souv-landing .souv-footer-lede { font-family: var(--l-font); font-style: normal; color: var(--l-text); font-size: 17px; }
 .souv-landing .souv-footer-social { flex-wrap: wrap; }
@@ -898,6 +1141,13 @@ body:has(.souv-landing) { background: #F7F0E8; } /* keep in sync with --l-bg */
   font-size: 16px;
 }
 .souv-landing .souv-footer-link::after { background: var(--l-hover); bottom: 8px; }
+/* Short links ("FAQ") get an invisible 44px-wide tap area; the text doesn't move. */
+.souv-landing .souv-footer-link::before {
+  content: "";
+  position: absolute; top: 0; bottom: 0; left: 50%;
+  width: max(100%, 44px);
+  transform: translateX(-50%);
+}
 .souv-landing .souv-footer-link:hover { color: var(--l-hover); }
 .souv-landing .souv-footer-link.is-disabled:hover { color: var(--l-text); }
 .souv-landing .souv-footer-base {

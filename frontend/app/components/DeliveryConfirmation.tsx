@@ -34,7 +34,7 @@ function DeliveryConfirmationApp() {
     <div className="souv-route-page">
       <PageChrome variant="bmc" />
       <div className="bmc-page">
-        <Navbar user={demoUser} credits={{ images: 0, songs: 0 }} cardBank={0} cartCount={0} />
+        <Navbar user={demoUser} credits={{ images: 0, songs: 0 }} cardBank={0} />
         <main className="bmc-shell" data-screen-label="08 Delivery Confirmation">
           <div className="bmc-head" style={{ textAlign: "center", margin: "0 auto 36px", maxWidth: 760 }}>
             <div className="bmc-eyebrow" style={{ justifyContent: "center" }}>

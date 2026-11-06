@@ -18,7 +18,7 @@ type FooterLinkLabel = keyof typeof PAGE_HREFS;
 type FooterProps = {
   /**
    * "landing" is used only by the public landing page: Community Cards is an
-   * active link, Gift a Souvenote / Refer a Friend are replaced by Pricing,
+   * active link, the Account column adds Pricing,
    * social buttons link to profiles, and the slogan can be overridden.
    * Every other screen uses "default", which is unchanged.
    */
@@ -42,11 +42,8 @@ const PAGE_HREFS = {
   "Saved Cards & Songs": "/create/my-cards-and-songs",
   "Community Cards": null,
   Profile: "/account/profile",
-  "Gift a Souvenote": "/gift",
-  "Refer a Friend": "/refer",
   "Account Settings": "/account/settings",
   Pricing: "/pricing",
-  About: "#todo-about",
   Contact: "/contact",
   FAQ: "/faq",
   "Terms of Service": "/legal/terms-of-service",
@@ -56,14 +53,16 @@ const PAGE_HREFS = {
 } as const satisfies Record<string, string | null>;
 
 const FOOTER_COLS: FooterColumn[] = [
-  { title: "Create", items: ["Build My Card", "Personalize a Template", "Saved Cards & Songs", "Community Cards"] },
-  { title: "Account", items: ["Profile", "Gift a Souvenote", "Refer a Friend", "Account Settings"] },
-  { title: "Company", items: ["About", "Contact", "FAQ", "Terms of Service", "Privacy Policy", "Cookie Policy", "Refund Policy"] },
+  { title: "Create", items: ["Build My Card", "Personalize a Template", "Community Cards", "Saved Cards & Songs"] },
+  // Gift a Souvenote and Refer a Friend are not linked anywhere (owner decision 2026-11-04).
+  { title: "Account", items: ["Profile", "Account Settings"] },
+  // About is hidden until an About page exists (owner decision 2026-11-04).
+  { title: "Company", items: ["Contact", "FAQ", "Terms of Service", "Privacy Policy", "Cookie Policy", "Refund Policy"] },
 ];
 
-// Landing footer: Gift a Souvenote and Refer a Friend removed (version 2), Pricing added.
+// Landing footer: Pricing added to the Account column.
 const LANDING_FOOTER_COLS: FooterColumn[] = FOOTER_COLS.map((col) =>
-  col.title === "Account" ? { ...col, items: ["Profile", "Pricing", "Account Settings"] } : col,
+  col.title === "Account" ? { ...col, items: ["Profile", "Account Settings", "Pricing"] } : col,
 );
 
 const DEFAULT_LEDE = "Because the card you send should be as unique as they are.";
@@ -77,7 +76,11 @@ function Footer({ variant = "default", communityCardsHref, lede = DEFAULT_LEDE }
       <div className="souv-footer-inner">
         <div className="souv-footer-brand">
           <span className="souv-footer-wordmark-wrap">
-            <img src="/assets/WordmarkLobster.png" alt="Souvenote" className="souv-footer-wordmark-img" />
+            <img
+              src={isLanding ? "/assets/wordmark-gold.png" : "/assets/WordmarkLobster.png"}
+              alt="Souvenote"
+              className="souv-footer-wordmark-img"
+            />
           </span>
           <p className="souv-footer-lede">{lede}</p>
           <div className="souv-footer-social">
@@ -85,9 +88,10 @@ function Footer({ variant = "default", communityCardsHref, lede = DEFAULT_LEDE }
               <a
                 key={social.label}
                 className="souv-footer-social-btn"
-                aria-label={isLanding ? `Souvenote on ${social.label} (opens in a new tab)` : social.label}
-                href={isLanding ? social.url : "#todo-social"}
-                {...(isLanding ? { target: "_blank", rel: "noopener noreferrer" } : {})}
+                aria-label={`Souvenote on ${social.label} (opens in a new tab)`}
+                href={social.url}
+                target="_blank"
+                rel="noopener noreferrer"
               >
                 <svg viewBox="0 0 24 24" fill="currentColor"><path d={social.path} /></svg>
               </a>

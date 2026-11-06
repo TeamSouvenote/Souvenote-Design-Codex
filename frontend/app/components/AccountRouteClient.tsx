@@ -1,5 +1,6 @@
 "use client";
 
+import * as React from "react";
 import type { ReactNode } from "react";
 import Link from "next/link";
 import { DemoNavbar } from "./DemoNavbar";
@@ -13,13 +14,20 @@ type AccountRouteClientProps = {
 
 export function AccountRouteClient({ children }: AccountRouteClientProps) {
   const auth = useAuth();
-  const showAccount = auth.status === "authenticated";
+  // Once the account is showing, keep it mounted while the sign-in is
+  // re-checked (e.g. refreshUser after a save sets status to "loading"), so
+  // the open tab and any "saved" message survive. Only a sign-in that is
+  // gone or rejected swaps it for the sign-in prompt.
+  const shownRef = React.useRef(false);
+  if (auth.status === "authenticated") shownRef.current = true;
+  else if (auth.status !== "loading") shownRef.current = false;
+  const showAccount = auth.status === "authenticated" || (auth.status === "loading" && shownRef.current);
 
   return (
     <div className="souv-route-page">
       <PageChrome variant="bmc" />
       <div className="bmc-page">
-        <DemoNavbar cartCount={0} />
+        <DemoNavbar />
         <main>
           {showAccount ? children : (
             <div className="bmc-shell" data-screen-label="Account Sign In">

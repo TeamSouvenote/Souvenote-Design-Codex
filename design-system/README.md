@@ -1,6 +1,6 @@
 # Souvenote Design System
 
-**Berry & ivory · v1.0 · 2026-11-01**
+**Berry & ivory · v1.2 · 2026-11-05**
 
 The design language of Souvenote's public landing page, written down so the rest of the product can follow it.
 Every value comes from the live redesign (`frontend/app/styles/landing.css`, branch `landing-page-redesign`).
@@ -11,7 +11,7 @@ Every value comes from the live redesign (`frontend/app/styles/landing.css`, bra
 
 1. **A keepsake, not a website.** Warm paper tones, real cards as the imagery, quiet engraved motifs. Every screen should feel like something you'd want to keep.
 2. **Calm elegance.** Light headings, generous space, soft shadows, slow motion. Emphasis comes from one script word, not from bold or loud colour.
-3. **Colour has meaning.** Gold means AI made it. Berry means it matters. Forest means act here. Terracotta is only ever decoration.
+3. **Colour has meaning.** Gold means AI made it. Berry means it matters. Forest means act here. Terracotta is decoration (stripes, glow, and the third step tile).
 4. **Comfortable for everyone.** Designed for women aged 40-65 first: 17-18px body text, 44px+ tap targets, AA contrast throughout, and every motion can be paused or switched off.
 5. **Mobile first.** Start from the phone layout and add room as the screen grows.
 
@@ -27,7 +27,7 @@ design-system/
 │   ├── 01-foundations.md    Colour, contrast, typography, spacing, grid, shape, elevation, motion
 │   ├── 02-components.md     Button, icon button, nav, popover, section heading, hero card,
 │   │                        song chip, gallery card, step tile, comparison table, accordion,
-│   │                        footer, tinted logo, engravings, skip link, utilities
+│   │                        footer, gold logo, engravings, skip link, utilities
 │   ├── 03-patterns.md       Page anatomy, sections, forest surfaces, engraving placement,
 │   │                        logo use, imagery, interaction, responsive behaviour
 │   ├── 04-accessibility.md  WCAG 2.2 AA checklist and pre-launch manual checks
@@ -37,8 +37,10 @@ design-system/
 │   ├── index.html           Visual guide with live, interactive examples of every component
 │   └── styleguide.css       Component styles for the guide, built only on tokens.css
 └── assets/
-    ├── wordmark-gold.png    Wordmark pre-tinted antique gold (#D8B65A), 900px wide
-    ├── logomark-gold.png    "S" mark pre-tinted antique gold, 400px wide
+    ├── wordmark-gold.png    Wordmark pre-tinted antique gold (#D8B65A), 900px wide (live copy in frontend/public/assets)
+    ├── logomark-gold-silver.png  "S" mark: antique-gold S + platinum (#CBCFD6) note, 400px wide (live copy in frontend/public/assets)
+    ├── logomark-gold.png    Superseded all-gold "S" mark (kept for reference; don't use)
+    ├── paper-texture.svg    Paper grain for page backgrounds, 320px tile (live copy in frontend/public/assets)
     ├── WordmarkLobster.png  Original wordmark (copy)
     ├── LogoMark.png         Original mark (copy)
     └── pt-comic-cover.jpg, pt-comic-back.jpg   Example card artwork (copies)

@@ -18,7 +18,7 @@ Souvenote speaks like a thoughtful friend who is good with gifts: **warm, sincer
 - **Buttons are verbs:** Start, Log In, Build, Personalize.
 - **One idea per sentence.** Keep ledes under about 25 words.
 - **Prices:** "$6.99" with "as low as" or "for as little as". Prices can switch between USD and CAD.
-- **AI:** say what it does for the person ("writes the words, designs the face, and composes a song"), not how it works.
+- **AI:** say what it does for the person ("composes a custom song, designs original cover art, and writes a heartfelt inside message"), not how it works.
 - **Use em dashes sparingly,** with spaces around them ( — ), as in the current copy.
 - **Don't promise what we can't check.** Competitor comparisons are dated and checked against each competitor's own website.
 

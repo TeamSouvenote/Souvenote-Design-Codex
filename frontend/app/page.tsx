@@ -1,5 +1,4 @@
 import type { Metadata } from "next";
-import { Lato, Lobster_Two } from "next/font/google";
 import { Footer } from "./components/Footer";
 import { Navbar } from "./components/Navbar";
 import { COMMUNITY_CARDS_HREF, FAQ_ITEMS, FOOTER_LEDE, HERO_COPY } from "./components/landing/content";
@@ -8,39 +7,19 @@ import { LandingFaq } from "./components/landing/LandingFaq";
 import { LandingGallery } from "./components/landing/LandingGallery";
 import { LandingHero } from "./components/landing/LandingHero";
 import { LandingSteps } from "./components/landing/LandingSteps";
+import { SignedInRedirect } from "./components/landing/SignedInRedirect";
+import { SIGNED_IN_HOLD_SCRIPT } from "./components/landing/signedInHold";
+import { brandFontVariables } from "./lib/brandFonts";
+import { SITE_DESCRIPTION, SITE_URL, openGraphFor } from "./lib/site";
 import "./styles/landing.css";
 
-// Landing-only fonts, matched to the typography reference:
-// Lato (light headlines, regular body, bold spaced labels) + thin Lobster Two accents.
-const lato = Lato({
-  subsets: ["latin"],
-  weight: ["300", "400", "700"],
-  variable: "--font-lato",
-  display: "swap",
-});
-
-const lobsterTwo = Lobster_Two({
-  subsets: ["latin"],
-  weight: ["400"],
-  style: ["normal"],
-  variable: "--font-lobster-two",
-  display: "swap",
-});
-
-const DESCRIPTION =
-  "Create personalized greeting cards with AI-designed artwork and an optional original song linked by QR code. Printed and delivered to their door.";
-
-// TODO: add canonical URL, Open Graph image and logo once the production
-// domain is set via metadataBase (they must be absolute URLs).
+// The share image comes from app/opengraph-image.tsx; metadataBase (root
+// layout) turns these paths into absolute URLs.
 export const metadata: Metadata = {
   title: "Souvenote | Personalized greeting cards with an original song",
-  description: DESCRIPTION,
-  openGraph: {
-    title: "Souvenote | A card worth keeping",
-    description: DESCRIPTION,
-    type: "website",
-    siteName: "Souvenote",
-  },
+  description: SITE_DESCRIPTION,
+  alternates: { canonical: "/" },
+  openGraph: openGraphFor("/", "Souvenote | A card worth keeping", SITE_DESCRIPTION),
 };
 
 const structuredData = [
@@ -48,6 +27,8 @@ const structuredData = [
     "@context": "https://schema.org",
     "@type": "Organization",
     name: "Souvenote",
+    url: SITE_URL,
+    logo: `${SITE_URL}/assets/LogoMark.png`,
     description: HERO_COPY.lede,
   },
   {
@@ -63,7 +44,10 @@ const structuredData = [
 
 export default function LandingPage() {
   return (
-    <div className={`souv-route-page souv-landing ${lato.variable} ${lobsterTwo.variable}`}>
+    <div className={`souv-route-page souv-landing souv-landing-public ${brandFontVariables}`}>
+      {/* Runs before the page paints; see signedInHold.ts. */}
+      <script dangerouslySetInnerHTML={{ __html: SIGNED_IN_HOLD_SCRIPT }} />
+      <SignedInRedirect />
       <a className="l-skip" href="#main">Skip to content</a>
       <div className="l-backdrop" aria-hidden="true" />
       <Navbar followUserOnScroll navVariant="landing" />

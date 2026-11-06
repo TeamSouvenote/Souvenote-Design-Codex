@@ -58,7 +58,7 @@ export function PersonalizeTemplateClient() {
   return (
     <div className="souv-route-page">
       <PageChrome variant="personalize" />
-      <Navbar loggedIn={isAuthenticated} user={demoUser} credits={accountBalance.credits} cardBank={0} cartCount={0} />
+      <Navbar loggedIn={isAuthenticated} user={demoUser} credits={accountBalance.credits} cardBank={0} />
       <main>
         <PersonalizeApp
           openModal={openModal}

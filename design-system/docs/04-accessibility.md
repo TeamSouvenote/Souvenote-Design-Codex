@@ -32,6 +32,7 @@ Target: **WCAG 2.2 AA.** Our audience is mainly women aged 40-65, so comfortable
 - [ ] Nothing flashes.
 - [ ] Anything that moves on its own can be paused.
 - [ ] `prefers-reduced-motion: reduce` stops the spins and removes transitions.
+- [ ] With reduced motion **and** with `forced-colors: active` (Windows high contrast), every logo, image and heading is still visible. Reduced motion must only remove movement, never content.
 
 **Media**
 - [ ] Audio never plays by itself and loads only on demand (`preload="none"`).

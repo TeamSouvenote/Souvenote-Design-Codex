@@ -26,10 +26,10 @@ export function LandingComparison() {
           <h2 id="compare-title" className="l-h2 l-compare-title">
             How{" "}
             <TintedLogo
-              src="/assets/WordmarkLobster.png"
+              src="/assets/wordmark-gold.png"
               alt="Souvenote"
-              width={1445}
-              height={334}
+              width={900}
+              height={208}
               sizes="260px"
               className="l-compare-logo"
             />{" "}

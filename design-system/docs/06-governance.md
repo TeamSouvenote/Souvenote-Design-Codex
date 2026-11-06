@@ -8,6 +8,7 @@
 | Landing components | `frontend/app/components/landing/` |
 | Landing copy | `frontend/app/components/landing/content.ts` |
 | Shared nav and footer (landing options) | `frontend/app/components/Navbar.tsx` (`navVariant="landing"`), `Footer.tsx` (`variant="landing"`) |
+| Paper texture (all screens) | `frontend/app/styles/next-app.css` (`--souv-paper-*`), asset `frontend/public/assets/paper-texture.svg` |
 | Design-system tokens | `design-system/tokens/tokens.css`, `tokens.json` |
 | Visual reference | `design-system/reference/index.html` |
 
@@ -18,6 +19,7 @@ The design system is documentation plus portable tokens. The app does not import
 | `--sv-*` (design system) | `--l-*` (landing.css) | Value |
 |---|---|---|
 | `--sv-bg` | `--l-bg` | #F7F0E8 |
+| `--sv-paper-texture`, `--sv-paper-size`, `--sv-paper-opacity` | `--souv-paper-texture`, `--souv-paper-size`, `--souv-paper-opacity` (in `next-app.css`, not `landing.css`) | paper-texture.svg, 320px, 0.9 (soft-light) |
 | `--sv-text` | `--l-text`, `--l-heading`, `--l-paper-ink`, `--l-ai-ink`, `--l-song-ink` | #4A3B39 |
 | `--sv-text-muted` | `--l-text-2`, `--l-paper-ink-2` | #655250 |
 | `--sv-text-script` | `--l-script-color` | #9E3D58 |
@@ -31,7 +33,8 @@ The design system is documentation plus portable tokens. The app does not import
 | `--sv-focus` | `--l-focus` | #2F3E3B |
 | `--sv-yes` / `--sv-no` | `--l-yes` / `--l-no` | #2F3E3B / #655250 |
 | `--sv-stripe` / `--sv-stripe-ai` | `--l-stripe` / `--l-stripe-2` | #C98A76 / #9E3D58 |
-| `--sv-logo-tint` | `--l-logo-tint` | #D8B65A |
+| `--sv-logo-tint` | none (baked into `/assets/wordmark-gold.png` and `/assets/logomark-gold-silver.png`) | #D8B65A |
+| `--sv-platinum-400` | none (baked into the note of `/assets/logomark-gold-silver.png`; the app's `--platinum-mid`) | #CBCFD6 |
 | `--sv-engrave-color` / `-opacity` | `--l-engrave-color` / `-opacity` | #4A3B39 / 0.55 |
 | `--sv-vinyl-*` | `--l-vinyl-*` | #4A3B39 / #9E3D58 / #F7F0E8 |
 | `--sv-line` / `-strong` / `-paper` | `--l-line` / `--l-line-strong` / `--l-paper-line` | espresso at 14% / 34% / 16% |
@@ -67,3 +70,5 @@ This system describes the **public signed-out landing page (`/`)** and the landi
 | Version | Date | Notes |
 |---|---|---|
 | 1.0 | 2026-11-01 | First release: berry & ivory, antique-gold logo on forest. Built from the landing redesign (snapshot `saved-ui/landing-berry-ivory-2026-11-01`). |
+| 1.1 | 2026-11-02 | Logo fix: the gold logo is now pre-tinted image files (`wordmark-gold.png`, `logomark-gold-silver.png`), not a CSS mask over a hidden image, which vanished with reduced motion. `--l-logo-tint*` and `--l-logo-img-opacity` removed from the live CSS. The "S" mark is two-tone again (gold "S", platinum `#CBCFD6` note, new token `--sv-platinum-400`), replacing the all-gold `logomark-gold.png`. Added a reduced-motion / high-contrast visibility check. Snapshot `saved-ui/landing-berry-ivory-gold-silver-mark-2026-11-02`. |
+| 1.2 | 2026-11-05 | Paper texture on every screen: generated grain `assets/paper-texture.svg`, soft-light at 0.9 over the page background only, so the ivory keeps its colour (inspired by the paper look on scribeless.co; our own asset, not theirs). New tokens `--sv-paper-*`; live rule in `frontend/app/styles/next-app.css`. Rules in Foundations 1.1 and Patterns 3.2. Step tiles are now solid berry, gold (AI), terracotta; new colour `--sv-espresso-900` (deep espresso, text on terracotta) and role `--sv-text-on-terracotta`. Step tiles got a soft shadow, sheen and subtle hover lift; new pen-stroke underline component (2.9a); hero free-credits line is now "Includes 2 free credits", centred under Start for Free. |
