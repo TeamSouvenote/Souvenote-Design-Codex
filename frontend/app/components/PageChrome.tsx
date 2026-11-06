@@ -1,4 +1,4 @@
-type PageChromeVariant = "landing" | "auth" | "options" | "bmc" | "personalize" | "pages";
+type PageChromeVariant = "landing" | "options" | "bmc" | "personalize" | "pages";
 
 type PageChromeProps = {
   variant?: PageChromeVariant;
@@ -17,23 +17,20 @@ const gemClasses = [
 
 export function PageChrome({ variant = "landing" }: PageChromeProps) {
   const haloClass =
-    variant === "auth"
-      ? "auth-halo"
-      : variant === "options"
-        ? "opt-page-halo"
-        : variant === "bmc"
-          ? "bmc-page-halo"
-          : variant === "personalize"
-            ? "pt-halo"
-            : "souv-page-halo";
-  const gems = variant === "auth" ? gemClasses.slice(0, 7) : gemClasses;
+    variant === "options"
+      ? "opt-page-halo"
+      : variant === "bmc"
+        ? "bmc-page-halo"
+        : variant === "personalize"
+          ? "pt-halo"
+          : "souv-page-halo";
 
   return (
     <>
       <div className={haloClass} aria-hidden="true" />
       <div className="souv-sparkles" aria-hidden="true" />
       <div className="souv-gems" aria-hidden="true">
-        {gems.map((className) => (
+        {gemClasses.map((className) => (
           <span key={className} className={className} />
         ))}
       </div>

@@ -1,11 +1,9 @@
-import { AuthApp } from "../../components/Auth";
-import { PageChrome } from "../../components/PageChrome";
+import type { Metadata } from "next";
+import { AuthRoute } from "../../components/AuthRoute";
+import { NOINDEX } from "../../lib/site";
+
+export const metadata: Metadata = { title: "Verification code expired | Souvenote", robots: NOINDEX };
 
 export default function AuthPage() {
-  return (
-    <div className="souv-route-page">
-      <PageChrome variant="auth" />
-      <main><AuthApp initialState="verify-expired" /></main>
-    </div>
-  );
+  return <AuthRoute initialState="verify-expired" />;
 }

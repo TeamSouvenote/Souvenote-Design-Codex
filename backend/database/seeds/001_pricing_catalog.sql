@@ -24,6 +24,20 @@ VALUES
     '{"hold_days": 5, "no_send_fee_cents": 200}'::jsonb
 ),
 (
+    -- Print and Send (owner decision 2026-11-05): 1 card, $9.99 CAD, shipping included, no AI credits.
+    -- Existing databases get this row from migrations/006_print_and_send_offer.sql.
+    'print_and_send',
+    'Print and Send',
+    'print_and_send',
+    999,
+    'cad',
+    1,
+    1,
+    0,
+    TRUE,
+    '{}'::jsonb
+),
+(
     'big_sender_2_10',
     'Big Sender 2-10 Cards',
     'big_sender',

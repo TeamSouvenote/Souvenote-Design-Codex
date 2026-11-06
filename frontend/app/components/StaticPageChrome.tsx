@@ -13,7 +13,7 @@ export function StaticPageChrome({ children, pageClass = "pg-page" }: StaticPage
     <div className="souv-route-page">
       <PageChrome variant="pages" />
       <div className={pageClass}>
-        <DemoNavbar cartCount={0} />
+        <DemoNavbar />
         <main>{children}</main>
         <Footer />
       </div>

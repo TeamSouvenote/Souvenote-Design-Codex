@@ -40,7 +40,6 @@ import {
   clampBigSenderQuantity,
   getBigSenderPricing,
   makeBigSenderCartItem,
-  MAX_BIG_SENDER_CARDS,
   MIN_BIG_SENDER_CARDS,
 } from "./pricingCatalog";
 
@@ -92,7 +91,8 @@ type DlvCardTopUpModalProps = {
 };
 
 type DeliveryAppProps = {
-  user: DemoUser;
+  /** Fallback display user; the signed-in user from useAuth wins when present. */
+  user?: DemoUser;
   initialCards?: number;
   initialCredits?: DemoCredits;
 };
@@ -303,11 +303,11 @@ function DlvCardTopUpModal({
                 aria-label="Card quantity"
                 type="number"
                 min={MIN_BIG_SENDER_CARDS}
-                max={MAX_BIG_SENDER_CARDS}
                 value={qty}
                 onChange={(event) => setQtyClamped(event.target.value)}
               />
-              <button type="button" aria-label="Increase" onClick={() => setQtyClamped(qty + 1)} disabled={qty >= MAX_BIG_SENDER_CARDS}>+</button>
+              {/* Big Sender has no maximum quantity. */}
+              <button type="button" aria-label="Increase" onClick={() => setQtyClamped(qty + 1)}>+</button>
             </div>
           </div>
         </div>
@@ -719,7 +719,7 @@ function DeliveryApp({ user, initialCards = 0, initialCredits = DELIVERY_DEFAULT
 
   return (
     <>
-      <Navbar user={user} credits={{ images: 0, songs: 0 }} cardBank={0} cartCount={0} />
+      <Navbar user={user} credits={{ images: 0, songs: 0 }} cardBank={0} />
 
       <div className="bmc-shell" data-screen-label="06 Delivery">
         <div className="bmc-head" style={{ textAlign: "center", margin: "0 auto 40px", maxWidth: 780 }}>

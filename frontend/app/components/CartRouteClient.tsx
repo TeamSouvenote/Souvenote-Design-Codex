@@ -11,7 +11,7 @@ export function CartRouteClient() {
     <div className="souv-route-page">
       <PageChrome variant="bmc" />
       <div className="bmc-page">
-        <Navbar user={demoUser} credits={{ images: 0, songs: 0 }} cardBank={0} cartCount={0} />
+        <Navbar user={demoUser} credits={{ images: 0, songs: 0 }} cardBank={0} />
         <main><CartPage /></main>
         <Footer />
       </div>

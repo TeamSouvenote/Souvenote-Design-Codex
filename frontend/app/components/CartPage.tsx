@@ -10,9 +10,16 @@ import { AuthGatePrompt } from "./AuthGatePrompt";
 import { useAuth } from "./AuthProvider";
 import { createLocalIdempotencyKey, fetchCreditBalance, grantCredits } from "../lib/api";
 import { publishCreditBalance } from "../lib/creditBalance";
-import { makeBigSenderCartItem, makeTryRiskFreeCartItem } from "./pricingCatalog";
+import {
+  PRINT_AND_SEND_CART_ID,
+  makeBigSenderCartItem,
+  makePrintAndSendCartItem,
+  makeTryRiskFreeCartItem,
+} from "./pricingCatalog";
+import { PrintSendReadyModal } from "./pricing/PrintSendReadyModal";
 import { addDemoBalance, getCartTopUpDelta } from "./DemoBalance";
 import { consumePricingReturn, peekPricingReturn } from "./PricingReturn";
+import { notifyCartChanged } from "./cartStorage";
 import {
   BLANK_SOUVENOTE_GIFT_CART_ID,
   BLANK_SOUVENOTE_GIFT_PRICE,
@@ -97,9 +104,13 @@ function normalizeCartItems(raw: unknown): CartItem[] {
     const source = item as Partial<CartItem>;
     const isBigSender = source.id === "pack-bigsender" || source.replaceGroup === "pack-bigsender";
     const isTryRiskFree = source.id === "pack-try-risk-free" || source.replaceGroup === "pack-try-risk-free";
+    const isPrintAndSend = source.id === PRINT_AND_SEND_CART_ID || source.replaceGroup === PRINT_AND_SEND_CART_ID;
     const isBlankGift = isBlankSouvenoteGiftId(source.id);
+    // Catalog packs are rebuilt from pricingCatalog so a stored price can't drift.
     const normalized: CartItem = isBigSender
       ? makeBigSenderCartItem(source.cardCount || parseInt(String(source.meta || ""), 10) || source.qty || 1)
+      : isPrintAndSend
+        ? makePrintAndSendCartItem()
       : isTryRiskFree
         ? makeTryRiskFreeCartItem({
           creditsPerCard: Number(source.creditsPerCard) || undefined,
@@ -117,7 +128,7 @@ function normalizeCartItems(raw: unknown): CartItem[] {
 
     const existing = next.find((candidate) => candidate.id === normalized.id);
     if (existing) {
-      if (normalized.id === "pack-bigsender" || normalized.id === "pack-try-risk-free" || isBlankSouvenoteGiftId(normalized.id)) {
+      if (normalized.id === "pack-bigsender" || normalized.id === "pack-try-risk-free" || normalized.id === PRINT_AND_SEND_CART_ID || isBlankSouvenoteGiftId(normalized.id)) {
         Object.assign(existing, normalized);
       } else {
         existing.qty += normalized.qty;
@@ -412,6 +423,7 @@ function CartPage() {
   const [authPromptOpen, setAuthPromptOpen] = React.useState(false);
   const [giftOfferOpen, setGiftOfferOpen] = React.useState(false);
   const [confirmed, setConfirmed] = React.useState(false);
+  const [printSendReadyOpen, setPrintSendReadyOpen] = React.useState(false);
   const isAuthenticated = auth.status === "authenticated" && Boolean(auth.user?.id);
 
   React.useEffect(() => {
@@ -423,6 +435,7 @@ function CartPage() {
     if (!hydrated) return;
     try {
       window.localStorage.setItem(CART_KEY, JSON.stringify(normalizeCartItems(items)));
+      notifyCartChanged();
     } catch {}
   }, [items, hydrated]);
 
@@ -466,15 +479,25 @@ function CartPage() {
     const blankGiftCount = items.reduce((sum, item) => (
       isBlankSouvenoteGiftId(item.id) ? sum + Math.max(1, item.qty) : sum
     ), 0);
+    const boughtPrintAndSend = items.some((item) => item.id === PRINT_AND_SEND_CART_ID);
     if (topUpDelta.cards > 0) addDemoBalance({ cards: topUpDelta.cards });
     if (blankGiftCount > 0) addBlankSouvenoteGifts(blankGiftCount);
     setCheckoutOpen(false);
     setItems([]);
     try {
       window.localStorage.removeItem(CART_KEY);
+      notifyCartChanged();
     } catch {}
 
     const returnTo = consumePricingReturn();
+    // Print and Send: stay on the payment confirmation and explain how to use
+    // the card. It adds no credits, so going back to a credit-gated option
+    // (where a 0-credit user came from) wouldn't help.
+    if (boughtPrintAndSend) {
+      setConfirmed(true);
+      setPrintSendReadyOpen(true);
+      return;
+    }
     if (returnTo) {
       router.push(returnTo);
       return;
@@ -525,7 +548,9 @@ function CartPage() {
   const subtotal = items.reduce((sum, item) => sum + item.price * item.qty, 0);
   const lockedCartItem = items.length === 1 && items[0].lockedQuantity && items[0].cardCount ? items[0] : null;
   const lockedCardCount = lockedCartItem?.cardCount ?? 0;
-  const lockedCreditsPerCard = Number(lockedCartItem?.creditsPerCard) || 10;
+  // Print and Send carries 0 credits, so only a missing value falls back to 10.
+  const storedCreditsPerCard = Number(lockedCartItem?.creditsPerCard);
+  const lockedCreditsPerCard = Number.isFinite(storedCreditsPerCard) ? storedCreditsPerCard : 10;
   const checkoutPack: CheckoutPack = lockedCartItem
     ? { kind: "cards", name: lockedCartItem.name, price: subtotal, cards: lockedCardCount, tokens: lockedCardCount * lockedCreditsPerCard, bonus: 0 }
     : { kind: "cart", name: "Your cart", price: subtotal, lineCount: count, cardCount };
@@ -647,6 +672,7 @@ function CartPage() {
         primaryLabel="Sign up"
         secondaryLabel="Log in"
       />
+      {printSendReadyOpen && <PrintSendReadyModal onClose={() => setPrintSendReadyOpen(false)} />}
     </>
   );
 }

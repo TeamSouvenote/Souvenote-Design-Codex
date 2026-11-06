@@ -1,5 +1,6 @@
 // LegalData.jsx — content for the four legal documents.
 import type { ReactNode } from "react";
+import { LEGAL_LAST_UPDATED } from "../lib/legalVersions";
 
 // Section structure, titles and table-of-contents are wired to this object.
 
@@ -74,7 +75,7 @@ const LEGAL_DATA: Record<LegalDataKey, LegalDocData> = {
   terms: {
     crumbs: ['Legal', 'Terms of Service'],
     title: <>Terms of <span className="pg-italic text-metallic-gold">Service</span></>,
-    lastUpdated: 'June 1, 2026',
+    lastUpdated: LEGAL_LAST_UPDATED.terms,
     intro: 'These Terms of Service govern your use of Souvenote. By creating an account or using the site, you agree to them.',
     sections: [
       { id: 'acceptance', title: 'Acceptance of terms', paras: [
@@ -105,7 +106,7 @@ const LEGAL_DATA: Record<LegalDataKey, LegalDocData> = {
   privacy: {
     crumbs: ['Legal', 'Privacy Policy'],
     title: <>Privacy <span className="pg-italic text-metallic-gold">Policy</span></>,
-    lastUpdated: 'June 1, 2026',
+    lastUpdated: LEGAL_LAST_UPDATED.privacy,
     intro: 'Your privacy matters to us. This policy explains what we collect, why, and the choices you have.',
     sections: [
       { id: 'information-we-collect', title: 'Information we collect', paras: ['We collect the following kinds of information:'],

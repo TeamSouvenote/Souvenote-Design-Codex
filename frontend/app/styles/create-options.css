@@ -1,0 +1,369 @@
+/* ==========================================================================
+   create-options.css: the Create Options page (/create) on the berry & ivory
+   design system. Scoped under `.souv-create` (set on the page root together
+   with `.souv-landing`, which supplies the nav, footer, buttons and backdrop).
+
+   The opened-card look shared with the Welcome modal (colour tokens, card
+   surfaces, grain, fold shadows, frame, badge, handwriting, arrow and the
+   mouse-hover raised state) is in opened-card.css. This file holds what's
+   particular to /create:
+   - every card held to its exact 5x7 shape: each list item is a size
+     container and everything inside is sized in `cqi` (1% of the card's
+     width), so text, padding and sketches scale with the card instead of
+     stretching it (opened 10:7, closed 5:7);
+   - the hierarchy: Template and Build are the main two, Community and Saved
+     second.
+     - desktop (>=1024px): Template and Build large on top, slightly tilted
+       like cards on a table and slowly "breathing"; Community and Saved about
+       two-thirds the size underneath, still;
+     - below 1024px: Template and Build in the Welcome-style carousel, then
+       Community and Saved as two small closed cards side by side.
+   The HTML always contains both layouts' pieces (dots, small opened cards,
+   closed cards); the media queries here show one, so the page doesn't change
+   shape when JavaScript loads.
+
+   Contrast (AA): espresso/gold 5.5, ivory/berry 5.7, ivory/forest 9.9,
+   ivory/espresso 9.4, graphite #514C4A on ivory about 7.6.
+   ========================================================================== */
+
+.souv-create {
+  /* Where the page content starts below the nav. */
+  --cr-top: 96px;
+}
+@media (min-width: 1221px) {
+  .souv-create { --cr-top: 112px; }
+}
+
+/* ---------- Header ---------- */
+.souv-create .cr-main { padding: var(--cr-top) var(--l-gutter) 0; }
+.souv-create .cr-head { max-width: var(--l-max); margin: 0 auto; text-align: center; }
+.souv-create .cr-title {
+  font-family: var(--l-font);
+  font-weight: 300;
+  font-size: clamp(2rem, 1.45rem + 2.1vw, 3rem);
+  line-height: 1.12;
+  letter-spacing: -0.01em;
+  color: var(--l-heading);
+  text-wrap: balance;
+}
+.souv-create .cr-title .l-script { font-size: 1.1em; }
+.souv-create .cr-sub { margin-top: 8px; color: var(--l-text-2); }
+.souv-create .l-hero-balance { margin-top: 6px; }
+
+/* ---------- Lists ---------- */
+.souv-create .cr-picker { margin-top: 22px; }
+.souv-create .cr-options {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  text-align: left;
+}
+/* Each card's list item is a size container: inside it, 1cqi = 1% of the card's width. */
+.souv-create .cr-options li { container-type: inline-size; }
+
+/* ---------- Opened card (10:7, i.e. a 5x7 card opened flat) ---------- */
+.souv-create .cr-card {
+  --leaf-open: 8deg; /* how far each half tilts back from flat */
+  height: 70cqi; /* exactly 10:7 */
+  color: var(--sv-text);
+  text-decoration: none;
+}
+.souv-create .cr-card:focus-visible { outline: none; }
+.souv-create .cr-card-left {
+  /* reserved band at the top: titles line up whether or not there's a badge */
+  padding: max(10.5cqi, 42px) 3.4cqi 2.8cqi;
+  transform: rotateY(var(--leaf-open));
+}
+.souv-create .cr-card-right {
+  padding: 4.8cqi 3.8cqi 3cqi 4.8cqi;
+  transform: rotateY(calc(-1 * var(--leaf-open)));
+}
+.souv-create .cr-card-right::before { inset: 1.4cqi 1.4cqi 1.4cqi 1.8cqi; }
+
+/* The main two "breathe" slowly: a gentle 7s swell that opens each card a
+   little and lets it settle back (staggered so they don't move together).
+   The secondary cards stay still. */
+.souv-create .cr-card.is-primary {
+  animation: cr-card-breathe 7s ease-in-out infinite;
+  animation-delay: var(--throb-delay, 0s);
+}
+.souv-create .cr-card.is-primary .cr-card-left,
+.souv-create .cr-card.is-primary .cr-card-right {
+  animation: 7s ease-in-out infinite;
+  animation-delay: var(--throb-delay, 0s);
+}
+.souv-create .cr-card.is-primary .cr-card-left { animation-name: cr-leaf-left; }
+.souv-create .cr-card.is-primary .cr-card-right { animation-name: cr-leaf-right; }
+.souv-create .cr-primary li:nth-child(2) { --throb-delay: -3.5s; }
+@keyframes cr-card-breathe {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.012); }
+}
+@keyframes cr-leaf-left {
+  0%, 100% { transform: rotateY(10deg); }
+  50% { transform: rotateY(6deg); }
+}
+@keyframes cr-leaf-right {
+  0%, 100% { transform: rotateY(-10deg); }
+  50% { transform: rotateY(-6deg); }
+}
+/* Keyboard focus raises the card like a mouse hover does (opened-card.css). */
+.souv-create .cr-card:focus-visible,
+.souv-create .cr-card:focus-visible .cr-card-left,
+.souv-create .cr-card:focus-visible .cr-card-right { animation-play-state: paused; }
+.souv-create .cr-card:focus-visible { translate: 0 -6px; }
+.souv-create .cr-card:focus-visible .cr-card-left { rotate: y -5deg; }
+.souv-create .cr-card:focus-visible .cr-card-right { rotate: y 5deg; }
+.souv-create .cr-card:focus-visible .cr-card-go,
+.souv-create .cr-card.is-checking .cr-card-go { color: var(--sv-ivory-50); background: var(--sv-berry-500); border-color: var(--sv-berry-500); }
+.souv-create .cr-card.is-checking { cursor: progress; }
+
+.souv-create .cr-badge {
+  top: 2.8cqi; left: 2.8cqi;
+  gap: 0.5em;
+  max-width: calc(100% - 4cqi);
+  padding: 0.45em 0.9em;
+  font-size: clamp(11px, 2.3cqi, 13px);
+  letter-spacing: 0.12em;
+}
+.souv-create .cr-badge svg { flex: none; width: 1.05em; height: 1.05em; }
+.souv-create .cr-badge em { font-style: normal; }
+.souv-create .cr-card-title { font-size: clamp(16px, 5.4cqi, 30px); }
+.souv-create .auth-sketch {
+  display: block;
+  width: 100%; height: auto;
+  min-height: 0;
+  margin-top: auto;
+  padding-top: 1.5cqi;
+}
+.souv-create .cr-card .auth-sketch { max-height: 36cqi; }
+.souv-create .cr-card-sub {
+  font-size: clamp(16px, 5.6cqi, 25px);
+  line-height: 1.24;
+}
+.souv-create .cr-card.is-secondary .cr-card-sub { font-size: clamp(16px, 5.1cqi, 22px); }
+.souv-create .cr-card-go {
+  flex: none;
+  width: clamp(28px, 6.8cqi, 38px); height: clamp(28px, 6.8cqi, 38px);
+}
+
+/* Checking credits: a small ring in place of the arrow. */
+.souv-create .cr-spinner {
+  display: block;
+  width: 16px; height: 16px;
+  border: 2px solid currentColor;
+  border-top-color: transparent;
+  border-radius: 50%;
+  animation: cr-spin .8s linear infinite;
+}
+@keyframes cr-spin { to { transform: rotate(360deg); } }
+
+/* ---------- Closed card (5:7 front), secondary options below 1024px ---------- */
+.souv-create .cr-closed {
+  --card-left: var(--sv-forest-700);
+  --card-left-ink: var(--sv-ivory-200);
+  position: relative;
+  display: flex; flex-direction: column;
+  width: 100%;
+  height: 140cqi; /* exactly 5:7 */
+  padding: 8cqi 7cqi 6cqi;
+  color: var(--card-left-ink);
+  background: var(--card-left);
+  border-radius: 3px;
+  text-decoration: none;
+  /* spine shadow on the folded left edge, card-stock thickness, soft drop */
+  box-shadow: inset 10px 0 12px -10px rgba(0, 0, 0, 0.5), -2px 2px 0 rgba(47, 62, 59, 0.22), 0 10px 18px rgba(47, 62, 59, 0.18);
+  transition: translate .35s var(--sv-ease);
+  -webkit-tap-highlight-color: transparent;
+}
+.souv-create .cr-closed.is-saved { --card-left: var(--sv-espresso-700); }
+/* Card-stock grain, as on the opened cards. */
+.souv-create .cr-closed::after {
+  content: "";
+  position: absolute; inset: 0;
+  border-radius: inherit;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 width=%27120%27 height=%27120%27%3E%3Cfilter id=%27g%27%3E%3CfeTurbulence type=%27fractalNoise%27 baseFrequency=%270.9%27 numOctaves=%272%27 stitchTiles=%27stitch%27/%3E%3CfeColorMatrix values=%270 0 0 0 0.29 0 0 0 0 0.23 0 0 0 0 0.22 0 0 0 0.55 0%27/%3E%3C/filter%3E%3Crect width=%27120%27 height=%27120%27 filter=%27url(%23g)%27/%3E%3C/svg%3E");
+  opacity: 0.16;
+  mix-blend-mode: multiply;
+  pointer-events: none;
+}
+.souv-create .cr-closed .cr-card-title { font-size: clamp(15px, 10.5cqi, 21px); }
+.souv-create .cr-closed .auth-sketch { max-height: 66cqi; }
+.souv-create .cr-closed .cr-card-go {
+  margin-top: 3cqi;
+  width: 30px; height: 30px;
+  color: var(--card-left-ink);
+}
+.souv-create .cr-closed:focus-visible { outline: 3px solid var(--sv-focus); outline-offset: 3px; translate: 0 -4px; }
+.souv-create .cr-closed:focus-visible .cr-card-go { color: var(--card-left); background: var(--card-left-ink); border-color: var(--card-left-ink); }
+/* Mouse only: on touch screens a tap would leave the card stuck raised. */
+@media (hover: hover) {
+  .souv-create .cr-closed:hover { translate: 0 -4px; }
+  .souv-create .cr-closed:hover .cr-card-go { color: var(--card-left); background: var(--card-left-ink); border-color: var(--card-left-ink); }
+}
+
+/* "We couldn't check your credits. Please try again." */
+.souv-create .cr-error {
+  max-width: 44ch;
+  margin: 0 auto;
+  color: var(--sv-berry-500);
+  font-weight: 700;
+  text-align: center;
+}
+.souv-create .cr-error:not(:empty) { margin-top: 14px; }
+
+/* ---------- Back to home ---------- */
+.souv-create .cr-back-row {
+  display: flex; justify-content: center;
+  padding: 28px 0 var(--l-section-space);
+}
+.souv-create .cr-back { gap: 8px; min-height: 48px; padding: 0 24px 0 18px; }
+
+/* ---------- Desktop: big pair on top, small pair below, one screen ----------
+   --cr-p is the width of a main card, --cr-s (72%) a secondary one. It's the
+   smallest of 520px, half the row, and what both rows can take in the screen
+   height left under the header (opened cards are 10:7), but never under 390px:
+   below that the secondary cards' handwriting would drop under 16px or stop
+   fitting, so very short windows scroll a little instead. */
+@media (min-width: 1024px) {
+  .souv-create {
+    --cr-gap-x: 44px;
+    --cr-gap-y: 22px;
+    --cr-ratio: 0.72;
+    --cr-p: max(390px, min(
+      520px,
+      calc((100vw - 2 * var(--l-gutter) - var(--cr-gap-x)) / 2),
+      calc((100dvh - var(--cr-top) - 146px - var(--cr-gap-y) - 24px) / (0.7 * (1 + var(--cr-ratio))))
+    ));
+    --cr-s: calc(var(--cr-p) * var(--cr-ratio));
+  }
+  /* The carousel's dots and the closed cards are for smaller screens. */
+  .souv-create .cr-dots,
+  .souv-create .cr-closed { display: none; }
+  .souv-create .cr-primary,
+  .souv-create .cr-secondary { display: flex; justify-content: center; }
+  .souv-create .cr-primary { gap: var(--cr-gap-x); }
+  .souv-create .cr-secondary { gap: calc(var(--cr-gap-x) * 0.75); margin-top: var(--cr-gap-y); }
+  .souv-create .cr-primary li { flex: none; width: var(--cr-p); }
+  .souv-create .cr-secondary li { flex: none; width: var(--cr-s); }
+  /* Resting on a table: the pairs lean gently toward each other. */
+  .souv-create .cr-primary li:nth-child(1) { rotate: -1.2deg; }
+  .souv-create .cr-primary li:nth-child(2) { rotate: 1.2deg; }
+  .souv-create .cr-secondary li:nth-child(1) { rotate: 1.5deg; }
+  .souv-create .cr-secondary li:nth-child(2) { rotate: -1.5deg; }
+  .souv-create .cr-options li { position: relative; z-index: 1; transition: z-index 0s .2s; }
+  .souv-create .cr-options li:hover { z-index: 2; transition-delay: 0s; }
+  .souv-create .cr-primary .cr-card { filter: drop-shadow(0 18px 22px rgba(47, 62, 59, 0.2)) drop-shadow(0 3px 5px rgba(47, 62, 59, 0.14)); }
+}
+
+/* ---------- Below 1024px: carousel of the main two, closed cards below ----------
+   The two main cards share one grid cell (so the row is as tall as the card)
+   and slide by their --pos: -1 left, 0 centre, 1 right. */
+@media (max-width: 1023px) {
+  /* The small opened cards are for desktop. */
+  .souv-create .cr-card.is-secondary { display: none; }
+  .souv-create .cr-primary {
+    display: grid;
+    margin: 0 calc(-1 * var(--l-gutter));
+    /* Room above for the lift and below for the shadow, so the clipped track
+       doesn't cut either off. */
+    padding: 16px 0 32px;
+    overflow: hidden;
+    touch-action: pan-y;
+    -webkit-user-select: none; user-select: none;
+    -webkit-touch-callout: none;
+  }
+  .souv-create .cr-primary li {
+    grid-area: 1 / 1;
+    justify-self: center;
+    width: min(84%, 460px);
+    /* The side card tucks slightly behind the centre one so ~36px of it shows on a phone. */
+    transform: translateX(calc(var(--pos) * 92%)) scale(0.88);
+    opacity: 0.85;
+    z-index: 1;
+    transition: transform .55s var(--sv-ease), opacity .55s var(--sv-ease);
+  }
+  .souv-create .cr-primary li[data-pos="0"] { transform: none; opacity: 1; z-index: 2; }
+  .souv-create .cr-card svg,
+  .souv-create .cr-closed svg { -webkit-user-drag: none; }
+
+  .souv-create .cr-dots { display: flex; justify-content: center; gap: 4px; margin-top: -22px; }
+  .souv-create .cr-dot {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 44px; height: 44px;
+    padding: 0;
+    background: none; border: 0;
+    cursor: pointer;
+  }
+  .souv-create .cr-dot i {
+    display: block;
+    width: 9px; height: 9px;
+    border: 1.5px solid var(--sv-espresso-500);
+    border-radius: var(--sv-radius-pill);
+    transition: width .3s var(--sv-ease), background-color .3s var(--sv-ease);
+  }
+  .souv-create .cr-dot[aria-pressed="true"] i { width: 24px; background: var(--sv-berry-500); border-color: var(--sv-berry-500); }
+  .souv-create .cr-dot:focus-visible { outline: 3px solid var(--sv-focus); outline-offset: -4px; border-radius: var(--sv-radius-pill); }
+
+  .souv-create .cr-secondary {
+    display: flex; justify-content: center;
+    gap: 16px;
+    margin-top: 8px;
+  }
+  .souv-create .cr-secondary li { flex: none; width: min(38%, 170px); }
+  .souv-create .cr-secondary li:nth-child(1) { rotate: -1.5deg; }
+  .souv-create .cr-secondary li:nth-child(2) { rotate: 1.5deg; }
+}
+/* Short phones (iPhone SE, 360x740): a little less space above the cards. */
+@media (max-width: 599px) and (max-height: 760px) {
+  .souv-create .cr-picker { margin-top: 14px; }
+}
+/* Narrowest phones (320px): the track is held to the screen width and the card is a little wider. */
+@media (max-width: 359px) {
+  .souv-create .cr-primary { grid-template-columns: minmax(0, 1fr); }
+  .souv-create .cr-primary li { width: 90%; }
+}
+/* Phones turned sideways (short and wide): heading and the two closed cards on
+   the left, the carousel on the right, sized from the screen height. */
+@media (max-width: 1023px) and (max-height: 520px) and (orientation: landscape) {
+  .souv-create .cr-main {
+    display: grid;
+    grid-template-columns: minmax(0, 0.85fr) minmax(0, 1.15fr);
+    grid-template-rows: auto auto auto;
+    column-gap: 16px;
+    align-items: center;
+  }
+  .souv-create .cr-picker { display: contents; }
+  .souv-create .cr-head { grid-column: 1; grid-row: 1; align-self: end; }
+  .souv-create .cr-title { font-size: 1.6rem; }
+  .souv-create .cr-sub { margin-top: 4px; font-size: 17px; }
+  .souv-create .l-hero-balance { margin-top: 2px; }
+  .souv-create .cr-secondary { grid-column: 1; grid-row: 2 / 4; align-self: start; margin-top: 10px; }
+  .souv-create .cr-secondary li { width: min(36%, calc((100dvh - var(--cr-top) - 150px) * 5 / 7)); }
+  .souv-create .cr-primary { grid-column: 2; grid-row: 1 / 3; margin: 0; padding: 10px 0 24px; }
+  .souv-create .cr-primary li { width: min(88%, calc((100dvh - var(--cr-top) - 72px) * 10 / 7)); }
+  .souv-create .cr-dots { grid-column: 2; grid-row: 3; margin-top: -20px; }
+  .souv-create .cr-error,
+  .souv-create .cr-back-row { grid-column: 1 / -1; }
+}
+
+/* ---------- Motion and contrast preferences ---------- */
+@media (prefers-reduced-motion: reduce) {
+  .souv-create .cr-card,
+  .souv-create .cr-card-left,
+  .souv-create .cr-card-right,
+  .souv-create .cr-card-go,
+  .souv-create .cr-closed,
+  .souv-create .cr-options li,
+  .souv-create .cr-dot i { animation: none !important; transition: none !important; }
+  .souv-create :is(.cr-card, .cr-closed):is(:hover, :focus-visible) { translate: none; }
+  .souv-create .cr-card:focus-visible .cr-card-left,
+  .souv-create .cr-card:focus-visible .cr-card-right { rotate: none; }
+  .souv-create .cr-spinner { animation: none; border-top-color: currentColor; border-style: dotted; }
+}
+@media (forced-colors: active) {
+  .souv-create .cr-card-left,
+  .souv-create .cr-card-right,
+  .souv-create .cr-closed,
+  .souv-create .cr-badge { border: 1px solid CanvasText; }
+}

@@ -23,6 +23,9 @@ type LocalUserRow = {
   language: string;
   marketing_opt_in: boolean;
   preferences: Record<string, unknown> | null;
+  /** When the Terms and Privacy Policy were accepted (migration 004); null if never recorded. */
+  terms_accepted_at: Date | null;
+  terms_version: string | null;
   created_at: Date;
   updated_at: Date;
 };
@@ -52,6 +55,10 @@ export type UpdateUserProfileInput = {
   language?: string;
   marketingOptIn?: boolean;
   preferences?: Record<string, unknown>;
+  /** True records acceptance of the Terms and Privacy Policy (timestamp set by the server). */
+  termsAccepted?: boolean;
+  /** The accepted document version; required when termsAccepted is true. */
+  termsVersion?: string;
 };
 
 export type SavePaymentMethodInput = {
@@ -80,6 +87,8 @@ const USER_SELECT = `
   language,
   marketing_opt_in,
   preferences,
+  terms_accepted_at,
+  terms_version,
   created_at,
   updated_at
 `;
@@ -272,7 +281,17 @@ export class AuthService {
   }
 
   async updateUserProfile(userId: string, input: UpdateUserProfileInput) {
+    const termsVersion = cleanText(input.termsVersion, 120);
+    if (input.termsAccepted && !termsVersion) {
+      throw new BadRequestException(
+        'termsVersion is required when termsAccepted is true.',
+      );
+    }
+
     const current = await this.getUserById(userId);
+    // The profile and the consent record are written in one UPDATE, so a
+    // request either saves everything or nothing (never a half-saved profile).
+    const recordTerms = Boolean(input.termsAccepted);
     const updated = await this.databaseService.query<LocalUserRow>(
       `
         UPDATE users
@@ -286,6 +305,8 @@ export class AuthService {
           language = $8,
           marketing_opt_in = $9,
           preferences = $10::jsonb,
+          terms_accepted_at = CASE WHEN $11::boolean THEN NOW() ELSE terms_accepted_at END,
+          terms_version = CASE WHEN $11::boolean THEN $12 ELSE terms_version END,
           updated_at = NOW()
         WHERE id = $1
           AND deleted_at IS NULL
@@ -295,13 +316,16 @@ export class AuthService {
         userId,
         cleanText(input.firstName, 120) ?? current.first_name,
         cleanText(input.lastName, 120) ?? current.last_name,
-        cleanText(input.phone, 40),
+        // An omitted phone keeps the saved number; an empty string clears it.
+        input.phone === undefined ? current.phone : cleanText(input.phone, 40),
         cleanBirthday(input.birthday, current.birthday),
         normalizeCountry(input.country, current.country),
         normalizeCurrency(input.currency, current.currency),
         normalizeLanguage(input.language, current.language),
         input.marketingOptIn ?? current.marketing_opt_in,
         JSON.stringify(input.preferences ?? current.preferences ?? {}),
+        recordTerms,
+        recordTerms ? termsVersion : null,
       ],
     );
 

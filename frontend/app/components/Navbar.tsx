@@ -2,11 +2,17 @@
 
 import * as React from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import dynamic from "next/dynamic";
+import { usePathname, useRouter } from "next/navigation";
 import { useAuth } from "./AuthProvider";
 import { useCreditBalance } from "../lib/creditBalance";
 import type { CreditBalanceStatus } from "../lib/creditBalance";
 import type { DemoCredits, DemoUser } from "./DemoUser";
+import { useDemoBalance } from "./DemoBalance";
+import { useCartCount } from "./cartCount";
+
+// Top-up pop-up: loaded the first time it opens, so its code and styles aren't on every page.
+const TopUpCreditsModal = dynamic(() => import("./pricing/TopUpCreditsModal"), { ssr: false });
 
 type NavLink = {
   label: string;
@@ -16,24 +22,12 @@ type NavLink = {
   href: string;
 };
 
-type CurrencyCode = "CAD" | "USD";
-
-type CurrencyOption = {
-  code: CurrencyCode;
-  flag: string;
-};
-
 type CreditsTickerProps = {
   credits?: number;
   cardBank?: number;
   status?: CreditBalanceStatus;
-};
-
-type CurrencySelectProps = {
-  currency: CurrencyCode;
-  setCurrency: React.Dispatch<React.SetStateAction<CurrencyCode>>;
-  open: boolean;
-  setOpen: (open: boolean) => void;
+  /** Opens the top-up credits pop-up (owned by NavRight, so the hamburger can open it too). */
+  onTopUp: () => void;
 };
 
 type NavRightProps = {
@@ -42,15 +36,15 @@ type NavRightProps = {
   creditBalance: number;
   creditStatus: CreditBalanceStatus;
   cardBank: number;
-  cartCount: number;
-  profileOpen: boolean;
-  setProfileOpen: React.Dispatch<React.SetStateAction<boolean>>;
   menuOpen: boolean;
   setMenuOpen: React.Dispatch<React.SetStateAction<boolean>>;
-  currency: CurrencyCode;
-  setCurrency: React.Dispatch<React.SetStateAction<CurrencyCode>>;
-  currencyOpen: boolean;
-  setCurrencyOpen: React.Dispatch<React.SetStateAction<boolean>>;
+  /**
+   * Landing variant only: the bar's links, repeated in the menu for screens
+   * too narrow to show them in the bar (phones).
+   */
+  compactLinks?: NavLink[];
+  /** False when the cluster is shown without a session (`alwaysSignedIn`). */
+  hasSession: boolean;
 };
 
 type NavbarProps = {
@@ -58,9 +52,21 @@ type NavbarProps = {
   user?: DemoUser;
   credits?: DemoCredits;
   cardBank?: number;
-  cartCount?: number;
   followUserOnScroll?: boolean;
+  /**
+   * "landing" is used only by the public landing page (`/`): Community Cards
+   * replaces Pricing, and signed-out visitors get a small-screen menu.
+   * Every other screen uses "default", which is unchanged.
+   */
+  navVariant?: "default" | "landing";
+  /**
+   * Show the signed-in cluster (credits, cards, cart, menu)
+   * even when there is no session. Used by the signed-in home (`/home`).
+   */
+  alwaysSignedIn?: boolean;
 };
+
+const COMMUNITY_CARDS_HREF = "/community-cards";
 
 const NAV_LINKS: NavLink[] = [
   { label: "Personalize a Template", stackedLabel: ["Personalize", "a Template"], sub: "Curated designs, ready to make yours.", signedOutSub: "Browse card styles, then sign up to save, purchase credits, and generate.", href: "/create/personalize-a-template" },
@@ -69,19 +75,33 @@ const NAV_LINKS: NavLink[] = [
   { label: "Pricing", sub: "Card packs, credits, and what shipping covers.", signedOutSub: "Pricing is public. Purchase buttons ask you to sign up or log in first.", href: "/pricing" },
 ];
 
-const CURRENCIES: CurrencyOption[] = [
-  { code: "CAD", flag: "\uD83C\uDDE8\uD83C\uDDE6" },
-  { code: "USD", flag: "\uD83C\uDDFA\uD83C\uDDF8" },
-];
+const findLink = (href: string) => NAV_LINKS.find((link) => link.href === href)!;
 
-function IconUser() {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
-      <circle cx="12" cy="8" r="4" />
-      <path d="M4 21c0-4.4 3.6-8 8-8s8 3.6 8 8" />
-    </svg>
-  );
-}
+// Landing bar: Personalize · Build · Community · Pricing, evenly spaced, with
+// landing-specific hover copy (sub and signedOutSub so it shows signed in or out).
+const LANDING_NAV_LINKS: NavLink[] = [
+  {
+    ...findLink("/create/personalize-a-template"),
+    sub: "Personalize one of our pre-built cards like Comic and Horoscope.",
+    signedOutSub: "Personalize one of our pre-built cards like Comic and Horoscope.",
+  },
+  {
+    ...findLink("/create/build-my-card"),
+    sub: "Have an idea for a card? Answer a few questions and watch your card come to life.",
+    signedOutSub: "Have an idea for a card? Answer a few questions and watch your card come to life.",
+  },
+  {
+    label: "Community Cards",
+    stackedLabel: ["Community", "Cards"],
+    sub: "Choose from our collection of ready to send cards, just add your personal message. No AI credits required.",
+    href: COMMUNITY_CARDS_HREF,
+  },
+  {
+    ...findLink("/pricing"),
+    sub: "Choose from flexible options as low as $6.99.",
+    signedOutSub: "Choose from flexible options as low as $6.99.",
+  },
+];
 
 function IconCart() {
   return (
@@ -101,32 +121,50 @@ function IconMenu() {
   );
 }
 
-function CreditsTicker({ credits = 0, cardBank = 0, status = "idle" }: CreditsTickerProps) {
+/** "1 credit", "2 credits". */
+function plural(count: number, noun: string) {
+  return `${count} ${noun}${count === 1 ? "" : "s"}`;
+}
+
+function CreditsTicker({ credits = 0, cardBank = 0, status = "idle", onTopUp }: CreditsTickerProps) {
   const loading = status === "loading";
   const error = status === "error";
-  const creditLabel = loading ? "Loading" : error ? "Offline" : "Credits";
-  const creditValue = loading ? "..." : credits;
+  // The box always reads "Credits N": 0 while the balance loads or if it
+  // can't be fetched. The tooltip and spoken label still say which it is.
+  const creditValue = loading || error ? 0 : credits;
   const linkTitle = error
     ? "Credit balance unavailable."
     : "View Saved Cards & Songs";
+  // Spoken name includes the counts, which the visible boxes show.
+  const spokenLabel = loading
+    ? "Loading credits"
+    : error
+      ? "Credit balance unavailable"
+      : `${plural(credits, "credit")}, ${plural(cardBank, "card")}. View Saved Cards & Songs`;
 
   return (
     <div className="souv-balance-wrap">
       <Link
-        className={`souv-credits souv-credits-stack souv-credits-link ${loading ? "is-loading" : ""} ${error ? "is-error" : ""}`}
+        className="souv-credits souv-credits-stack souv-credits-link"
         href="/create/my-cards-and-songs"
         title={linkTitle}
-        aria-label={linkTitle}
+        aria-label={spokenLabel}
       >
-        <span className="souv-credit"><em>{creditLabel}</em><b>{creditValue}</b></span>
+        <span className="souv-credit"><em>Credits</em><b>{creditValue}</b></span>
         <span className="souv-credit souv-credit-bank">
           <em>Cards</em><b>{cardBank}</b>
         </span>
       </Link>
+      {/* Shown on hover and on keyboard focus (owner, 2026-11-05): top up in a pop-up, see pricing, or
+          go to Saved Cards & Songs (where the box itself also links). */}
       <div className="souv-cardbank-pop">
         <div className="souv-cardbank-pop-card">
           <div className="souv-cardbank-pop-arrow" />
           <div className="souv-rule-gold" />
+          <button type="button" className="souv-cardbank-sendlink" onClick={onTopUp} aria-haspopup="dialog">
+            Top up credits
+          </button>
+          <Link className="souv-cardbank-sendlink" href="/pricing">See pricing</Link>
           <Link className="souv-cardbank-sendlink" href="/create/my-cards-and-songs">Saved Cards &amp; Songs</Link>
         </div>
       </div>
@@ -134,52 +172,70 @@ function CreditsTicker({ credits = 0, cardBank = 0, status = "idle" }: CreditsTi
   );
 }
 
-function CurrencySelect({ currency, setCurrency, open, setOpen }: CurrencySelectProps) {
-  const active = CURRENCIES.find((option) => option.code === currency) || CURRENCIES[0];
+/** A press outside an open menu is "used up" by closing it if its click follows within this time. */
+const OUTSIDE_CLICK_WINDOW_MS = 600;
 
-  return (
-    <div className="souv-iconbtn-wrap">
-      <button
-        className={`souv-currency ${open ? "is-open" : ""}`}
-        onClick={() => setOpen(!open)}
-        aria-label="Change currency"
-        aria-haspopup="listbox"
-        aria-expanded={open}
-      >
-        <span className="souv-currency-code">{active.code}</span>
-        <svg className="souv-currency-chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-          <path d="M6 9l6 6 6-6" />
-        </svg>
-      </button>
-      {open && (
-        <>
-          <div className="souv-overlay" onClick={() => setOpen(false)} />
-          <div className="souv-popmenu souv-popmenu-currency" role="listbox">
-            {CURRENCIES.map((option) => (
-              <div
-                key={option.code}
-                role="option"
-                aria-selected={option.code === currency}
-                className={`souv-popmenu-item souv-currency-option ${option.code === currency ? "is-active" : ""}`}
-                onClick={() => {
-                  setCurrency(option.code);
-                  setOpen(false);
-                }}
-              >
-                <span className="souv-currency-flag" aria-hidden="true">{option.flag}</span>
-                <span>{option.code}</span>
-                {option.code === currency && (
-                  <svg className="souv-currency-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                    <path d="M5 12l4 4 10-10" />
-                  </svg>
-                )}
-              </div>
-            ))}
-          </div>
-        </>
-      )}
-    </div>
-  );
+/**
+ * Dismissal for a nav menu (`wrapRef` holds its button and panel):
+ * - Escape closes it and returns focus to the button.
+ * - A press outside closes it, and that press's click does nothing else, so
+ *   nothing hidden behind the menu gets activated. Presses on the nav bar
+ *   itself still go through (e.g. opening the next menu straight away).
+ * - Keyboard focus moving to something outside closes it.
+ *   (Clicks inside never close it: Safari doesn't focus buttons on click.)
+ * Returns the `onBlur` handler for the wrapper.
+ */
+function useMenuDismiss(
+  open: boolean,
+  close: () => void,
+  wrapRef: React.RefObject<HTMLElement | null>,
+  triggerRef: React.RefObject<HTMLElement | null>,
+) {
+  const closeRef = React.useRef(close);
+  React.useEffect(() => {
+    closeRef.current = close;
+  });
+
+  React.useEffect(() => {
+    if (!open) return;
+    let outsidePressAt = 0;
+
+    function onKeyDown(event: KeyboardEvent) {
+      if (event.key !== "Escape") return;
+      closeRef.current();
+      triggerRef.current?.focus();
+    }
+    function onPointerDown(event: PointerEvent) {
+      const target = event.target as Node;
+      if (wrapRef.current?.contains(target)) return;
+      closeRef.current();
+      const onNavBar = target instanceof Element && target.closest(".souv-nav");
+      if (!onNavBar) outsidePressAt = Date.now();
+    }
+
+    document.addEventListener("keydown", onKeyDown);
+    document.addEventListener("pointerdown", onPointerDown, true);
+    return () => {
+      document.removeEventListener("keydown", onKeyDown);
+      document.removeEventListener("pointerdown", onPointerDown, true);
+      if (Date.now() - outsidePressAt > OUTSIDE_CLICK_WINDOW_MS) return;
+      // The menu closed on an outside press: swallow that press's click.
+      const pressedAt = outsidePressAt;
+      function swallowClick(event: MouseEvent) {
+        document.removeEventListener("click", swallowClick, true);
+        if (Date.now() - pressedAt > OUTSIDE_CLICK_WINDOW_MS) return;
+        event.preventDefault();
+        event.stopPropagation();
+      }
+      document.addEventListener("click", swallowClick, true);
+      window.setTimeout(() => document.removeEventListener("click", swallowClick, true), OUTSIDE_CLICK_WINDOW_MS);
+    };
+  }, [open, wrapRef, triggerRef]);
+
+  return React.useCallback((event: React.FocusEvent<HTMLElement>) => {
+    const next = event.relatedTarget;
+    if (next instanceof Node && !event.currentTarget.contains(next)) closeRef.current();
+  }, []);
 }
 
 function NavRight({
@@ -188,18 +244,22 @@ function NavRight({
   creditBalance,
   creditStatus,
   cardBank,
-  cartCount,
-  profileOpen,
-  setProfileOpen,
   menuOpen,
   setMenuOpen,
-  currency,
-  setCurrency,
-  currencyOpen,
-  setCurrencyOpen,
+  compactLinks,
+  hasSession,
 }: NavRightProps) {
   const router = useRouter();
   const { logout } = useAuth();
+  // Live: the number of items in the saved cart, updated whenever it changes.
+  const cartCount = useCartCount();
+  const pathname = usePathname();
+  const menuButtonRef = React.useRef<HTMLButtonElement | null>(null);
+  const [topUpOpen, setTopUpOpen] = React.useState(false);
+  const menuWrapRef = React.useRef<HTMLDivElement | null>(null);
+  const siteMenuId = React.useId();
+  const onMenuBlur = useMenuDismiss(menuOpen, () => setMenuOpen(false), menuWrapRef, menuButtonRef);
+  const loginHref = `/login?${new URLSearchParams({ returnTo: pathname || "/" }).toString()}`;
 
   if (!loggedIn) {
     return (
@@ -212,103 +272,106 @@ function NavRight({
 
   return (
     <div className="souv-nav-right">
-      <CreditsTicker credits={creditBalance} cardBank={cardBank} status={creditStatus} />
-      <span className="souv-nav-sep" />
-
-      <CurrencySelect
-        currency={currency}
-        setCurrency={setCurrency}
-        open={currencyOpen}
-        setOpen={(value) => {
-          setCurrencyOpen(value);
-          if (value) {
-            setProfileOpen(false);
-            setMenuOpen(false);
-          }
-        }}
-      />
-      <span className="souv-nav-sep" />
+      <CreditsTicker credits={creditBalance} cardBank={cardBank} status={creditStatus} onTopUp={() => setTopUpOpen(true)} />
+      {topUpOpen && <TopUpCreditsModal onClose={() => setTopUpOpen(false)} />}
+      <span className="souv-nav-sep" aria-hidden="true" />
 
       <div className="souv-iconbtn-wrap">
-        <button
-          className={`souv-iconbtn ${profileOpen ? "is-open" : ""}`}
-          onClick={() => {
-            setProfileOpen(!profileOpen);
-            setMenuOpen(false);
-            setCurrencyOpen(false);
-          }}
-          aria-label="Account"
-        >
-          <IconUser />
-        </button>
-        {profileOpen && (
-          <>
-            <div className="souv-overlay" onClick={() => setProfileOpen(false)} />
-            <div className="souv-popmenu souv-popmenu-wide">
-              <div className="souv-popmenu-userhead">
-                <div className="souv-popmenu-avatar">{user.initials}</div>
-                <div>
-                  <div className="souv-popmenu-name">{user.name}</div>
-                  <div className="souv-popmenu-email">{user.email}</div>
-                </div>
-              </div>
-              <div className="souv-popmenu-sep" />
-              <Link href="/account/profile" className="souv-popmenu-item">Profile</Link>
-              <Link href="/create/my-cards-and-songs" className="souv-popmenu-item">Saved Cards &amp; Songs</Link>
-              <div className="souv-popmenu-sep" />
-              <Link href="/pricing" className="souv-popmenu-item">Top Up Cards/Credits</Link>
-              <Link href="/gift" className="souv-popmenu-item souv-popmenu-item-send">Gift a Souvenote</Link>
-              <Link href="/refer" className="souv-popmenu-item">Refer a Friend</Link>
-              <Link href="/account/settings" className="souv-popmenu-item">Account Settings</Link>
-              <div className="souv-popmenu-sep" />
-              <button
-                type="button"
-                className="souv-popmenu-logout"
-                onClick={() => {
-                  const redirectingToHostedLogout = logout({ hostedUi: true });
-                  setProfileOpen(false);
-                  if (!redirectingToHostedLogout) router.push("/");
-                }}
-              >
-                Sign Out
-              </button>
-            </div>
-          </>
-        )}
-      </div>
-
-      <div className="souv-iconbtn-wrap">
-        <Link className="souv-iconbtn" aria-label="Cart" href="/cart">
+        <Link className="souv-iconbtn" aria-label={cartCount > 0 ? `Cart, ${plural(cartCount, "item")}` : "Cart, empty"} href="/cart">
           <IconCart />
-          {cartCount > 0 && <span className="souv-cart-badge">{cartCount}</span>}
+          {cartCount > 0 && <span className="souv-cart-badge" aria-hidden="true">{cartCount}</span>}
         </Link>
       </div>
 
-      <div className="souv-iconbtn-wrap">
+      {/* One menu for everything: the account items first, then (phones only,
+          landing variant) the bar's links, then help and legal, then Sign Out. */}
+      <div ref={menuWrapRef} className="souv-iconbtn-wrap" onBlur={onMenuBlur}>
         <button
+          ref={menuButtonRef}
+          type="button"
+          aria-expanded={menuOpen}
+          aria-controls={menuOpen ? siteMenuId : undefined}
           className={`souv-iconbtn ${menuOpen ? "is-open" : ""}`}
-          onClick={() => {
-            setMenuOpen(!menuOpen);
-            setProfileOpen(false);
-            setCurrencyOpen(false);
-          }}
+          onClick={() => setMenuOpen(!menuOpen)}
           aria-label="Menu"
         >
           <IconMenu />
         </button>
         {menuOpen && (
-          <>
-            <div className="souv-overlay" onClick={() => setMenuOpen(false)} />
-            <div className="souv-popmenu">
-              <Link href="/faq" className="souv-popmenu-item">FAQ</Link>
-              <Link href="/contact" className="souv-popmenu-item">Contact Us</Link>
-              <div className="souv-popmenu-sep" />
-              <Link href="/legal/cookie-policy" className="souv-popmenu-item">Cookie Policy</Link>
-              <Link href="/legal/refund-policy" className="souv-popmenu-item">Refund Policy</Link>
-              <Link href="/legal/terms-of-service" className="souv-popmenu-item">Terms of Service</Link>
-              <Link href="/legal/privacy-policy" className="souv-popmenu-item">Privacy Policy</Link>
-            </div>
-          </>
+          <div id={siteMenuId} className="souv-popmenu souv-popmenu-site souv-popmenu-wide">
+            {/* Without a session (only while /home is confirming the sign-in)
+                there is no user to name and nothing to sign out of. */}
+            {hasSession && (
+              <>
+                <div className="souv-popmenu-userhead">
+                  <div className="souv-popmenu-avatar">{user.initials}</div>
+                  <div>
+                    <div className="souv-popmenu-name">{user.name}</div>
+                    <div className="souv-popmenu-email">{user.email}</div>
+                    {/* Same numbers as the bar's Credits/Cards box (0 while loading or unavailable). */}
+                    <div className="souv-popmenu-balance">
+                      {plural(creditStatus === "loading" || creditStatus === "error" ? 0 : creditBalance, "credit")}
+                      {" · "}
+                      {cardBank === 1 ? "1 card to send" : `${cardBank} cards to send`}
+                    </div>
+                  </div>
+                </div>
+                <div className="souv-popmenu-sep" />
+              </>
+            )}
+            <Link href="/account/profile" className="souv-popmenu-item">Profile</Link>
+            <Link href="/account/settings" className="souv-popmenu-item">Account Settings</Link>
+            <div className="souv-popmenu-sep" />
+            <Link href="/create/my-cards-and-songs" className="souv-popmenu-item">Saved Cards &amp; Songs</Link>
+            {/* Owner, 2026-11-05: cards go to Pricing (card packs are at the top); credits open the top-up pop-up. */}
+            <Link href="/pricing" className="souv-popmenu-item">Top Up Cards</Link>
+            <button
+              type="button"
+              className="souv-popmenu-item"
+              aria-haspopup="dialog"
+              onClick={() => {
+                setMenuOpen(false);
+                // Focus returns to the menu button when the pop-up closes.
+                menuButtonRef.current?.focus();
+                setTopUpOpen(true);
+              }}
+            >
+              Top Up Credits
+            </button>
+            <div className="souv-popmenu-sep" />
+            {compactLinks && (
+              // Phones only (hidden from 701px up, where the bar shows these).
+              <div className="souv-popmenu-compact-links">
+                {compactLinks.map((link) => (
+                  <Link key={link.href} href={link.href} className="souv-popmenu-item">{link.label}</Link>
+                ))}
+                <div className="souv-popmenu-sep" />
+              </div>
+            )}
+            <Link href="/faq" className="souv-popmenu-item">FAQ</Link>
+            <Link href="/contact" className="souv-popmenu-item">Contact Us</Link>
+            <div className="souv-popmenu-sep" />
+            <Link href="/legal/cookie-policy" className="souv-popmenu-item">Cookie Policy</Link>
+            <Link href="/legal/refund-policy" className="souv-popmenu-item">Refund Policy</Link>
+            <Link href="/legal/terms-of-service" className="souv-popmenu-item">Terms of Service</Link>
+            <Link href="/legal/privacy-policy" className="souv-popmenu-item">Privacy Policy</Link>
+            <div className="souv-popmenu-sep" />
+            {hasSession ? (
+              <button
+                type="button"
+                className="souv-popmenu-logout"
+                onClick={() => {
+                  const redirectingToHostedLogout = logout({ hostedUi: true });
+                  setMenuOpen(false);
+                  if (!redirectingToHostedLogout) router.push("/");
+                }}
+              >
+                Sign Out
+              </button>
+            ) : (
+              <Link href={loginHref} className="souv-popmenu-logout">Log In</Link>
+            )}
+          </div>
         )}
       </div>
     </div>
@@ -320,38 +383,58 @@ function Navbar({
   user = { name: "Amelia Hart", email: "amelia@souvenote.com", initials: "AH" },
   credits = { images: 0, songs: 0 },
   cardBank = 0,
-  cartCount = 0,
   followUserOnScroll = false,
+  navVariant = "default",
+  alwaysSignedIn = false,
 }: NavbarProps) {
+  const isLanding = navVariant === "landing";
+  const navLinks = isLanding ? LANDING_NAV_LINKS : NAV_LINKS;
   const auth = useAuth();
   const [hovered, setHovered] = React.useState<string | null>(null);
   const [menuOpen, setMenuOpen] = React.useState(false);
-  const [profileOpen, setProfileOpen] = React.useState(false);
-  const [currency, setCurrency] = React.useState<CurrencyCode>("CAD");
-  const [currencyOpen, setCurrencyOpen] = React.useState(false);
-  const resolvedLoggedIn = auth.status === "authenticated";
+  const signedIn = auth.status === "authenticated";
+  // `alwaysSignedIn` (the signed-in home) keeps the signed-in cluster even without a session.
+  const resolvedLoggedIn = signedIn || alwaysSignedIn;
   const resolvedUser = auth.displayUser || user;
-  const logoSrc = resolvedLoggedIn ? "/assets/LogoMark.png" : "/assets/WordmarkLobster.png";
+  // Card bank: cards bought at checkout (Print and Send, Big Sender). Stored in
+  // this browser only for now (DemoBalance.ts): the backend has no card
+  // entitlements yet (DEVELOPER_HANDOFF.md "Pricing"). A screen can still pass
+  // its own count; most pass 0, so the stored count is used then.
+  const storedBalance = useDemoBalance();
+  const resolvedCardBank = cardBank || storedBalance.cardBank;
+  // The landing uses pre-tinted gold artwork; every other screen keeps the originals.
+  const logoSrc = resolvedLoggedIn
+    ? (isLanding ? "/assets/logomark-gold-silver.png" : "/assets/LogoMark.png")
+    : (isLanding ? "/assets/wordmark-gold.png" : "/assets/WordmarkLobster.png");
   const localCreditBalance = (credits.images ?? 0) + (credits.songs ?? 0);
   const creditBalance = useCreditBalance({
-    enabled: resolvedLoggedIn,
+    enabled: signedIn,
     fallbackBalance: localCreditBalance,
   });
+  // No session: "Loading" while it's being restored, then "Offline" (no balance to show).
+  const creditStatus = signedIn
+    ? (creditBalance.status === "idle" ? "loading" : creditBalance.status)
+    : resolvedLoggedIn
+      ? (auth.status === "loading" ? "loading" : "error")
+      : creditBalance.status;
 
   return (
     <header className={`souv-nav ${resolvedLoggedIn ? "is-signed-in" : "is-signed-out"} ${followUserOnScroll ? "is-follow-user-on-scroll" : ""}`}>
-      <Link href="/" className={`souv-nav-logo ${resolvedLoggedIn ? "is-mark" : "is-wordmark"}`} aria-label="Souvenote home">
+      <Link href={resolvedLoggedIn ? "/home" : "/"} className={`souv-nav-logo ${resolvedLoggedIn ? "is-mark" : "is-wordmark"}`} aria-label="Souvenote home">
         <img src={logoSrc} alt="Souvenote" />
       </Link>
 
-      <nav className="souv-nav-links">
-        {NAV_LINKS.map((link, index) => (
+      <nav className="souv-nav-links" aria-label="Main">
+        {navLinks.map((link, index) => (
           <React.Fragment key={link.label}>
-            {index > 0 && <span className="souv-nav-dot">{"\u00b7"}</span>}
+            {index > 0 && !isLanding && <span className="souv-nav-dot" aria-hidden="true">{"\u00b7"}</span>}
+            {/* The description popover opens on keyboard focus as well as hover. */}
             <div
               className="souv-nav-link-wrap"
               onMouseEnter={() => setHovered(link.label)}
               onMouseLeave={() => setHovered(null)}
+              onFocus={() => setHovered(link.label)}
+              onBlur={() => setHovered(null)}
             >
               <Link href={link.href} className={`souv-nav-link ${hovered === link.label ? "is-hover" : ""}`} aria-label={link.label}>
                 {link.stackedLabel ? (
@@ -384,17 +467,12 @@ function Navbar({
         loggedIn={resolvedLoggedIn}
         user={resolvedUser}
         creditBalance={creditBalance.balance}
-        creditStatus={resolvedLoggedIn && creditBalance.status === "idle" ? "loading" : creditBalance.status}
-        cardBank={cardBank}
-        cartCount={cartCount}
-        profileOpen={profileOpen}
-        setProfileOpen={setProfileOpen}
+        creditStatus={creditStatus}
+        cardBank={resolvedCardBank}
         menuOpen={menuOpen}
         setMenuOpen={setMenuOpen}
-        currency={currency}
-        setCurrency={setCurrency}
-        currencyOpen={currencyOpen}
-        setCurrencyOpen={setCurrencyOpen}
+        compactLinks={isLanding ? navLinks : undefined}
+        hasSession={signedIn}
       />
     </header>
   );

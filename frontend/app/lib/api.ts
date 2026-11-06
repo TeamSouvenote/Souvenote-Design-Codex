@@ -254,6 +254,9 @@ export type UserProfileUpdate = {
   language?: string;
   marketingOptIn?: boolean;
   preferences?: Record<string, unknown>;
+  /** Records acceptance of the Terms and Privacy Policy (the server sets the timestamp). */
+  termsAccepted?: boolean;
+  termsVersion?: string;
 };
 
 export type PaymentMethod = {
@@ -347,7 +350,7 @@ export async function fetchAuthenticatedUser(): Promise<LocalUser> {
 
   if (!response.ok) {
     const message = await readErrorMessage(response, `Authenticated user request failed with status ${response.status}.`);
-    throw new Error(message);
+    throw new ApiRequestError(message, response.status);
   }
 
   const payload = (await response.json()) as Partial<AuthMeResponse>;
@@ -356,6 +359,17 @@ export async function fetchAuthenticatedUser(): Promise<LocalUser> {
   }
 
   return payload.user;
+}
+
+/** A failed API request, with its HTTP status (4xx = the request itself was rejected). */
+export class ApiRequestError extends Error {
+  readonly status: number;
+
+  constructor(message: string, status: number) {
+    super(message);
+    this.name = "ApiRequestError";
+    this.status = status;
+  }
 }
 
 export async function updateAuthenticatedUser(input: UserProfileUpdate): Promise<LocalUser> {
@@ -367,7 +381,7 @@ export async function updateAuthenticatedUser(input: UserProfileUpdate): Promise
 
   if (!response.ok) {
     const message = await readErrorMessage(response, `Profile update failed with status ${response.status}.`);
-    throw new Error(message);
+    throw new ApiRequestError(message, response.status);
   }
 
   const payload = (await response.json()) as Partial<AuthMeResponse>;
