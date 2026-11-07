@@ -2033,3 +2033,8 @@
 .bmc-page .bmc-pack:not(.is-featured) {
   border-color: var(--bmc-gold-edge);
 }
+
+/* Moved from cart.css (2026-11-06) when the cart got its own styles: tall
+   modals scroll on short screens. Applies to every .bmc-modal, as before. */
+.bmc-modal-wrap { align-items: flex-start; overflow-y: auto; }
+.bmc-modal-wrap .bmc-modal { margin: auto; }

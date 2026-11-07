@@ -611,32 +611,19 @@ body:has(.souv-landing) { background: #F7F0E8; } /* keep in sync with --l-bg */
   font-size: clamp(1.1rem, 1rem + 0.45vw, 1.3rem);
 }
 /* Lede (owner copy, 2026-11-05): "different" in berry; the second sentence on its own line, with a
-   hand-drawn berry pen stroke under "its own personalized song" that draws in once on load.
-   The text stays espresso, so contrast is unchanged; the stroke is decoration only. */
+   straight gold underline under "its own personalized song" (owner, 2026-11-07: same as Pricing's
+   "10 AI credits"; replaced the hand-drawn berry pen stroke). The text stays espresso, so contrast is
+   unchanged; the underline is decoration only (gold is never text on ivory). */
 .souv-landing .l-hero-lede-close { display: block; margin-top: 0.3em; }
 /* One coloured word in the first sentence: berry on ivory is 5.7:1. */
 .souv-landing .l-hero-accent { color: var(--l-script-color); }
-.souv-landing .l-hero-mark { position: relative; white-space: nowrap; }
-.souv-landing .l-hero-mark-line {
-  position: absolute; left: -2px; right: -4px; bottom: -0.32em;
-  width: calc(100% + 6px); height: 0.5em;
-  overflow: visible; pointer-events: none;
-}
-.souv-landing .l-hero-mark-line path {
-  fill: none;
-  stroke: var(--l-script-color);
-  stroke-width: 2.4px;
-  stroke-linecap: round;
-  vector-effect: non-scaling-stroke;
-}
-/* Drawn in by wiping the stroke in from the left (a dash-offset draw is cut short in Chromium
-   when the stroke is stretched with non-scaling-stroke). */
-@media (prefers-reduced-motion: no-preference) {
-  .souv-landing .l-hero-mark-line { animation: l-pen-draw 1.1s 0.6s var(--l-ease) both; }
-}
-@keyframes l-pen-draw { from { clip-path: inset(-50% 100% -50% 0); } to { clip-path: inset(-50% -2% -50% 0); } }
-@media (forced-colors: active) {
-  .souv-landing .l-hero-mark-line path { stroke: CanvasText; }
+.souv-landing .l-hero-mark {
+  white-space: nowrap;
+  text-decoration: underline;
+  text-decoration-color: var(--l-ai);
+  text-decoration-thickness: 3px;
+  text-underline-offset: 4px;
+  text-decoration-skip-ink: none;
 }
 .souv-landing .l-hero-ctas { display: flex; flex-direction: column; gap: 12px; margin-top: 32px; }
 .souv-landing .l-hero-trial {

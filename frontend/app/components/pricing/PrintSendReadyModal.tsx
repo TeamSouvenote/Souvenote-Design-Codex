@@ -3,27 +3,37 @@
 import * as React from "react";
 import { createPortal } from "react-dom";
 import Link from "next/link";
-import { COMMUNITY_CARDS_HREF } from "../landing/content";
+import { CREATE_OPTIONS } from "../createOptions";
+import type { CreateOptionKey } from "../createOptions";
 import { useModalDialog } from "../useModalDialog";
 import { brandFontVariables } from "../../lib/brandFonts";
 import "../../styles/landing.css";
 import "../../styles/pricing.css";
 
-// Opens over the cart's "Payment confirmed" screen right after a Print and Send
-// purchase (owner decision 2026-11-04) and explains how to use the card that
-// was just added to the card bank. Copy approved 2026-11-04.
+// Opens over the cart's "Payment confirmed" screen right after paying for Print
+// and Send (owner decision 2026-11-04), and since 2026-11-07 also after Big Sender
+// and credit top-ups (CartPage.tsx handlePaid), pointing to where to use them. Copy approved 2026-11-04; title, body and the
+// four option buttons (brand colours, same as on /create) changed by the owner 2026-11-06.
 //
 // Rendered into <body> so everything else on the page can be made inert while
 // it is open. Closes with the x button, Escape, or a press that starts and ends
 // on the backdrop (same as the Welcome modal).
-export function PrintSendReadyModal({ onClose }: { onClose: () => void }) {
+// Same order, names and links as the Create Options page.
+const READY_OPTIONS: CreateOptionKey[] = ["template", "build", "community", "saved"];
+
+/** "credits": only credits were bought. "cards": Print and Send or a card pack (with or without credits). */
+export type PurchaseReadyKind = "cards" | "credits";
+
+type PurchaseReadyProps = { kind?: PurchaseReadyKind; onClose: () => void };
+
+export function PrintSendReadyModal({ kind = "cards", onClose }: PurchaseReadyProps) {
   const [mounted, setMounted] = React.useState(false);
   React.useEffect(() => setMounted(true), []);
   if (!mounted) return null;
-  return createPortal(<PrintSendReadyDialog onClose={onClose} />, document.body);
+  return createPortal(<PrintSendReadyDialog kind={kind} onClose={onClose} />, document.body);
 }
 
-function PrintSendReadyDialog({ onClose }: { onClose: () => void }) {
+function PrintSendReadyDialog({ kind = "cards", onClose }: PurchaseReadyProps) {
   const dialogRef = useModalDialog(onClose, ".pr-ready-overlay");
   const pressStartedOnScrim = React.useRef(false);
 
@@ -53,15 +63,21 @@ function PrintSendReadyDialog({ onClose }: { onClose: () => void }) {
           </svg>
         </button>
         <h2 id="pr-ready-title" className="pr-ready-title">
-          Your card is <span className="l-script">ready to send</span>
+          {/* Owner, 2026-11-07: credits only -> "Your credits are waiting"; Print and Send or a card pack -> "Your cards are waiting". */}
+          {kind === "credits" ? "Your credits are" : "Your cards are"} <span className="l-script">waiting</span>
         </h2>
         <p id="pr-ready-body" className="pr-ready-body">
-          You have 1 card to send in your card bank. Pick a card from Saved Cards &amp; Songs or Community Cards,
-          add your message and the mailing address, and we&apos;ll print it and ship it for you.
+          Choose one of the following options to create a new card or send a saved one.
         </p>
-        <div className="pr-ready-actions">
-          <Link className="l-btn l-btn-primary" href="/create/my-cards-and-songs">Saved Cards &amp; Songs</Link>
-          <Link className="l-btn l-btn-secondary" href={COMMUNITY_CARDS_HREF}>Community Cards</Link>
+        <div className="pr-ready-options">
+          {READY_OPTIONS.map((key) => {
+            const option = CREATE_OPTIONS[key];
+            return (
+              <Link key={key} className={`pr-ready-opt is-${key}`} href={option.href}>
+                {option.title}
+              </Link>
+            );
+          })}
         </div>
       </div>
     </div>

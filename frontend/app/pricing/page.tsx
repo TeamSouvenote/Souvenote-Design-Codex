@@ -39,8 +39,8 @@ export default function PricingPage() {
                 Physical cards, <span className="l-script">printed and posted</span>
               </h1>
               <p className="pr-lede">
-                Shipping is always included with your card. Send just one, or save with a Big Sender pack, which
-                adds <span className="pr-lede-mark">10 AI creation credits</span> for every card.
+                Every card includes shipping + <span className="pr-lede-mark">10 AI credits</span>. Buy just one or stock
+                up on more to save.
               </p>
             </header>
             <PricingCardPacks />

@@ -598,7 +598,7 @@ function SignUpView() {
                 <div className="auth-field">
                   <label className="auth-label" htmlFor={`${id}-pw2`}>Confirm password</label>
                   <input id={`${id}-pw2`} className={`auth-input ${pwMismatch ? 'is-error' : ''}`} type={show ? 'text' : 'password'} autoComplete="new-password" aria-invalid={pwMismatch || undefined} aria-describedby={pwMismatch ? `${id}-pw2-hint` : undefined} placeholder="Type it again" value={pw2} onChange={(e) => setPw2(e.target.value)} />
-                  {pwMismatch && <p className="auth-hint is-error" id={`${id}-pw2-hint`}>Passwords don't match yet.</p>}
+                  {pwMismatch && <p className="auth-hint is-error" id={`${id}-pw2-hint`}>Passwords don&apos;t match yet.</p>}
                 </div>
 
                 <div className="auth-field-row">
@@ -814,7 +814,7 @@ function LoginView() {
                 )}
 
                 <div className="auth-cardfoot">
-                  Don't have an account?{' '}
+                  Don&apos;t have an account?{' '}
                   <Link href="/signup">Sign up →</Link>
                 </div>
               </form>
@@ -1007,7 +1007,7 @@ function ForgotView() {
           <span className="auth-script">password</span>
         </h1>
         <p className="auth-sub">
-          Enter your account email and we'll send a one-time reset code. It's valid for one hour.
+          Enter your account email and we&apos;ll send a one-time reset code. It&apos;s valid for one hour.
         </p>
 
         {sent ? (
@@ -1112,7 +1112,7 @@ function ResetView() {
         </h1>
         <p className="auth-sub">
           Twelve characters or more, with at least one number and one letter. After you save,
-          we'll sign you out everywhere and bring you back here.
+          we&apos;ll sign you out everywhere and bring you back here.
         </p>
 
         <form onSubmit={handleSubmit} noValidate aria-busy={submitting}>
@@ -1150,7 +1150,7 @@ function ResetView() {
               value={pw2}
               onChange={(e) => setPw2(e.target.value)}
             />
-            {pwMismatch && <p className="auth-hint is-error" id={`${id}-pw2-hint`}>Passwords don't match yet.</p>}
+            {pwMismatch && <p className="auth-hint is-error" id={`${id}-pw2-hint`}>Passwords don&apos;t match yet.</p>}
             {match && <p className="auth-hint is-success" id={`${id}-pw2-hint`}>Matched.</p>}
           </div>
 

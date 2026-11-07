@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { rememberDeliverySource } from "./delivery/deliverySource";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Navbar } from "./Navbar";
@@ -432,7 +433,7 @@ function MyCardsApp({ user, full = true }: MyCardsAppProps) {
     return () => {
       active = false;
     };
-  }, [auth.status, isAuthenticated, loadDraftsAndAssets]);
+  }, [auth.status, isAuthenticated, loadDraftsAndAssets, localUserId]);
 
   React.useEffect(() => {
     if (!isAuthenticated) return;
@@ -472,6 +473,7 @@ function MyCardsApp({ user, full = true }: MyCardsAppProps) {
     if (card.selectedAssetId) {
       rememberSelectedAsset(card.id, card.selectedAssetId, card.assets || []);
     }
+    rememberDeliverySource("saved");
     router.push("/delivery");
   }
 

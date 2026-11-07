@@ -1,6 +1,8 @@
 "use client";
 
 import * as React from "react";
+import { rememberDeliverySource } from "./delivery/deliverySource";
+import { openTopUp } from "./pricing/topUp";
 import { useRouter } from "next/navigation";
 import { createCardDraft, fetchCardDraftAssets, fetchCardDraftById, mockUpload, refreshCardDraftBackendState, startGeneration, updateCardDraft } from "../lib/api";
 import type { CardDraftAsset } from "../lib/api";
@@ -221,8 +223,9 @@ function BmcWizard({
     if (idx > 0 && isBmcWizardStep(previousStep)) goTo(previousStep);
   };
 
-  const openPricingForCredits = () => {
-    router.push(goToPricingAfterPurchase("/create/build-my-card"));
+  // Out of credits mid-build: the Top up credits pop-up (owner, 2026-11-07); Pricing if it isn't available.
+  const openPricingForCredits = (returnTo = "/create/build-my-card") => {
+    if (!openTopUp("credits", returnTo)) router.push(goToPricingAfterPurchase(returnTo));
   };
 
   const rememberDraftId = React.useCallback((draftId: string | null) => {
@@ -377,6 +380,24 @@ function BmcWizard({
     }
 
     if (credits < generationCost) {
+      // Not enough credits (owner, 2026-11-07, same as Personalize): save what they've
+      // entered, open the Top up credits pop-up, and after paying come back into this
+      // draft on the QR Song step (same resume link as Saved Cards & Songs). If the
+      // draft can't be saved, show the error below instead, so nothing is silently lost.
+      let savedDraftId: string | null = null;
+      setStartingGeneration(true);
+      try {
+        savedDraftId = await ensureDraftSaved(includeSong);
+        await uploadReferenceImages(savedDraftId);
+      } catch {
+        savedDraftId = null;
+      } finally {
+        setStartingGeneration(false);
+      }
+      if (savedDraftId) {
+        openPricingForCredits(`/create/build-my-card?draftId=${encodeURIComponent(savedDraftId)}#song`);
+        return;
+      }
       bmcError(
         `You need ${generationCost} ${generationCost === 1 ? "credit" : "credits"} to generate this card. Your current backend balance is ${credits}.`,
         "Not enough credits",
@@ -497,7 +518,7 @@ function BmcWizard({
           assetsStatus={reviewAssetsStatus}
           assetsError={reviewAssetsError}
           onStartOver={startOver}
-          onTopUp={openPricingForCredits}
+          onTopUp={() => openPricingForCredits()}
           onRegenerateAsset={spendRegenerationCredit}
           onApproveAll={(selectedAssetId) => {
             if (!currentDraftId || !selectedAssetId) {
@@ -506,6 +527,7 @@ function BmcWizard({
             }
 
             rememberSelectedAsset(currentDraftId, selectedAssetId, reviewAssets);
+            rememberDeliverySource("build");
             router.push("/delivery");
           }}
         />

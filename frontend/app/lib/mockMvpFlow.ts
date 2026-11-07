@@ -22,7 +22,7 @@ export type MockMvpFlowState = {
 export const MOCK_MVP_FLOW_STORAGE_KEY = "souv_mock_mvp_flow";
 export const MOCK_MVP_FLOW_UPDATED_EVENT = "souv-mock-mvp-flow-updated";
 
-const EMPTY_FLOW_STATE: MockMvpFlowState = {
+export const EMPTY_FLOW_STATE: MockMvpFlowState = {
   cardDraftId: null,
   generatedAssets: [],
   selectedAssetId: null,

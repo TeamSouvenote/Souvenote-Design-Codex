@@ -154,31 +154,38 @@ function printAndSendPriceFrom(offers: PricingOffer[]): number {
   return price;
 }
 
-function PrintAndSendCard({ price: priceValue }: { price: number }) {
-  const buy = useBuy();
+/**
+ * Shared by the Pricing page and the nav's Top up pop-up (owner, 2026-11-07).
+ * idPrefix keeps element ids unique when the pop-up opens over the Pricing page
+ * ("pr" on the page, "tu" in the pop-up). onChosen runs before the cart opens.
+ */
+type PackOptions = { idPrefix?: string; returnTo?: string; onChosen?: () => void };
+
+function PrintAndSendCard({ price: priceValue, idPrefix = "pr", returnTo, onChosen }: { price: number } & PackOptions) {
+  const buy = useBuy(returnTo);
   const price = money(priceValue);
 
   return (
-    <article className="pr-offer" aria-labelledby="pr-ps-name">
+    <article className="pr-offer" aria-labelledby={`${idPrefix}-ps-name`}>
       <div className="pr-offer-top">
         <header className="pr-offer-head">
-          <h2 id="pr-ps-name" className="pr-offer-name">Print and Send</h2>
-          <MetaLine rows={[["Send 1 card", "Shipping included"]]} />
+          <h2 id={`${idPrefix}-ps-name`} className="pr-offer-name">Print and Send</h2>
+          <MetaLine rows={[["Send 1 card", "Shipping and 10 AI creation credits included"]]} />
         </header>
         <p className="pr-price">{price}</p>
       </div>
       <p className="pr-offer-text">One flat price, shipping included Canada-wide. Prices in CAD; tax is extra.</p>
 
       <HowItWorks
-        id="pr-ps-how"
+        id={`${idPrefix}-ps-how`}
         items={[
-          { title: "Buy your card", body: "It waits in your card bank, shown as Cards at the top of the page and in the menu." },
-          { title: "Choose a card", body: "Pick a saved card or one from Community Cards." },
+          { title: "Buy your card + credits", body: "It waits in your card bank, shown as Credits and Cards at the top of the page and in the menu." },
+          { title: "Choose a card", body: "Choose from four different creation options." },
           { title: "Add the details", body: "Write your message and their address, add a saved song if you like, and we’ll print and ship it." },
         ]}
       />
 
-      <button type="button" className="l-btn l-btn-primary pr-cta" onClick={() => buy(makePrintAndSendCartItem())}>
+      <button type="button" className="l-btn l-btn-primary pr-cta" onClick={() => { onChosen?.(); buy(makePrintAndSendCartItem()); }}>
         <span>Buy Print and Send</span>
         <IconArrow />
       </button>
@@ -219,8 +226,9 @@ function buildBigSender(offers: PricingOffer[]): BigSenderData | null {
   };
 }
 
-function BigSenderCard({ data }: { data: BigSenderData }) {
-  const buy = useBuy();
+function BigSenderCard({ data, idPrefix = "pr", returnTo, onChosen }: { data: BigSenderData } & PackOptions) {
+  const buy = useBuy(returnTo);
+  const qtyId = `${idPrefix}-bs-qty`;
   const { tiers, minCards, creditsPerCard } = data;
   const [qty, setQty] = React.useState(minCards);
   // What's in the box while typing (may be empty); `qty` is always valid.
@@ -236,11 +244,11 @@ function BigSenderCard({ data }: { data: BigSenderData }) {
   const lastTier = tiers[tiers.length - 1];
 
   return (
-    <article className="pr-offer" aria-labelledby="pr-bs-name">
+    <article className="pr-offer" aria-labelledby={`${idPrefix}-bs-name`}>
       <div className="pr-offer-top">
         <header className="pr-offer-head">
-          <h2 id="pr-bs-name" className="pr-offer-name">Big Sender</h2>
-          <MetaLine rows={[["Send multiple different cards", "Includes shipping"], [`${creditsPerCard} AI creation credits per card`]]} />
+          <h2 id={`${idPrefix}-bs-name`} className="pr-offer-name">Big Sender</h2>
+          <MetaLine rows={[["Send multiple different cards", `Shipping and ${creditsPerCard} AI creation credits included per card`]]} />
         </header>
       </div>
 
@@ -264,13 +272,13 @@ function BigSenderCard({ data }: { data: BigSenderData }) {
       </div>
 
       <div className="pr-qty">
-        <label className="pr-qty-label" htmlFor="pr-bs-qty">How many cards?</label>
+        <label className="pr-qty-label" htmlFor={qtyId}>How many cards?</label>
         <div className="pr-stepper">
           <button type="button" aria-label="Decrease" onClick={() => setQtyClamped(qty - 1)} disabled={qty <= minCards}>
             <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" aria-hidden="true" focusable="false"><path d="M6 12h12" /></svg>
           </button>
           <input
-            id="pr-bs-qty"
+            id={qtyId}
             type="number"
             inputMode="numeric"
             min={minCards}
@@ -286,11 +294,11 @@ function BigSenderCard({ data }: { data: BigSenderData }) {
             <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" aria-hidden="true" focusable="false"><path d="M6 12h12M12 6v12" /></svg>
           </button>
         </div>
-        <output className="pr-qty-total" htmlFor="pr-bs-qty" aria-live="polite">${pricing.totalText}</output>
+        <output className="pr-qty-total" htmlFor={qtyId} aria-live="polite">${pricing.totalText}</output>
       </div>
 
       <HowItWorks
-        id="pr-bs-how"
+        id={`${idPrefix}-bs-how`}
         items={[
           { title: "Share the Love", body: "Send a completed card to each of your loved ones." },
           { title: "Flexible Sending Options", body: "Send the same card to everyone, or a unique card to each." },
@@ -298,7 +306,7 @@ function BigSenderCard({ data }: { data: BigSenderData }) {
         ]}
       />
 
-      <button type="button" className="l-btn l-btn-primary pr-cta" onClick={() => buy(makeBigSenderCartItem(pricing.qty, tiers))}>
+      <button type="button" className="l-btn l-btn-primary pr-cta" onClick={() => { onChosen?.(); buy(makeBigSenderCartItem(pricing.qty, tiers)); }}>
         <span>Reserve {pricing.qty} cards · ${pricing.totalText}</span>
         <IconArrow />
       </button>
@@ -307,11 +315,11 @@ function BigSenderCard({ data }: { data: BigSenderData }) {
 }
 
 /** Stand-in for Big Sender while its tiers load from the backend, or if they can't. */
-function BigSenderPlaceholder({ status }: { status: "loading" | "error" }) {
+function BigSenderPlaceholder({ status, idPrefix = "pr" }: { status: "loading" | "error"; idPrefix?: string }) {
   return (
-    <article className="pr-offer pr-offer-placeholder" aria-labelledby="pr-bs-name">
+    <article className="pr-offer pr-offer-placeholder" aria-labelledby={`${idPrefix}-bs-name`}>
       <header className="pr-offer-head">
-        <h2 id="pr-bs-name" className="pr-offer-name">Big Sender</h2>
+        <h2 id={`${idPrefix}-bs-name`} className="pr-offer-name">Big Sender</h2>
       </header>
       <p className="pr-state" role="status">
         {status === "loading" ? "Loading prices…" : "We couldn't load prices right now. Please refresh the page or try again."}
@@ -320,7 +328,7 @@ function BigSenderPlaceholder({ status }: { status: "loading" | "error" }) {
   );
 }
 
-export function PricingCardPacks() {
+export function PricingCardPacks(options: PackOptions = {}) {
   const [state, setState] = React.useState<
     { status: "loading" } | { status: "error" } | { status: "ready"; data: BigSenderData }
   >({ status: "loading" });
@@ -343,10 +351,10 @@ export function PricingCardPacks() {
 
   return (
     <div className="pr-offers">
-      <PrintAndSendCard price={printAndSendPrice} />
+      <PrintAndSendCard price={printAndSendPrice} {...options} />
       {state.status === "ready"
-        ? <BigSenderCard data={state.data} />
-        : <BigSenderPlaceholder status={state.status} />}
+        ? <BigSenderCard data={state.data} {...options} />
+        : <BigSenderPlaceholder status={state.status} idPrefix={options.idPrefix} />}
     </div>
   );
 }
@@ -355,15 +363,17 @@ export function PricingCardPacks() {
 // Creation credits (Starter / Creator / Power; copy unchanged)
 // ============================================================
 type CreditPacksProps = {
+  /** "pr" on the Pricing page, "tu" in the Top up pop-up (keeps ids unique). */
+  idPrefix?: string;
   /** Where a signed-out visitor returns after signing up. */
   returnTo?: string;
   /** Called after a pack is chosen, before the cart opens (the top-up modal closes itself). */
   onChosen?: () => void;
 };
 
-function CreditPackCard({ pack, returnTo, onChosen }: CreditPacksProps & { pack: CreditPack }) {
+function CreditPackCard({ pack, idPrefix = "pr", returnTo, onChosen }: CreditPacksProps & { pack: CreditPack }) {
   const buy = useBuy(returnTo);
-  const titleId = `pr-credit-${pack.id}`;
+  const titleId = `${idPrefix}-credit-${pack.id}`;
   return (
     <li className={`pr-credit ${pack.featured ? "is-featured" : ""}`}>
       <article aria-labelledby={titleId}>
@@ -398,11 +408,11 @@ function CreditPackCard({ pack, returnTo, onChosen }: CreditPacksProps & { pack:
   );
 }
 
-/** The three credit packs. Used by the Pricing page and the top-up modal (TopUpCreditsModal.tsx). */
-export function PricingCreditPacks({ returnTo, onChosen }: CreditPacksProps = {}) {
+/** The three credit packs. Used by the Pricing page and the Top up pop-up (TopUpModal.tsx). */
+export function PricingCreditPacks({ idPrefix, returnTo, onChosen }: CreditPacksProps = {}) {
   return (
     <ul className="pr-credits-grid">
-      {CREDIT_PACKS.map((pack) => <CreditPackCard key={pack.id} pack={pack} returnTo={returnTo} onChosen={onChosen} />)}
+      {CREDIT_PACKS.map((pack) => <CreditPackCard key={pack.id} pack={pack} idPrefix={idPrefix} returnTo={returnTo} onChosen={onChosen} />)}
     </ul>
   );
 }

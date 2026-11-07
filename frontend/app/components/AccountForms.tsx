@@ -114,14 +114,14 @@ function GiftSouvenotePage({ user }: AccountUserProps) {
       <div className="bmc-head" style={{ marginBottom: 28 }}>
         <div className="bmc-eyebrow"><span>Account</span><span className="dot" />Gift a Souvenote</div>
         <h1 className="bmc-title">Gift a <span className="souv-hero-italic text-metallic-gold">Souvenote</span></h1>
-        <p className="bmc-lede">Give someone the whole experience. They'll receive a full card pack of ten creation credits and a physical card send, enough to make a card and add an optional QR-code song for someone <em>they</em> love. Your treat.</p>
+        <p className="bmc-lede">Give someone the whole experience. They&apos;ll receive a full card pack of ten creation credits and a physical card send, enough to make a card and add an optional QR-code song for someone <em>they</em> love. Your treat.</p>
       </div>
 
       <form className="acc-gift-grid" onSubmit={(event: React.FormEvent<HTMLFormElement>) => { event.preventDefault(); setSent(true); }}>
         {/* LEFT - what they get + where to send */}
         <div className="acc-gift-main">
           <div className="acc-panel">
-            <div className="acc-panel-title">What they'll unlock</div>
+            <div className="acc-panel-title">What they&apos;ll unlock</div>
             <div className="acc-gift-includes">
               <div className="acc-gift-inc">
                 <span className="acc-gift-inc-ico">{GiftIco.spark}</span>
@@ -172,7 +172,7 @@ function GiftSouvenotePage({ user }: AccountUserProps) {
               {sent ? <>Gift on its way ✓</> : <>{GiftIco.send} Send gift · $6.99</>}
             </button>
             {sent
-              ? <p className="acc-gift-foot">We've sent {firstName} a redemption link by {via}. They'll sign up and find a full card pack waiting.</p>
+              ? <p className="acc-gift-foot">We&apos;ve sent {firstName} a redemption link by {via}. They&apos;ll sign up and find a full card pack waiting.</p>
               : <p className="acc-gift-foot">Prefer to bundle it? <b>Gift a Souvenote</b> also appears as an add-on at checkout.</p>}
           </div>
         </aside>
@@ -199,7 +199,7 @@ function RedeemGiftPage({ sender = 'A friend' }: RedeemGiftPageProps) {
         <div className="bmc-eyebrow" style={{ justifyContent: 'center' }}><span>A gift for you</span></div>
         <div className="acc-redeem-token" aria-hidden="true">{GiftIco.gift}</div>
         <h1 className="bmc-title acc-redeem-title">{senderFirst} gifted you a <span className="souv-hero-italic text-metallic-rose-gold">Souvenote</span></h1>
-        <p className="bmc-lede acc-redeem-lede">There's a full card pack waiting in your name: ten creation credits and a physical card send. Make a card, add an optional QR-code song for someone you love, and we'll mail it for you.</p>
+        <p className="bmc-lede acc-redeem-lede">There&apos;s a full card pack waiting in your name: ten creation credits and a physical card send. Make a card, add an optional QR-code song for someone you love, and we&apos;ll mail it for you.</p>
       </div>
 
       <div className="acc-steps acc-redeem-steps">
@@ -216,7 +216,7 @@ function RedeemGiftPage({ sender = 'A friend' }: RedeemGiftPageProps) {
         <Link className="bmc-cta acc-redeem-btn" href="/signup">{GiftIco.heart} Sign up to redeem</Link>
         <Link className="bmc-text-link" href="/login">Already have an account? Log in</Link>
       </div>
-      <p className="acc-redeem-note">Your gift applies the moment you sign up, and you'll land on your options page with <b>10 credits</b> ready to spend.</p>
+      <p className="acc-redeem-note">Your gift applies the moment you sign up, and you&apos;ll land on your options page with <b>10 credits</b> ready to spend.</p>
     </div>
   );
 }
@@ -362,7 +362,7 @@ function SettingsSecurity() {
         <AccToggle />
       </div>
       <div className="acc-row">
-        <div className="acc-row-info"><div className="acc-row-label">Active sessions</div><div className="acc-row-desc">You're signed in on 2 devices.</div></div>
+        <div className="acc-row-info"><div className="acc-row-label">Active sessions</div><div className="acc-row-desc">You&apos;re signed in on 2 devices.</div></div>
         <button type="button" className="bmc-cta-secondary">Sign out all</button>
       </div>
     </div>
@@ -386,26 +386,6 @@ function SettingsNotifs() {
           <AccToggle on={r.on} />
         </div>
       ))}
-    </div>
-  );
-}
-
-function LegacySettingsPayments() {
-  return (
-    <div className="acc-set-group">
-      <h2 className="acc-set-h">Payment methods</h2>
-      <p className="acc-set-sub">Saved cards for faster checkout.</p>
-      <div className="acc-pay">
-        <div className="acc-pay-brand">VISA</div>
-        <div className="acc-pay-info"><div className="acc-pay-num">•••• •••• •••• 4242</div><div className="acc-pay-exp">Expires 08 / 28 · Default</div></div>
-        <button type="button" className="bmc-cta-secondary">Edit</button>
-      </div>
-      <div className="acc-pay">
-        <div className="acc-pay-brand">MC</div>
-        <div className="acc-pay-info"><div className="acc-pay-num">•••• •••• •••• 8810</div><div className="acc-pay-exp">Expires 12 / 26</div></div>
-        <button type="button" className="bmc-cta-secondary">Edit</button>
-      </div>
-      <button type="button" className="bmc-cta" style={{ marginTop: 8 }}>+ Add payment method</button>
     </div>
   );
 }
@@ -757,7 +737,7 @@ function SettingsDanger() {
           <button type="button" className="acc-btn-danger">Deactivate</button>
         </div>
         <div className="acc-row">
-          <div className="acc-row-info"><div className="acc-row-label">Delete account</div><div className="acc-row-desc">Permanently remove your account, cards and songs. This can't be undone.</div></div>
+          <div className="acc-row-info"><div className="acc-row-label">Delete account</div><div className="acc-row-desc">Permanently remove your account, cards and songs. This can&apos;t be undone.</div></div>
           <button type="button" className="acc-btn-danger">Delete account</button>
         </div>
       </div>

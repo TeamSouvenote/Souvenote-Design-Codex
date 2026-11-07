@@ -10,9 +10,11 @@ import type { CreditBalanceStatus } from "../lib/creditBalance";
 import type { DemoCredits, DemoUser } from "./DemoUser";
 import { useDemoBalance } from "./DemoBalance";
 import { useCartCount } from "./cartCount";
+import { OPEN_TOP_UP_EVENT } from "./pricing/topUp";
+import type { OpenTopUpDetail, TopUpView } from "./pricing/topUp";
 
 // Top-up pop-up: loaded the first time it opens, so its code and styles aren't on every page.
-const TopUpCreditsModal = dynamic(() => import("./pricing/TopUpCreditsModal"), { ssr: false });
+const TopUpModal = dynamic(() => import("./pricing/TopUpModal"), { ssr: false });
 
 type NavLink = {
   label: string;
@@ -27,7 +29,7 @@ type CreditsTickerProps = {
   cardBank?: number;
   status?: CreditBalanceStatus;
   /** Opens the top-up credits pop-up (owned by NavRight, so the hamburger can open it too). */
-  onTopUp: () => void;
+  onTopUp: (view: TopUpView) => void;
 };
 
 type NavRightProps = {
@@ -141,10 +143,12 @@ function CreditsTicker({ credits = 0, cardBank = 0, status = "idle", onTopUp }: 
     : error
       ? "Credit balance unavailable"
       : `${plural(credits, "credit")}, ${plural(cardBank, "card")}. View Saved Cards & Songs`;
+  const linkRef = React.useRef<HTMLAnchorElement | null>(null);
 
   return (
     <div className="souv-balance-wrap">
       <Link
+        ref={linkRef}
         className="souv-credits souv-credits-stack souv-credits-link"
         href="/create/my-cards-and-songs"
         title={linkTitle}
@@ -155,16 +159,31 @@ function CreditsTicker({ credits = 0, cardBank = 0, status = "idle", onTopUp }: 
           <em>Cards</em><b>{cardBank}</b>
         </span>
       </Link>
-      {/* Shown on hover and on keyboard focus (owner, 2026-11-05): top up in a pop-up, see pricing, or
-          go to Saved Cards & Songs (where the box itself also links). */}
+      {/* Shown on hover and on keyboard focus: top up cards or credits in a pop-up (owner, 2026-11-05 /
+          2026-11-07; "Top up cards" replaced "See pricing"), or go to Saved Cards & Songs (where the box
+          itself also links). */}
       <div className="souv-cardbank-pop">
         <div className="souv-cardbank-pop-card">
           <div className="souv-cardbank-pop-arrow" />
           <div className="souv-rule-gold" />
-          <button type="button" className="souv-cardbank-sendlink" onClick={onTopUp} aria-haspopup="dialog">
-            Top up credits
-          </button>
-          <Link className="souv-cardbank-sendlink" href="/pricing">See pricing</Link>
+          {(["cards", "credits"] as const).map((view) => (
+            <button
+              key={view}
+              type="button"
+              className="souv-cardbank-sendlink"
+              aria-haspopup="dialog"
+              onClick={(event) => {
+                // Keyboard (Enter/Space, detail 0): focus the Credits box first, so it gets focus
+                // back when the pop-up closes. This menu hides once focus leaves it, so focus
+                // couldn't return to this button. Mouse clicks skip this, so the menu doesn't
+                // reappear after the pop-up closes.
+                if (event.detail === 0) linkRef.current?.focus({ preventScroll: true });
+                onTopUp?.(view);
+              }}
+            >
+              {view === "cards" ? "Top up cards" : "Top up credits"}
+            </button>
+          ))}
           <Link className="souv-cardbank-sendlink" href="/create/my-cards-and-songs">Saved Cards &amp; Songs</Link>
         </div>
       </div>
@@ -255,11 +274,28 @@ function NavRight({
   const cartCount = useCartCount();
   const pathname = usePathname();
   const menuButtonRef = React.useRef<HTMLButtonElement | null>(null);
-  const [topUpOpen, setTopUpOpen] = React.useState(false);
+  // The Top up pop-up: which view it opened on, and where to return after paying (mid-creation only).
+  const [topUp, setTopUp] = React.useState<{ view: TopUpView; returnTo?: string } | null>(null);
   const menuWrapRef = React.useRef<HTMLDivElement | null>(null);
   const siteMenuId = React.useId();
   const onMenuBlur = useMenuDismiss(menuOpen, () => setMenuOpen(false), menuWrapRef, menuButtonRef);
   const loginHref = `/login?${new URLSearchParams({ returnTo: pathname || "/" }).toString()}`;
+
+  // openTopUp() in pricing/topUp.ts: pages ask for the pop-up when someone is out of
+  // credits or cards mid-creation. Only a signed-in nav answers; otherwise the
+  // caller falls back to the Pricing page.
+  React.useEffect(() => {
+    if (!loggedIn) return;
+    const onOpen = (event: Event) => {
+      const detail = (event as CustomEvent<OpenTopUpDetail>).detail;
+      if (!detail) return;
+      detail.handled = true;
+      setMenuOpen(false);
+      setTopUp({ view: detail.view, returnTo: detail.returnTo });
+    };
+    window.addEventListener(OPEN_TOP_UP_EVENT, onOpen);
+    return () => window.removeEventListener(OPEN_TOP_UP_EVENT, onOpen);
+  }, [loggedIn, setMenuOpen]);
 
   if (!loggedIn) {
     return (
@@ -272,8 +308,8 @@ function NavRight({
 
   return (
     <div className="souv-nav-right">
-      <CreditsTicker credits={creditBalance} cardBank={cardBank} status={creditStatus} onTopUp={() => setTopUpOpen(true)} />
-      {topUpOpen && <TopUpCreditsModal onClose={() => setTopUpOpen(false)} />}
+      <CreditsTicker credits={creditBalance} cardBank={cardBank} status={creditStatus} onTopUp={(view) => setTopUp({ view })} />
+      {topUp && <TopUpModal initialView={topUp.view} returnTo={topUp.returnTo} onClose={() => setTopUp(null)} />}
       <span className="souv-nav-sep" aria-hidden="true" />
 
       <div className="souv-iconbtn-wrap">
@@ -323,21 +359,23 @@ function NavRight({
             <Link href="/account/settings" className="souv-popmenu-item">Account Settings</Link>
             <div className="souv-popmenu-sep" />
             <Link href="/create/my-cards-and-songs" className="souv-popmenu-item">Saved Cards &amp; Songs</Link>
-            {/* Owner, 2026-11-05: cards go to Pricing (card packs are at the top); credits open the top-up pop-up. */}
-            <Link href="/pricing" className="souv-popmenu-item">Top Up Cards</Link>
-            <button
-              type="button"
-              className="souv-popmenu-item"
-              aria-haspopup="dialog"
-              onClick={() => {
-                setMenuOpen(false);
-                // Focus returns to the menu button when the pop-up closes.
-                menuButtonRef.current?.focus();
-                setTopUpOpen(true);
-              }}
-            >
-              Top Up Credits
-            </button>
+            {/* Owner, 2026-11-07: both open the Top up pop-up (cards or credits view). */}
+            {(["cards", "credits"] as const).map((view) => (
+              <button
+                key={view}
+                type="button"
+                className="souv-popmenu-item"
+                aria-haspopup="dialog"
+                onClick={() => {
+                  setMenuOpen(false);
+                  // Focus returns to the menu button when the pop-up closes.
+                  menuButtonRef.current?.focus();
+                  setTopUp({ view });
+                }}
+              >
+                {view === "cards" ? "Top Up Cards" : "Top Up Credits"}
+              </button>
+            ))}
             <div className="souv-popmenu-sep" />
             {compactLinks && (
               // Phones only (hidden from 701px up, where the bar shows these).
@@ -379,7 +417,6 @@ function NavRight({
 }
 
 function Navbar({
-  loggedIn: _loggedIn = false,
   user = { name: "Amelia Hart", email: "amelia@souvenote.com", initials: "AH" },
   credits = { images: 0, songs: 0 },
   cardBank = 0,

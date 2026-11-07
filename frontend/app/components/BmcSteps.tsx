@@ -126,7 +126,7 @@ function referenceImageValue(value: unknown): PhotoPreview[] {
 // ============================================================
 const MAX_REFS = 16;
 
-function BmcPhotoStep({ photoCount, setPhotoCount, describe, setDescribe, onContinue, country = 'CA', initialDraft, onDraftPatch, uploading = false }: BmcPhotoStepProps) {
+function BmcPhotoStep({ setPhotoCount, describe, setDescribe, onContinue, country = 'CA', initialDraft, onDraftPatch, uploading = false }: BmcPhotoStepProps) {
   const initialPhoto = nestedRecord(initialDraft, "photo");
   const initialReferenceImageNames = stringArrayValue(initialPhoto.referenceImageNames, []);
   const initialReferenceImages = referenceImageValue(initialPhoto.referenceImages);
@@ -269,7 +269,7 @@ function BmcPhotoStep({ photoCount, setPhotoCount, describe, setDescribe, onCont
         <div className={`bmc-photo-or ${describe ? 'is-active' : ''}`}>
           <span className="bmc-photo-or-eyebrow">— OR —</span>
           <span className="bmc-photo-or-title">Skip upload</span>
-          <p className="bmc-photo-or-sub">Describe a memory, joke, or imaginary scene. We'll generate it from your words alone.</p>
+          <p className="bmc-photo-or-sub">Describe a memory, joke, or imaginary scene. We&apos;ll generate it from your words alone.</p>
           <button type="button" className={describe ? 'bmc-cta' : 'bmc-cta-secondary'}
                   onClick={openDescribeSection}>
             Describe My Card <BmcIcon name="sparkle" w={14} />
@@ -358,7 +358,7 @@ function BmcPhotoStep({ photoCount, setPhotoCount, describe, setDescribe, onCont
             <span className="bmc-prompt-icon"><BmcIcon name="sparkle" w={22} /></span>
             <h3 className="bmc-prompt-title">Describe your idea first</h3>
             <p className="bmc-prompt-body">
-              Tell us the memory, inside joke, or scene you have in mind and we'll generate
+              Tell us the memory, inside joke, or scene you have in mind and we&apos;ll generate
               the card from your words. Add a few details before continuing.
             </p>
             <button
@@ -414,7 +414,7 @@ function BmcBasicsStep({ onContinue, onBack, initialDraft, onDraftPatch }: StepN
   const [phonetic, setPhonetic] = React.useState(textValue(initialBasics.phonetic));
   const [relationship, setRelationship] = React.useState(textValue(initialBasics.relationship));
   const [sender, setSender] = React.useState(textValue(initialBasics.sender));
-  const [skipped, setSkipped] = React.useState(booleanValue(initialBasics.skipped));
+  const [skipped] = React.useState(booleanValue(initialBasics.skipped));
   const isCustom = occasion === 'Custom…';
 
   const resolvedOccasion = isCustom ? custom.trim() : occasion;
@@ -480,7 +480,7 @@ function BmcBasicsStep({ onContinue, onBack, initialDraft, onDraftPatch }: StepN
         </div>
 
         <div className="bmc-fieldcard">
-          <label className="bmc-label">Who it's for <em className="bmc-opt">· all optional</em></label>
+          <label className="bmc-label">Who it&apos;s for <em className="bmc-opt">· all optional</em></label>
           <div className={`bmc-grid-2 bmc-basics-names ${skipped ? 'is-dim' : ''}`}>
           <div>
             <label className="bmc-label">Recipient name <em className="bmc-opt">· what do you call them?</em></label>

@@ -1,6 +1,8 @@
 "use client";
 
 import * as React from "react";
+import { rememberDeliverySource } from "./delivery/deliverySource";
+import { openTopUp } from "./pricing/topUp";
 import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
 import { BmcIcon, bmcError } from "./BmcShared";
@@ -520,8 +522,8 @@ function BmcReview({
   const requiredApprovalCount = includeSong ? 3 : 2;
   const allApproved = imgApproved && msgApproved && (!includeSong || songApproved);
   const startOver = onStartOver || (() => router.push('/create/build-my-card'));
-  const approveAll = onApproveAll || (() => router.push('/delivery'));
-  const topUp = onTopUp || (() => router.push('/pricing'));
+  const approveAll = onApproveAll || (() => { rememberDeliverySource('build'); router.push('/delivery'); });
+  const topUp = onTopUp || (() => { if (!openTopUp('credits', '/create/build-my-card')) router.push('/pricing'); });
   const outOfCredits = credits <= 0;
   const spendRegenerationCredit = async () => {
     if (credits <= 0) {

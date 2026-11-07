@@ -143,68 +143,10 @@ type RiskFreeCalloutProps = {
   inline?: boolean;
 };
 
-function IconTemplate() {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round">
-      <rect x="3.5" y="3.5" width="17" height="17" rx="2" />
-      <path d="M3.5 9h17" />
-      <path d="M9 9v11.5" />
-      <circle cx="14.5" cy="14" r="1.6" fill="currentColor" stroke="none" />
-    </svg>
-  );
-}
-function IconBuild() {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M4 7h12l4 4v9H4z" />
-      <path d="M16 7v4h4" />
-      <path d="M8 14h6M8 17h4" />
-      <path d="M19 4l1.6 1.6M21 7l-1.6-1.6M19 4l-1.6 1.6M21 7l1.6-1.6" stroke="currentColor" strokeWidth="1" />
-    </svg>
-  );
-}
-function IconCommunity() {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round">
-      <circle cx="8" cy="9" r="3.2" />
-      <circle cx="17" cy="10.5" r="2.6" />
-      <path d="M2.5 19c.6-3 3-4.6 5.5-4.6S13 16 13.5 19" />
-      <path d="M13.5 17c.6-1.8 2.2-2.8 3.8-2.8 1.8 0 3.3 1 4 2.8" />
-    </svg>
-  );
-}
-function IconLibrary() {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round">
-      <rect x="3.5" y="6" width="13" height="14" rx="1.5" />
-      <path d="M7 6V4.5h13V18" />
-      <path d="M7 11h6M7 15h4" />
-      <path d="M14.5 17.5l1.2 1.2 2.6-2.6" stroke="currentColor" strokeWidth="1.2" />
-    </svg>
-  );
-}
-function IconGift() {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round">
-      <rect x="3.5" y="8" width="17" height="5" />
-      <path d="M5 13v8h14v-8" />
-      <path d="M12 8v13" />
-      <path d="M12 8s-3-4.5-5-3 .8 4 5 3zM12 8s3-4.5 5-3-.8 4-5 3z" />
-    </svg>
-  );
-}
 function IconSparkArrow() {
   return (
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
       <path d="M5 12h13M13 6l6 6-6 6" />
-    </svg>
-  );
-}
-function IconToken() {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <circle cx="12" cy="12" r="8" />
-      <path d="M12 7v10M9 9h4.2a1.8 1.8 0 0 1 0 3.6H9M9 12.6h5a1.8 1.8 0 0 1 0 3.6H9" />
     </svg>
   );
 }
@@ -215,14 +157,6 @@ function IconStar() {
     </svg>
   );
 }
-function IconClose() {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" aria-hidden="true">
-      <path d="M6 6l12 12M18 6L6 18" />
-    </svg>
-  );
-}
-
 // ============================================================
 // SHARED — Back button (centered pill beneath page content)
 // ============================================================
@@ -615,7 +549,7 @@ function souvAddToCart(item: CartItem) {
     else cur.push(item);
     window.localStorage.setItem(key, JSON.stringify(cur));
     notifyCartChanged();
-  } catch (e) {
+  } catch {
     // Local storage may be unavailable; routing still lets the user continue.
   }
 }
@@ -938,7 +872,7 @@ function TryRiskFreeCard({ pack }: TryRiskFreeCardProps) {
 
       <div className="opt-pk-cost opt-pk-cost-split">
         <div className="opt-pk-cost-line"><b>{holdPrice}</b><em>if you love it.</em></div>
-        <div className="opt-pk-cost-line"><b>{noSendPrice}</b><em>if you don't.</em></div>
+        <div className="opt-pk-cost-line"><b>{noSendPrice}</b><em>if you don&apos;t.</em></div>
       </div>
 
       <div className="opt-pk-rule" />
@@ -989,7 +923,7 @@ function RiskFreeCallout({ inline }: RiskFreeCalloutProps) {
           </div>
           <div className="opt-trf-step">
             <div className="opt-trf-num">03</div>
-            <div className="opt-trf-title">Don't send → pay-per-use</div>
+            <div className="opt-trf-title">Don&apos;t send → pay-per-use</div>
             <div className="opt-trf-body">After seven days or ten credits used we capture only credits used × $0.20.</div>
           </div>
         </div>

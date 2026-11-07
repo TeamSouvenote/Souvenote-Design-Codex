@@ -10,6 +10,7 @@ import { demoUser } from "./DemoUser";
 import { useCreditBalance } from "../lib/creditBalance";
 import { MIN_GENERATION_CREDITS } from "./createFlowRules";
 import { goToPricingAfterPurchase } from "./PricingReturn";
+import { openTopUp } from "./pricing/topUp";
 import { useAuth } from "./AuthProvider";
 
 type PersonalizeModalStep = "photo" | "birthday" | "caption";
@@ -51,7 +52,8 @@ export function PersonalizeTemplateClient() {
     if (creditBalance.status !== "ready") return;
     entryGateChecked.current = true;
     if (totalCredits < MIN_GENERATION_CREDITS) {
-      router.replace(goToPricingAfterPurchase("/create/personalize-a-template"));
+      // Out of credits: the Top up credits pop-up on this page (owner, 2026-11-07); Pricing if it isn't available.
+      if (!openTopUp("credits", "/create/personalize-a-template")) router.replace(goToPricingAfterPurchase("/create/personalize-a-template"));
     }
   }, [balanceReady, creditBalance.status, isAuthenticated, resumeDraftId, totalCredits, router]);
 

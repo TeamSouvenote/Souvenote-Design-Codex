@@ -132,12 +132,11 @@
   background: var(--l-stripe);
 }
 .souv-pricing .pr-meta-row { display: flex; align-items: center; justify-content: center; gap: 10px; }
-/* A long row ("Send multiple different cards • Includes shipping") doesn't fit
-   a phone: stack its items, without dots. */
-@media (max-width: 559px) {
-  .souv-pricing .pr-meta-row.is-long { flex-direction: column; align-items: center; gap: 0; }
-  .souv-pricing .pr-meta-row.is-long .pr-meta-dot { display: none; }
-}
+/* A long row (e.g. "Send 1 card • Shipping and 10 AI creation credits included")
+   doesn't fit beside itself in the offer boxes: stack its items on every screen,
+   without dots, and keep each item on balanced lines (owner copy 2026-11-06). */
+.souv-pricing .pr-meta-row.is-long { flex-direction: column; align-items: center; gap: 0; text-align: center; text-wrap: balance; }
+.souv-pricing .pr-meta-row.is-long .pr-meta-dot { display: none; }
 .souv-pricing .pr-how-item-title,
 .souv-pricing .pr-how-item-body { font-size: 17px; }
 @media (max-width: 599px) {
@@ -528,13 +527,42 @@
   margin: 14px auto 0;
   color: var(--l-paper-ink-2);
 }
-.pr-ready-overlay .pr-ready-actions {
-  display: flex; flex-direction: column; gap: 12px;
+/* Four option buttons in the Create Options colours (owner, 2026-11-06):
+   Template gold, Build berry, Community forest, Saved espresso. 2x2 from 520px. */
+.pr-ready-overlay .pr-ready-options {
+  display: grid; grid-template-columns: 1fr; gap: 10px;
   margin-top: 28px;
 }
 @media (min-width: 520px) {
-  .pr-ready-overlay .pr-ready-actions { flex-direction: row; justify-content: center; }
+  .pr-ready-overlay .pr-ready-options { grid-template-columns: 1fr 1fr; gap: 12px; }
 }
+.pr-ready-overlay .pr-ready-opt {
+  --opt-bg: #D8B65A; --opt-ink: #4A3B39;
+  display: flex; align-items: center; justify-content: center;
+  min-height: 56px;
+  padding: 10px 16px;
+  border-radius: 999px;
+  background: var(--opt-bg);
+  color: var(--opt-ink);
+  font-size: 16px; font-weight: 700;
+  line-height: 1.2;
+  text-align: center;
+  text-decoration: none;
+  box-shadow: 0 6px 16px rgba(74, 59, 57, 0.16);
+  transition: transform .2s var(--l-ease), box-shadow .2s var(--l-ease), filter .2s var(--l-ease);
+}
+.pr-ready-overlay .pr-ready-opt.is-build { --opt-bg: #9E3D58; --opt-ink: #F7F0E8; }
+.pr-ready-overlay .pr-ready-opt.is-community { --opt-bg: #2F3E3B; --opt-ink: #F7F0E8; }
+.pr-ready-overlay .pr-ready-opt.is-saved { --opt-bg: #4A3B39; --opt-ink: #F7F0E8; }
+@media (hover: hover) {
+  .pr-ready-overlay .pr-ready-opt:hover { transform: translateY(-2px); box-shadow: 0 10px 22px rgba(74, 59, 57, 0.22); filter: brightness(1.06); }
+}
+.pr-ready-overlay .pr-ready-opt:focus-visible { outline: 3px solid var(--l-focus); outline-offset: 3px; }
+@media (prefers-reduced-motion: reduce) {
+  .pr-ready-overlay .pr-ready-opt { transition: none; }
+  .pr-ready-overlay .pr-ready-opt:hover { transform: none; }
+}
+
 @keyframes pr-ready-in {
   from { opacity: 0; transform: translateY(8px); }
   to { opacity: 1; transform: none; }
@@ -580,6 +608,18 @@
   animation: pr-ready-in .35s var(--l-ease) both;
 }
 .tu-overlay .tu-dialog:focus { outline: none; }
+/* Cards view: berry top edge, like the Pricing page's card boxes (credits stay gold). */
+.tu-overlay .tu-dialog.is-cards { border-top-color: var(--l-stripe); }
+/* The heading takes focus after a swap so it's announced; no ring on a heading. */
+.tu-overlay .tu-head .l-h2:focus { outline: none; }
+/* "Buy only credits" / "Buy a full card + credits": swaps the view in place (owner, 2026-11-07). */
+.tu-overlay .tu-switch {
+  display: flex; justify-content: center;
+  margin-top: 28px;
+  padding-top: 24px;
+  border-top: 1px solid var(--l-line);
+}
+.tu-overlay .tu-switch .l-btn { min-height: 48px; }
 @media (min-width: 600px) {
   .tu-overlay .tu-dialog { padding: 52px 36px 40px; }
 }

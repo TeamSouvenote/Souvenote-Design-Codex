@@ -2,6 +2,7 @@
 
 import * as React from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { CheckoutModal } from "./Checkout";
 import type { CheckoutPack } from "./Checkout";
@@ -10,6 +11,8 @@ import { AuthGatePrompt } from "./AuthGatePrompt";
 import { useAuth } from "./AuthProvider";
 import { createLocalIdempotencyKey, fetchCreditBalance, grantCredits } from "../lib/api";
 import { publishCreditBalance } from "../lib/creditBalance";
+import { lookupPromo, promoDiscount, PROMO_INVALID_MESSAGE } from "../lib/promo";
+import type { AppliedPromo } from "../lib/promo";
 import {
   PRINT_AND_SEND_CART_ID,
   makeBigSenderCartItem,
@@ -17,9 +20,11 @@ import {
   makeTryRiskFreeCartItem,
 } from "./pricingCatalog";
 import { PrintSendReadyModal } from "./pricing/PrintSendReadyModal";
+import type { PurchaseReadyKind } from "./pricing/PrintSendReadyModal";
+import { FlowDialog } from "./flow/FlowDialog";
 import { addDemoBalance, getCartTopUpDelta } from "./DemoBalance";
 import { consumePricingReturn, peekPricingReturn } from "./PricingReturn";
-import { notifyCartChanged } from "./cartStorage";
+import { CART_CHANGED_EVENT, notifyCartChanged } from "./cartStorage";
 import {
   BLANK_SOUVENOTE_GIFT_CART_ID,
   BLANK_SOUVENOTE_GIFT_PRICE,
@@ -197,54 +202,52 @@ function getCartItemPresentation(item: CartItem): CartItemPresentation {
   return { kind: "item", label: "Cart item", icon: "cart" };
 }
 
+// Our small gold "S" logo (same artwork as the nav) on the card pack, Print and
+// Send and credit thumbnails (owner, 2026-11-06). Decorative: the badge carries the label.
+function CartThumbLogo({ className }: { className: string }) {
+  return <Image className={className} src="/assets/logomark-gold-silver.png" alt="" width={400} height={600} sizes="40px" />;
+}
+
 function CartThumb({ item }: CartThumbProps) {
   const presentation = getCartItemPresentation(item);
+  const badge = (
+    <span className="ct-thumb-badge" role="img" aria-label={presentation.label}>
+      <CartIco name={presentation.icon} w={14} />
+    </span>
+  );
 
   if (presentation.kind === "card") {
     return (
-      <div className="cart-thumb cart-thumb-card cart-thumb-kind-card">
+      <div className="ct-thumb ct-thumb-card">
         <CardArt palette={item.palette} glyph={item.glyph} glowIdx={item.glowIdx} corners figure />
-        <span className="cart-thumb-badge" aria-label={presentation.label}>
-          <CartIco name={presentation.icon} w={14} />
-        </span>
+        {badge}
       </div>
     );
   }
 
   if (presentation.kind === "pack") {
     return (
-      <div className="cart-thumb cart-thumb-pack cart-thumb-kind-pack">
-        <span className="cart-pack-card c3" />
-        <span className="cart-pack-card c2" />
-        <span className="cart-pack-card c1" />
-        <span className="cart-thumb-badge" aria-label={presentation.label}>
-          <CartIco name={presentation.icon} w={14} />
-        </span>
-      </div>
-    );
-  }
-
-  if (presentation.kind === "gift") {
-    return (
-      <div className="cart-thumb cart-thumb-gift cart-thumb-kind-gift">
-        <div className="cart-token">
-          <CartIco name="gift" w={26} />
-        </div>
-        <span className="cart-thumb-badge" aria-label={presentation.label}>
-          <CartIco name={presentation.icon} w={14} />
-        </span>
+      <div className="ct-thumb ct-thumb-pack">
+        <span className="ct-pack-card c3" aria-hidden="true" />
+        <span className="ct-pack-card c2" aria-hidden="true" />
+        <span className="ct-pack-card c1" aria-hidden="true"><CartThumbLogo className="ct-thumb-logo" /></span>
+        {badge}
       </div>
     );
   }
 
   return (
-    <div className={`cart-thumb cart-thumb-token cart-thumb-kind-${presentation.kind}`}>
-      <div className="cart-token">
-        <CartIco name={presentation.icon} w={28} />
-      </div>
-      <span className="cart-thumb-badge" aria-label={presentation.label}>
-        <CartIco name={presentation.icon} w={14} />
-      </span>
+    <div className={`ct-thumb ct-thumb-token ct-thumb-${presentation.kind}`}>
+      {presentation.kind === "credits" ? (
+        <span className="ct-token ct-token-logo" aria-hidden="true">
+          <CartThumbLogo className="ct-thumb-logo" />
+        </span>
+      ) : (
+        <span className="ct-token" aria-hidden="true">
+          <CartIco name={presentation.icon} w={presentation.kind === "gift" ? 26 : 28} />
+        </span>
+      )}
+      {badge}
     </div>
   );
 }
@@ -268,7 +271,7 @@ function CartIco({ name, w = 16 }: CartIcoProps) {
   }[name];
 
   return (
-    <svg viewBox="0 0 24 24" width={w} height={w} fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">{path}</svg>
+    <svg viewBox="0 0 24 24" width={w} height={w} fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" focusable="false">{path}</svg>
   );
 }
 
@@ -280,41 +283,42 @@ function CartLine({ item, onQty, onRemove }: CartLineProps) {
     : `${item.qty} ${item.qty === 1 ? "item" : "items"}`;
 
   return (
-    <div className="cart-line">
+    <li className="ct-line">
       <CartThumb item={item} />
-      <div className="cart-line-main">
-        <div className={`cart-line-kind cart-line-kind-${presentation.kind}`}>
+      <div className="ct-line-main">
+        <p className={`ct-line-kind ct-line-kind-${presentation.kind}`}>
           <CartIco name={presentation.icon} w={13} />
           <span>{presentation.label}</span>
-        </div>
-        <div className="cart-line-name">{item.name}</div>
-        <div className="cart-line-meta">{item.meta}</div>
-        {item.sub && <div className="cart-line-sub">{item.sub}</div>}
-        <button type="button" className="cart-line-remove" onClick={() => onRemove(item.id)}>
-          <CartIco name="trash" w={14} /> Remove
+        </p>
+        <h3 className="ct-line-name">{item.name}</h3>
+        {item.meta && <p className="ct-line-meta">{item.meta}</p>}
+        {item.sub && <p className="ct-line-sub">{item.sub}</p>}
+        <button type="button" className="ct-line-remove" onClick={() => onRemove(item.id)}>
+          <CartIco name="trash" w={15} /> Remove<span className="l-sr-only"> {item.name}</span>
         </button>
       </div>
-      <div className="cart-line-right">
+      <div className="ct-line-right">
         {lockedQuantity ? (
-          <div className="cart-qty cart-qty-locked" aria-label={`${lockedLabel} selected`}>
-            <span className="cart-qty-num">{item.cardCount || item.qty}</span>
-            <span className="cart-qty-label">{item.cardCount ? (item.cardCount === 1 ? "card" : "cards") : "gift"}</span>
-          </div>
+          <p className="ct-qty-locked">
+            <span className="ct-qty-num" aria-hidden="true">{item.cardCount || item.qty}</span>
+            <span className="ct-qty-label" aria-hidden="true">{item.cardCount ? (item.cardCount === 1 ? "card" : "cards") : "gift"}</span>
+            <span className="l-sr-only">{`${lockedLabel} selected`}</span>
+          </p>
         ) : (
-          <div className="cart-qty" role="group" aria-label={`Quantity of ${item.name}`}>
-            <button type="button" className="cart-qty-btn" onClick={() => onQty(item.id, -1)} disabled={item.qty <= 1} aria-label="Decrease quantity">
-              <CartIco name="minus" w={15} />
+          <div className="ct-stepper" role="group" aria-label={`Quantity of ${item.name}`}>
+            <button type="button" onClick={() => onQty(item.id, -1)} disabled={item.qty <= 1} aria-label="Decrease quantity">
+              <CartIco name="minus" w={16} />
             </button>
-            <span className="cart-qty-num">{item.qty}</span>
-            <button type="button" className="cart-qty-btn" onClick={() => onQty(item.id, 1)} aria-label="Increase quantity">
-              <CartIco name="plus" w={15} />
+            <span className="ct-qty-num" aria-live="polite">{item.qty}</span>
+            <button type="button" onClick={() => onQty(item.id, 1)} aria-label="Increase quantity">
+              <CartIco name="plus" w={16} />
             </button>
           </div>
         )}
-        <div className="cart-line-price">{cartMoney(item.price * item.qty)}</div>
-        <div className="cart-line-unit">{cartMoney(item.price)} {"\u00b7"} {item.unitNote}</div>
+        <p className="ct-line-price">{cartMoney(item.price * item.qty)}</p>
+        <p className="ct-line-unit">{cartMoney(item.price)} {"·"} {item.unitNote}</p>
       </div>
-    </div>
+    </li>
   );
 }
 
@@ -325,92 +329,99 @@ type GiftCheckoutOfferProps = {
   onAdd: () => void;
 };
 
+// Not shown until version 2 (owner, 2026-11-06): giving a blank Souvenote to
+// someone isn't built yet. Kept so it can be switched back on (GIFT_OFFER_ENABLED).
 function GiftCheckoutOffer({ open, onClose, onDecline, onAdd }: GiftCheckoutOfferProps) {
   if (!open) return null;
+  const giftPrice = BLANK_SOUVENOTE_GIFT_PRICE.toFixed(2);
 
   return (
-    <div className="bmc-modal-wrap" role="dialog" aria-modal="true" aria-labelledby="cart-gift-offer-title" data-screen-label="Cart · Gift add-on">
-      <div className="bmc-modal-scrim" onClick={onClose} />
-      <div className="bmc-modal cart-gift-modal">
-        <button type="button" className="bmc-modal-close" onClick={onClose} aria-label="Close"><CartIco name="close" w={16} /></button>
-        <div className="cart-gift-layout">
-          <div className="cart-gift-copy">
-            <div className="bmc-eyebrow cart-gift-eyebrow">
-              <CartIco name="gift" w={14} />
-              <span>Gift a Souvenote</span>
-            </div>
-            <h2 id="cart-gift-offer-title" className="cart-gift-title">
-              Add a blank <span className="souv-hero-italic text-metallic-gold">Souvenote</span> to your order for $6.99?
-            </h2>
-            <p className="cart-gift-lede">
-              This lets a recipient of your choice create a Souvenote for someone else. We&apos;ll remind you at delivery that you have one to give!
-            </p>
-            <div className="cart-gift-includes">
-              <div className="acc-gift-inc">
-                <span className="acc-gift-inc-ico"><CartIco name="spark" w={20} /></span>
-                <div><div className="acc-gift-inc-h">Blank card experience</div><div className="acc-gift-inc-p">They choose the recipient, message, and creative direction.</div></div>
-              </div>
-              <div className="acc-gift-inc">
-                <span className="acc-gift-inc-ico"><CartIco name="truck" w={20} /></span>
-                <div><div className="acc-gift-inc-h">Delivery reminder</div><div className="acc-gift-inc-p">We&apos;ll surface the gift again when you send your card.</div></div>
-              </div>
-            </div>
-          </div>
+    <FlowDialog
+      onClose={onClose}
+      labelledBy="cart-gift-offer-title"
+      describedBy="cart-gift-offer-lede"
+      className="fd-wide"
+      tone="berry"
+      screenLabel="Cart · Gift add-on"
+    >
+      <div className="fd-split">
+        <div className="fd-split-main">
+          <p className="fd-eyebrow">
+            <CartIco name="gift" w={14} />
+            <span>Gift a Souvenote</span>
+          </p>
+          <h2 id="cart-gift-offer-title" className="fd-title">
+            Add a blank <span className="l-script">Souvenote</span> to your order for ${giftPrice}?
+          </h2>
+          <p id="cart-gift-offer-lede" className="fd-lede">
+            This lets a recipient of your choice create a Souvenote for someone else. We&apos;ll remind you at delivery that you have one to give!
+          </p>
+          <ul className="fd-includes">
+            <li>
+              <span className="fd-includes-ico" aria-hidden="true"><CartIco name="spark" w={20} /></span>
+              <div><h3 className="fd-includes-h">Blank card experience</h3><p className="fd-includes-p">They choose the recipient, message, and creative direction.</p></div>
+            </li>
+            <li>
+              <span className="fd-includes-ico" aria-hidden="true"><CartIco name="truck" w={20} /></span>
+              <div><h3 className="fd-includes-h">Delivery reminder</h3><p className="fd-includes-p">We&apos;ll surface the gift again when you send your card.</p></div>
+            </li>
+          </ul>
+        </div>
 
-          <aside className="acc-panel acc-gift-summary cart-gift-summary">
-            <div className="acc-gift-token" aria-hidden="true">
-              <span className="acc-gift-token-label">A Souvenote,<br />on you</span>
-            </div>
-            <div className="acc-gift-price"><span className="cur">$</span>6.99<span className="cad">CAD</span></div>
-            <div className="acc-gift-name">Blank Souvenote Gift</div>
-            <div className="acc-gift-meta">
-              <div className="acc-summary-row"><span className="k">Includes</span><span className="v">1 blank gift</span></div>
-              <div className="acc-summary-row"><span className="k">Recipient</span><span className="v">Chosen at delivery</span></div>
-              <div className="acc-summary-row"><span className="k">Reminder</span><span className="v">Delivery step</span></div>
-            </div>
-          </aside>
-        </div>
-        <div className="cart-gift-actions">
-          <button type="button" className="bmc-cta-secondary cart-gift-skip" onClick={onDecline}>No thanks</button>
-          <button type="button" className="bmc-cta cart-gift-add" onClick={onAdd}>Add gift · $6.99 <CartIco name="arrow" w={15} /></button>
-        </div>
+        <aside className="fd-aside" aria-label="Blank Souvenote Gift">
+          <div className="fd-token" aria-hidden="true">
+            <span>A Souvenote,<br />on you</span>
+          </div>
+          <p className="fd-aside-price"><span className="cur">$</span>{giftPrice}<span className="cad">CAD</span></p>
+          <p className="fd-aside-name">Blank Souvenote Gift</p>
+          <dl className="cf-rows">
+            <div><dt>Includes</dt><dd>1 blank gift</dd></div>
+            <div><dt>Recipient</dt><dd>Chosen at delivery</dd></div>
+            <div><dt>Reminder</dt><dd>Delivery step</dd></div>
+          </dl>
+        </aside>
       </div>
-    </div>
+      <div className="fd-actions">
+        <button type="button" className="l-btn l-btn-secondary" onClick={onDecline}>No thanks</button>
+        <button type="button" className="l-btn l-btn-primary" onClick={onAdd}>Add gift · ${giftPrice} <CartIco name="arrow" w={16} /></button>
+      </div>
+    </FlowDialog>
   );
 }
 
 function CartEmpty() {
   return (
-    <div className="cart-empty">
-      <div className="cart-empty-ico"><CartIco name="cart" w={34} /></div>
-      <h2 className="cart-empty-h">Your cart is empty</h2>
-      <p className="cart-empty-p">Nothing waiting to send just yet. Start a card or browse a template, and it&apos;ll land here.</p>
-      <div className="cart-empty-cta">
-        <Link href="/create/personalize-a-template" className="bmc-cta">Browse templates <CartIco name="arrow" w={15} /></Link>
-        <Link href="/create/build-my-card" className="bmc-cta-secondary">Build my card</Link>
+    <section className="ct-state" aria-labelledby="ct-empty-title">
+      <span className="ct-state-ico" aria-hidden="true"><CartIco name="cart" w={34} /></span>
+      <h2 id="ct-empty-title" className="ct-state-title">Your cart is empty</h2>
+      <p className="ct-state-text">Nothing waiting to send just yet. Start a card or browse a template, and it&apos;ll land here.</p>
+      <div className="ct-state-actions">
+        <Link href="/create/personalize-a-template" className="l-btn l-btn-primary">Browse templates <CartIco name="arrow" w={16} /></Link>
+        <Link href="/create/build-my-card" className="l-btn l-btn-secondary">Build my card</Link>
       </div>
-    </div>
+    </section>
   );
 }
 
 function CartPaid() {
-  const order = "SV-" + Math.floor(100000 + Math.random() * 899999);
-
   return (
-    <div className="cart-empty cart-paid">
-      <div className="cart-empty-ico cart-paid-ico"><CartIco name="lock" w={30} /></div>
-      <h2 className="cart-empty-h">Payment confirmed</h2>
-      <p className="cart-empty-p">
-        Thank you - your order <b style={{ color: "var(--gold-hi)" }}>{order}</b> is in. A receipt is on its way to your inbox,
+    <section className="ct-state is-paid" aria-labelledby="ct-paid-title">
+      <span className="ct-state-ico" aria-hidden="true"><CartIco name="lock" w={30} /></span>
+      <h2 id="ct-paid-title" className="ct-state-title">Payment confirmed</h2>
+      <p className="ct-state-text">
+        Thank you. Your order is in. A receipt is on its way to your inbox,
         and your cards, packs, and credits are now on your account.
       </p>
-      <div className="cart-empty-cta">
-        <Link href="/create/my-cards-and-songs" className="bmc-cta">Go to Saved Cards &amp; Songs <CartIco name="arrow" w={15} /></Link>
-        <Link href="/create/personalize-a-template" className="bmc-cta-secondary">Keep browsing</Link>
+      <div className="ct-state-actions">
+        <Link href="/create/my-cards-and-songs" className="l-btn l-btn-primary">Go to Saved Cards &amp; Songs <CartIco name="arrow" w={16} /></Link>
+        <Link href="/create/personalize-a-template" className="l-btn l-btn-secondary">Keep browsing</Link>
       </div>
-    </div>
+    </section>
   );
 }
+
+// Blank Souvenote Gift offer before checkout: off until version 2 (gift recipients aren't built).
+const GIFT_OFFER_ENABLED = false;
 
 function CartPage() {
   const router = useRouter();
@@ -418,17 +429,39 @@ function CartPage() {
   const [items, setItems] = React.useState<CartItem[]>(CART_SEED);
   const [hydrated, setHydrated] = React.useState(false);
   const [promo, setPromo] = React.useState("");
-  const [promoApplied, setPromoApplied] = React.useState(false);
+  const [appliedPromo, setAppliedPromo] = React.useState<AppliedPromo | null>(null);
+  const [promoError, setPromoError] = React.useState<string | null>(null);
   const [checkoutOpen, setCheckoutOpen] = React.useState(false);
   const [authPromptOpen, setAuthPromptOpen] = React.useState(false);
   const [giftOfferOpen, setGiftOfferOpen] = React.useState(false);
   const [confirmed, setConfirmed] = React.useState(false);
-  const [printSendReadyOpen, setPrintSendReadyOpen] = React.useState(false);
+  // "Your card is waiting" pop-up after paying for Print and Send, Big Sender or credits.
+  const [purchaseReadyOpen, setPurchaseReadyOpen] = React.useState(false);
+  const [purchaseReadyKind, setPurchaseReadyKind] = React.useState<PurchaseReadyKind>("cards");
   const isAuthenticated = auth.status === "authenticated" && Boolean(auth.user?.id);
 
   React.useEffect(() => {
     setItems(loadCart());
     setHydrated(true);
+
+    // Stay in step with the saved cart when something else changes it while this
+    // page is open (e.g. choosing a pack in the nav's Top up credits pop-up, or
+    // another tab). Without this the page kept its old lines, charged the old
+    // total, and its next save dropped the new item. Only replaces the lines if
+    // they really differ, so this page's own saves don't loop.
+    const sync = () => {
+      const stored = loadCart();
+      setItems((current) => (
+        JSON.stringify(normalizeCartItems(current)) === JSON.stringify(stored) ? current : stored
+      ));
+    };
+    const onStorage = (event: StorageEvent) => { if (event.key === null || event.key === CART_KEY) sync(); };
+    window.addEventListener(CART_CHANGED_EVENT, sync);
+    window.addEventListener("storage", onStorage);
+    return () => {
+      window.removeEventListener(CART_CHANGED_EVENT, sync);
+      window.removeEventListener("storage", onStorage);
+    };
   }, []);
 
   React.useEffect(() => {
@@ -448,7 +481,11 @@ function CartPage() {
   }
 
   function applyPromo() {
-    if (promo.trim().toUpperCase() === "SOUVENOTE10") setPromoApplied(true);
+    const code = promo.trim();
+    if (!code) return;
+    const found = lookupPromo(code);
+    setAppliedPromo(found);
+    setPromoError(found ? null : PROMO_INVALID_MESSAGE);
   }
 
   async function handlePaid() {
@@ -480,6 +517,9 @@ function CartPage() {
       isBlankSouvenoteGiftId(item.id) ? sum + Math.max(1, item.qty) : sum
     ), 0);
     const boughtPrintAndSend = items.some((item) => item.id === PRINT_AND_SEND_CART_ID);
+    // Owner, 2026-11-07: the same pop-up follows Big Sender and credit top-ups too.
+    const boughtBigSender = items.some((item) => item.id === "pack-bigsender" || item.replaceGroup === "pack-bigsender");
+    const boughtCredits = items.some((item) => item.type === "credits");
     if (topUpDelta.cards > 0) addDemoBalance({ cards: topUpDelta.cards });
     if (blankGiftCount > 0) addBlankSouvenoteGifts(blankGiftCount);
     setCheckoutOpen(false);
@@ -490,20 +530,26 @@ function CartPage() {
     } catch {}
 
     const returnTo = consumePricingReturn();
-    // Print and Send: stay on the payment confirmation and explain how to use
-    // the card. It adds no credits, so going back to a credit-gated option
-    // (where a 0-credit user came from) wouldn't help.
-    if (boughtPrintAndSend) {
+    // Print and Send: stay on the payment confirmation and open the pop-up (owner
+    // decision 2026-11-04), even if a return page was saved. Except when it was bought
+    // from Delivery's out-of-cards pop-up: the card is already made, so go straight
+    // back to send it (owner, 2026-11-07).
+    // Title: "Your cards are waiting" if any cards were bought, "Your credits are waiting" for credits only.
+    setPurchaseReadyKind(boughtPrintAndSend || boughtBigSender ? "cards" : "credits");
+    if (boughtPrintAndSend && returnTo !== "/delivery") {
       setConfirmed(true);
-      setPrintSendReadyOpen(true);
+      setPurchaseReadyOpen(true);
       return;
     }
+    // Sent here from another page (e.g. ran out of credits in Build My Card, or
+    // "Reserve cards" on Delivery): go straight back, no pop-up (owner, 2026-11-07).
     if (returnTo) {
       router.push(returnTo);
       return;
     }
 
     setConfirmed(true);
+    if (boughtBigSender || boughtCredits) setPurchaseReadyOpen(true);
   }
 
   function continueToCheckout() {
@@ -525,7 +571,7 @@ function CartPage() {
       return;
     }
 
-    if (items.some((item) => isBlankSouvenoteGiftId(item.id))) {
+    if (!GIFT_OFFER_ENABLED || items.some((item) => isBlankSouvenoteGiftId(item.id))) {
       continueToCheckout();
       return;
     }
@@ -548,101 +594,113 @@ function CartPage() {
   const subtotal = items.reduce((sum, item) => sum + item.price * item.qty, 0);
   const lockedCartItem = items.length === 1 && items[0].lockedQuantity && items[0].cardCount ? items[0] : null;
   const lockedCardCount = lockedCartItem?.cardCount ?? 0;
-  // Print and Send carries 0 credits, so only a missing value falls back to 10.
+  // Print and Send and Big Sender both carry 10 credits per card; a missing value falls back to 10.
   const storedCreditsPerCard = Number(lockedCartItem?.creditsPerCard);
   const lockedCreditsPerCard = Number.isFinite(storedCreditsPerCard) ? storedCreditsPerCard : 10;
   const checkoutPack: CheckoutPack = lockedCartItem
     ? { kind: "cards", name: lockedCartItem.name, price: subtotal, cards: lockedCardCount, tokens: lockedCardCount * lockedCreditsPerCard, bonus: 0 }
     : { kind: "cart", name: "Your cart", price: subtotal, lineCount: count, cardCount };
-  const discount = promoApplied ? +(subtotal * 0.10).toFixed(2) : 0;
+  const discount = promoDiscount(subtotal, appliedPromo);
   const taxable = subtotal - discount;
   const tax = +(taxable * 0.05).toFixed(2);
   const total = +(taxable + tax).toFixed(2);
 
   return (
     <>
-      <div className="bmc-shell" data-screen-label="Cart">
-        <div className="bmc-head" style={{ marginBottom: 30, maxWidth: "100%" }}>
-          <div className="bmc-eyebrow"><span>Account</span><span className="dot" />Cart</div>
-          <h1 className="bmc-title" style={{ margin: "6px 0 0" }}>
-            Your <span className="souv-hero-italic text-metallic-gold">cart</span>
+      <div className="cf-wrap ct-wrap" data-screen-label="Cart">
+        <header className="cf-head">
+          <p className="cf-eyebrow"><span>Account</span><span className="cf-eyebrow-dot" aria-hidden="true" />Cart</p>
+          <h1 className="cf-title">
+            Your <span className="l-script">cart</span>
           </h1>
           {!confirmed && items.length > 0 && (
-            <p className="bmc-lede" style={{ margin: "10px 0 0" }}>
-              {count} {count === 1 ? "item" : "items"} ready to check out - cards, packs, and credits all in one go.
+            <p className="cf-lede">
+              {count} {count === 1 ? "item" : "items"} ready to check out: cards, packs, and credits all in one go.
             </p>
           )}
-        </div>
+        </header>
 
         {confirmed ? <CartPaid /> : items.length === 0 ? <CartEmpty /> : (
-          <div className="cart-grid">
-            <div className="cart-items">
-              <div className="cart-items-head">
+          <div className="ct-grid">
+            <section className="ct-items" aria-labelledby="ct-items-title">
+              <h2 id="ct-items-title" className="l-sr-only">Items in your cart</h2>
+              <div className="ct-items-head" aria-hidden="true">
                 <span>Item</span>
-                <span>Qty {"\u00b7"} Price</span>
+                <span>Qty {"·"} Price</span>
               </div>
-              {items.map((item) => (
-                <CartLine key={item.id} item={item} onQty={onQty} onRemove={onRemove} />
-              ))}
-              <Link href="/pricing" className="cart-continue">
-                {"\u2190 Add more cards"}
+              <ul className="ct-lines">
+                {items.map((item) => (
+                  <CartLine key={item.id} item={item} onQty={onQty} onRemove={onRemove} />
+                ))}
+              </ul>
+              <Link href="/pricing" className="ct-continue">
+                {"← Add more cards"}
               </Link>
-            </div>
+            </section>
 
-            <aside className="cart-summary-wrap">
-              <div className="acc-panel cart-summary">
-                <div className="acc-panel-title">Order summary</div>
+            <aside className="ct-summary-wrap" aria-labelledby="ct-summary-title">
+              <div className="ct-summary">
+                <h2 id="ct-summary-title" className="ct-summary-title">Order summary</h2>
 
-                <div className="cart-sum-lines">
-                  <div className="cart-sum-row">
-                    <span className="k">Subtotal</span>
-                    <span className="v">{cartMoney(subtotal)}</span>
+                <dl className="cf-rows ct-sum-rows">
+                  <div>
+                    <dt>Subtotal</dt>
+                    <dd>{cartMoney(subtotal)}</dd>
                   </div>
-                  <div className="cart-sum-row">
-                    <span className="k"><CartIco name="truck" w={14} /> Shipping</span>
-                    <span className="v is-included">Included</span>
+                  <div>
+                    <dt><CartIco name="truck" w={15} /> Shipping</dt>
+                    <dd className="is-included">Included</dd>
                   </div>
-                  {promoApplied && (
-                    <div className="cart-sum-row">
-                      <span className="k">Promo {"\u00b7"} SOUVENOTE10</span>
-                      <span className="v is-discount">{"\u2212"}{cartMoney(discount)}</span>
+                  {appliedPromo && (
+                    <div>
+                      <dt>Promo {"·"} {appliedPromo.code}</dt>
+                      <dd className="is-discount">{"−"}{cartMoney(discount)}</dd>
                     </div>
                   )}
-                  <div className="cart-sum-row">
-                    <span className="k">GST (5%)</span>
-                    <span className="v">{cartMoney(tax)}</span>
+                  <div>
+                    <dt>GST (5%)</dt>
+                    <dd>{cartMoney(tax)}</dd>
                   </div>
-                </div>
+                </dl>
 
-                <div className="cart-promo">
-                  {promoApplied ? (
-                    <div className="cart-promo-ok"><CartIco name="tag" w={13} /> Code <b>SOUVENOTE10</b> applied {"\u00b7"} 10% off</div>
+                <div className="ct-promo">
+                  {appliedPromo ? (
+                    <p className="ct-promo-ok" role="status"><CartIco name="tag" w={14} /> Code <b>{appliedPromo.code}</b> applied {"·"} {appliedPromo.percentOff}% off</p>
                   ) : (
-                    <div className="cart-promo-row">
+                    <>
+                    <div className="ct-promo-row">
+                      <label className="l-sr-only" htmlFor="ct-promo-input">Promo code</label>
                       <input
-                        className="input-dark"
+                        id="ct-promo-input"
+                        className="cf-input"
                         value={promo}
-                        onChange={(event) => setPromo(event.target.value.toUpperCase())}
+                        onChange={(event) => { setPromo(event.target.value.toUpperCase()); setPromoError(null); }}
                         placeholder="Promo code"
+                        aria-invalid={promoError ? true : undefined}
+                        aria-describedby={promoError ? "ct-promo-error" : undefined}
+                        autoComplete="off"
                         onKeyDown={(event) => { if (event.key === "Enter") applyPromo(); }}
                       />
-                      <button type="button" className="btn-matte cart-promo-apply" onClick={applyPromo}>Apply</button>
+                      <button type="button" className="l-btn l-btn-secondary ct-promo-apply" onClick={applyPromo}>Apply</button>
                     </div>
+                    <p className="l-sr-only" role="status">{promoError ?? ""}</p>
+                    {promoError && <span id="ct-promo-error" className="cf-err">{promoError}</span>}
+                    </>
                   )}
                 </div>
 
-                <div className="cart-total">
-                  <span className="cart-total-label">Total</span>
-                  <span className="cart-total-val"><span className="text-metallic-gold">{cartMoney(total)}</span><span className="cur">CAD</span></span>
-                </div>
+                <p className="ct-total">
+                  <span className="ct-total-label">Total</span>
+                  <span className="ct-total-val">{cartMoney(total)}<span className="cur">CAD</span></span>
+                </p>
 
-                <button type="button" className="bmc-cta cart-checkout" onClick={handleCheckoutClick}>
-                  Proceed to checkout <CartIco name="arrow" w={15} />
+                <button type="button" className="l-btn l-btn-primary ct-checkout" onClick={handleCheckoutClick}>
+                  Proceed to checkout <CartIco name="arrow" w={16} />
                 </button>
-                <div className="cart-secure"><CartIco name="lock" w={13} /> Secure checkout {"\u00b7"} payments by <b>Stripe</b></div>
+                <p className="ct-secure"><CartIco name="lock" w={14} /> Secure checkout {"·"} payments by <b>Stripe</b></p>
               </div>
 
-              <p className="cart-foot">Shipping is always included.</p>
+              <p className="ct-foot">Shipping is always included.</p>
             </aside>
           </div>
         )}
@@ -650,11 +708,9 @@ function CartPage() {
       <CheckoutModal
         open={checkoutOpen}
         pack={checkoutPack}
+        promo={appliedPromo}
         onClose={() => setCheckoutOpen(false)}
-        onBack={() => {
-          setCheckoutOpen(false);
-          router.push("/pricing");
-        }}
+        onBack={() => setCheckoutOpen(false)}
         onPaid={handlePaid}
       />
       <GiftCheckoutOffer
@@ -672,7 +728,7 @@ function CartPage() {
         primaryLabel="Sign up"
         secondaryLabel="Log in"
       />
-      {printSendReadyOpen && <PrintSendReadyModal onClose={() => setPrintSendReadyOpen(false)} />}
+      {purchaseReadyOpen && <PrintSendReadyModal kind={purchaseReadyKind} onClose={() => setPurchaseReadyOpen(false)} />}
     </>
   );
 }

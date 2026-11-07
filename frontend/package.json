@@ -6,7 +6,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "test": "node --experimental-strip-types --test app/lib/cognitoAuth.test.mjs"
+    "test": "node --experimental-strip-types --test app/lib/cognitoAuth.test.mjs",
+    "lint": "eslint ."
   },
   "dependencies": {
     "amazon-cognito-identity-js": "^6.3.18",
@@ -18,9 +19,12 @@
     "postcss": "8.5.15"
   },
   "devDependencies": {
+    "@eslint/eslintrc": "^3.3.7",
     "@types/node": "^22.10.7",
     "@types/react": "^19.0.7",
     "@types/react-dom": "^19.0.3",
+    "eslint": "^9.39.5",
+    "eslint-config-next": "^15.5.19",
     "typescript": "^5.7.3"
   }
 }

@@ -2,6 +2,7 @@
 
 import * as React from "react";
 import { BmcIcon } from "./BmcShared";
+import { FlowField } from "./flow/FlowField";
 
 export type DeliveryMode = "single" | "multiple";
 export type DeliveryWhen = "now" | "schedule";
@@ -35,6 +36,8 @@ type DlvAddressFieldsProps = {
   onChange: (next: DeliveryRecipient) => void;
   errors?: DeliveryErrors;
   compact?: boolean;
+  /** Prefix for autocomplete tokens ("shipping" for the recipient, "billing" for the return address). */
+  autoCompleteSection?: "shipping" | "billing";
 };
 
 type DlvRecipientSectionProps = {
@@ -57,18 +60,20 @@ type DlvReturnSectionProps = {
   setOn: React.Dispatch<React.SetStateAction<boolean>>;
   sender: DeliveryRecipient;
   setSender: React.Dispatch<React.SetStateAction<DeliveryRecipient>>;
+  errors?: DeliveryErrors;
 };
 
 type DlvScheduleSectionProps = {
   when: DeliveryWhen;
-  setWhen: React.Dispatch<React.SetStateAction<DeliveryWhen>>;
+  setWhen: (value: DeliveryWhen) => void;
   date: string;
-  setDate: React.Dispatch<React.SetStateAction<string>>;
+  setDate: (value: string) => void;
+  /** Earliest date allowed (YYYY-MM-DD). */
+  minDate: string;
+  dateError?: string;
 };
 
 type DlvShippingSectionProps = {
-  shipping: string;
-  setShipping: React.Dispatch<React.SetStateAction<string>>;
   country: string;
 };
 
@@ -118,86 +123,120 @@ function dlvValidate(recipient: DeliveryRecipient): DeliveryErrors {
 
 function dlvSummaryLine(recipient: DeliveryRecipient) {
   const line1 = [recipient.address1, recipient.address2].filter(Boolean).join(", ");
-  const line2 = [recipient.city, recipient.state, recipient.postalCode].filter(Boolean).join(" \u00b7 ");
-  return [line1, line2, dlvCountry(recipient.country).name].filter(Boolean).join("  \u2014  ");
+  const line2 = [recipient.city, recipient.state, recipient.postalCode].filter(Boolean).join(" · ");
+  return [line1, line2, dlvCountry(recipient.country).name].filter(Boolean).join("  —  ");
 }
 
-function DlvAddressFields({ value, onChange, errors = {}, compact = false }: DlvAddressFieldsProps) {
+/** Section card with a numbered heading; `aside` sits on the right of the heading row. */
+function DlvSection({ num, title, aside, children, headClassName = "" }: {
+  num: number;
+  title: string;
+  aside?: React.ReactNode;
+  children: React.ReactNode;
+  headClassName?: string;
+}) {
+  const headingId = React.useId();
+  return (
+    <section className="dv-section" aria-labelledby={headingId}>
+      <div className={`dv-section-head ${headClassName}`.trim()}>
+        <h2 id={headingId} className="dv-section-title">
+          <span className="dv-section-num" aria-hidden="true">{num}</span> {title}
+        </h2>
+        {aside}
+      </div>
+      {children}
+    </section>
+  );
+}
+
+/** Two mutually exclusive choices drawn as pills (pressed = chosen). */
+function DlvChoice<T extends string>({ label, value, options, onChange }: {
+  label: string;
+  value: T;
+  options: { value: T; label: string }[];
+  onChange: (next: T) => void;
+}) {
+  return (
+    <div className="dv-chips" role="group" aria-label={label}>
+      {options.map((option) => (
+        <button
+          key={option.value}
+          type="button"
+          className={`dv-chip ${value === option.value ? "is-active" : ""}`}
+          aria-pressed={value === option.value}
+          onClick={() => onChange(option.value)}
+        >
+          {option.label}
+        </button>
+      ))}
+    </div>
+  );
+}
+
+function DlvAddressFields({ value, onChange, errors = {}, compact = false, autoCompleteSection = "shipping" }: DlvAddressFieldsProps) {
   const c = dlvCountry(value.country);
   const set = (key: keyof DeliveryRecipient) => (event: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     onChange({ ...value, [key]: event.target.value });
   };
   const err = (key: keyof DeliveryRecipient) => errors[key] ? "is-error" : "";
+  const ac = (token: string) => `section-${autoCompleteSection} ${autoCompleteSection} ${token}`;
 
   return (
-    <div className="dlv-fgrid" style={{ gap: 16 }}>
-      <div className="dlv-fgrid title-name">
-        <div className="dlv-field">
-          <label className="bmc-label">Title</label>
-          <select className="dlv-select" value={value.title} onChange={set("title")}>
-            {DLV_TITLES.map((title) => <option key={title} value={title}>{title || "\u2014"}</option>)}
-          </select>
-        </div>
-        <div className="dlv-field">
-          <label className="bmc-label">First name<span className="dlv-req">*</span></label>
-          <input className={`dlv-input ${err("firstName")}`} value={value.firstName} onChange={set("firstName")} placeholder="Jane" />
-          {errors.firstName && <span className="dlv-err-msg">{errors.firstName}</span>}
-        </div>
-        <div className="dlv-field">
-          <label className="bmc-label">Last name<span className="dlv-req">*</span></label>
-          <input className={`dlv-input ${err("lastName")}`} value={value.lastName} onChange={set("lastName")} placeholder="Wilson" />
-          {errors.lastName && <span className="dlv-err-msg">{errors.lastName}</span>}
-        </div>
+    <div className="dv-fields">
+      <div className="dv-grid-name">
+        <FlowField label="Title" className="dv-f-title">
+          {(control) => (
+            <select {...control} className="cf-select" value={value.title} onChange={set("title")} autoComplete={ac("honorific-prefix")}>
+              {DLV_TITLES.map((title) => <option key={title} value={title}>{title || "—"}</option>)}
+            </select>
+          )}
+        </FlowField>
+        <FlowField label="First name" required error={errors.firstName} className="dv-f-first">
+          {(control) => <input {...control} className={`cf-input ${err("firstName")}`} data-dlv-field="firstName" value={value.firstName} onChange={set("firstName")} placeholder="Jane" autoComplete={ac("given-name")} />}
+        </FlowField>
+        <FlowField label="Last name" required error={errors.lastName} className="dv-f-last">
+          {(control) => <input {...control} className={`cf-input ${err("lastName")}`} data-dlv-field="lastName" value={value.lastName} onChange={set("lastName")} placeholder="Wilson" autoComplete={ac("family-name")} />}
+        </FlowField>
       </div>
 
-      <div className="dlv-field">
-        <label className="bmc-label">Company <span className="bmc-opt">(optional)</span></label>
-        <input className="dlv-input" value={value.company} onChange={set("company")} placeholder="Add a company or 'c/o' line" />
-      </div>
+      <FlowField label="Company" optional>
+        {(control) => <input {...control} className="cf-input" value={value.company} onChange={set("company")} placeholder="Add a company or 'c/o' line" autoComplete={ac("organization")} />}
+      </FlowField>
 
-      <div className="dlv-field">
-        <label className="bmc-label">Address line 1<span className="dlv-req">*</span></label>
-        <input className={`dlv-input ${err("address1")}`} value={value.address1} onChange={set("address1")} placeholder="123 Maple Street" />
-        {errors.address1 && <span className="dlv-err-msg">{errors.address1}</span>}
-      </div>
+      <FlowField label="Address line 1" required error={errors.address1}>
+        {(control) => <input {...control} className={`cf-input ${err("address1")}`} data-dlv-field="address1" value={value.address1} onChange={set("address1")} placeholder="123 Maple Street" autoComplete={ac("address-line1")} />}
+      </FlowField>
 
       {!compact && (
-        <div className="dlv-fgrid cols-2">
-          <div className="dlv-field">
-            <label className="bmc-label">Address line 2 <span className="bmc-opt">(optional)</span></label>
-            <input className="dlv-input" value={value.address2} onChange={set("address2")} placeholder="Apt, suite, unit" />
-          </div>
-          <div className="dlv-field">
-            <label className="bmc-label">Address line 3 <span className="bmc-opt">(optional)</span></label>
-            <input className="dlv-input" value={value.address3} onChange={set("address3")} placeholder="Building, floor" />
-          </div>
+        <div className="dv-grid-2">
+          <FlowField label="Address line 2" optional>
+            {(control) => <input {...control} className="cf-input" value={value.address2} onChange={set("address2")} placeholder="Apt, suite, unit" autoComplete={ac("address-line2")} />}
+          </FlowField>
+          <FlowField label="Address line 3" optional>
+            {(control) => <input {...control} className="cf-input" value={value.address3} onChange={set("address3")} placeholder="Building, floor" autoComplete={ac("address-line3")} />}
+          </FlowField>
         </div>
       )}
 
-      <div className="dlv-fgrid cols-3">
-        <div className="dlv-field">
-          <label className="bmc-label">City<span className="dlv-req">*</span></label>
-          <input className={`dlv-input ${err("city")}`} value={value.city} onChange={set("city")} placeholder="Vancouver" />
-          {errors.city && <span className="dlv-err-msg">{errors.city}</span>}
-        </div>
-        <div className="dlv-field">
-          <label className="bmc-label">{c.region}<span className="dlv-req">*</span></label>
-          <input className={`dlv-input ${err("state")}`} value={value.state} onChange={set("state")} placeholder={c.region} />
-          {errors.state && <span className="dlv-err-msg">{errors.state}</span>}
-        </div>
-        <div className="dlv-field">
-          <label className="bmc-label">{c.postal}<span className="dlv-req">*</span></label>
-          <input className={`dlv-input ${err("postalCode")}`} value={value.postalCode} onChange={set("postalCode")} placeholder={c.postal} />
-          {errors.postalCode && <span className="dlv-err-msg">{errors.postalCode}</span>}
-        </div>
+      <div className="dv-grid-3">
+        <FlowField label="City" required error={errors.city} className="dv-f-city">
+          {(control) => <input {...control} className={`cf-input ${err("city")}`} data-dlv-field="city" value={value.city} onChange={set("city")} placeholder="Vancouver" autoComplete={ac("address-level2")} />}
+        </FlowField>
+        <FlowField label={c.region} required error={errors.state}>
+          {(control) => <input {...control} className={`cf-input ${err("state")}`} data-dlv-field="state" value={value.state} onChange={set("state")} placeholder={c.region} autoComplete={ac("address-level1")} />}
+        </FlowField>
+        <FlowField label={c.postal} required error={errors.postalCode}>
+          {(control) => <input {...control} className={`cf-input ${err("postalCode")}`} data-dlv-field="postalCode" value={value.postalCode} onChange={set("postalCode")} placeholder={c.postal} autoComplete={ac("postal-code")} />}
+        </FlowField>
       </div>
 
-      <div className="dlv-field">
-        <label className="bmc-label">Country<span className="dlv-req">*</span></label>
-        <select className="dlv-select" value={value.country} onChange={set("country")}>
-          {DLV_COUNTRIES.map((country) => <option key={country.code} value={country.code}>{country.name}</option>)}
-        </select>
-      </div>
+      <FlowField label="Country" required>
+        {(control) => (
+          <select {...control} className="cf-select" value={value.country} onChange={set("country")} autoComplete={ac("country")}>
+            {DLV_COUNTRIES.map((country) => <option key={country.code} value={country.code}>{country.name}</option>)}
+          </select>
+        )}
+      </FlowField>
     </div>
   );
 }
@@ -216,6 +255,8 @@ function DlvRecipientSection({
   quantity,
   setQuantity,
 }: DlvRecipientSectionProps) {
+  const qtyId = React.useId();
+
   function commitDraft() {
     const nextErrors = dlvValidate(draft);
     if (Object.keys(nextErrors).length) {
@@ -245,155 +286,167 @@ function DlvRecipientSection({
   }
 
   return (
-    <div className="bmc-card dlv-section">
-      <div className="dlv-section-head">
-        <div className="dlv-section-title">
-          <span className="dlv-section-num">1</span> Who&apos;s it going to?
-        </div>
-        <div className="bmc-chip-row">
-          <button type="button" className={`bmc-chip ${mode === "single" ? "is-active" : ""}`} onClick={() => setMode("single")}>One recipient</button>
-          <button type="button" className={`bmc-chip ${mode === "multiple" ? "is-active" : ""}`} onClick={() => setMode("multiple")}>Multiple</button>
-        </div>
-      </div>
-
+    <DlvSection
+      num={1}
+      title="Who's it going to?"
+      aside={(
+        <DlvChoice<DeliveryMode>
+          label="Number of recipients"
+          value={mode}
+          onChange={setMode}
+          options={[{ value: "single", label: "One recipient" }, { value: "multiple", label: "Multiple" }]}
+        />
+      )}
+    >
       {mode === "multiple" && recipients.length > 0 && (
-        <div className="dlv-recip-list" style={{ marginBottom: 18 }}>
-          {recipients.map((recipient, index) => (
-            <div key={index} className={`dlv-recip-item ${editingIdx === index ? "is-editing" : ""}`}>
-              <span className="dlv-recip-badge">{index + 1}</span>
-              <div>
-                <div className="dlv-recip-name">{[recipient.title, recipient.firstName, recipient.lastName].filter(Boolean).join(" ")}</div>
-                <div className="dlv-recip-addr">{dlvSummaryLine(recipient)}</div>
-              </div>
-              <div className="dlv-recip-acts">
-                <button type="button" className="dlv-icon-btn" onClick={() => editRecip(index)} aria-label="Edit"><BmcIcon name="edit" w={15} /></button>
-                <button type="button" className="dlv-icon-btn" onClick={() => removeRecip(index)} aria-label="Remove"><BmcIcon name="close" w={15} /></button>
-              </div>
-            </div>
-          ))}
-        </div>
+        <ol className="dv-recip-list">
+          {recipients.map((recipient, index) => {
+            const name = [recipient.title, recipient.firstName, recipient.lastName].filter(Boolean).join(" ");
+            return (
+              <li key={index} className={`dv-recip-item ${editingIdx === index ? "is-editing" : ""}`}>
+                <span className="dv-recip-badge" aria-hidden="true">{index + 1}</span>
+                <div className="dv-recip-text">
+                  <p className="dv-recip-name">{name}</p>
+                  <p className="dv-recip-addr">{dlvSummaryLine(recipient)}</p>
+                </div>
+                <div className="dv-recip-acts">
+                  <button type="button" className="dv-icon-btn" onClick={() => editRecip(index)} aria-label={`Edit ${name || `recipient ${index + 1}`}`}><BmcIcon name="edit" w={16} /></button>
+                  <button type="button" className="dv-icon-btn" onClick={() => removeRecip(index)} aria-label={`Remove ${name || `recipient ${index + 1}`}`}><BmcIcon name="close" w={16} /></button>
+                </div>
+              </li>
+            );
+          })}
+        </ol>
       )}
 
       {mode === "multiple" && (
-        <div className="bmc-label" style={{ marginBottom: 14, color: "var(--rose-gold)" }}>
+        <p className="dv-subhead">
           {editingIdx === null ? `Add recipient ${recipients.length + 1}` : `Editing recipient ${editingIdx + 1}`}
-        </div>
+        </p>
       )}
 
       <DlvAddressFields value={draft} onChange={setDraft} errors={errors} />
 
       {mode === "single" ? (
-        <div className="dlv-qty">
-          <div className="dlv-qty-copy">
-            <div className="dlv-qty-title">How many cards to this address?</div>
-            <div className="dlv-qty-sub">Send more than one copy of this card to the same recipient.</div>
+        <div className="dv-qty">
+          <div className="dv-qty-copy">
+            <label className="dv-qty-title" htmlFor={qtyId}>How many cards to this address?</label>
+            <p className="dv-qty-sub" id={`${qtyId}-sub`}>Send more than one copy of this card to the same recipient.</p>
           </div>
-          <div className="dlv-qty-input-wrap">
+          <div className="dv-qty-input-wrap">
             <input
+              id={qtyId}
               type="number"
               min="1"
               max="99"
-              className="dlv-input dlv-qty-input"
+              inputMode="numeric"
+              className="cf-input dv-qty-input"
               aria-label="Number of cards"
+              aria-describedby={`${qtyId}-sub`}
               value={quantity}
               onChange={(event) => setQuantity(Math.max(1, Math.min(99, Number(event.target.value) || 1)))}
             />
-            <span className="dlv-qty-unit">{quantity === 1 ? "card" : "cards"}</span>
+            <span className="dv-qty-unit" aria-hidden="true">{quantity === 1 ? "card" : "cards"}</span>
           </div>
         </div>
       ) : (
-        <button type="button" className="dlv-add-recip" style={{ marginTop: 18 }} onClick={commitDraft}>
-          <BmcIcon name={editingIdx === null ? "plus" : "check"} w={15} />
+        <button type="button" className="l-btn l-btn-secondary dv-add-recip" onClick={commitDraft}>
+          <BmcIcon name={editingIdx === null ? "plus" : "check"} w={16} />
           {editingIdx === null ? "Add this address" : "Save changes"}
         </button>
       )}
-    </div>
+    </DlvSection>
   );
 }
 
-function DlvReturnSection({ on, setOn, sender, setSender }: DlvReturnSectionProps) {
-  return (
-    <div className="bmc-card dlv-section">
-      <button type="button" className="dlv-collapse-toggle" onClick={() => setOn(!on)}>
-        <div className="dlv-section-title">
-          <span className="dlv-section-num">2</span> Return address
-        </div>
-        <span className={`dlv-switch ${on ? "is-on" : ""}`} />
-      </button>
-      {on ? (
-        <div style={{ marginTop: 20 }}>
-          <p className="bmc-help" style={{ margin: "0 0 16px" }}>
-            Printed on the envelope flap so it can come home if it can&apos;t be delivered.
-          </p>
-          <DlvAddressFields value={sender} onChange={setSender} compact />
-        </div>
-      ) : (
-        <p className="bmc-help" style={{ margin: "12px 0 0" }}>
-          {"No return address \u2014 the envelope ships clean. Toggle on to add yours."}
-        </p>
-      )}
-    </div>
-  );
-}
+function DlvReturnSection({ on, setOn, sender, setSender, errors = {} }: DlvReturnSectionProps) {
+  const headingId = React.useId();
+  const bodyId = React.useId();
 
-function DlvScheduleSection({ when, setWhen, date, setDate }: DlvScheduleSectionProps) {
   return (
-    <div className="bmc-card dlv-section">
-      <div className="dlv-section-head">
-        <div className="dlv-section-title">
-          <span className="dlv-section-num">3</span> When should it mail?
-        </div>
-        <div className="bmc-chip-row">
-          <button type="button" className={`bmc-chip ${when === "now" ? "is-active" : ""}`} onClick={() => setWhen("now")}>Send now</button>
-          <button type="button" className={`bmc-chip ${when === "schedule" ? "is-active" : ""}`} onClick={() => setWhen("schedule")}>Schedule</button>
-        </div>
+    <section className="dv-section" aria-labelledby={headingId}>
+      {/* The whole heading row toggles, as before. The switch button covers the
+          row so the heading stays a real heading for screen readers. */}
+      <div className="dv-section-head dv-toggle-head">
+        <h2 id={headingId} className="dv-section-title">
+          <span className="dv-section-num" aria-hidden="true">2</span> Return address
+        </h2>
+        <button
+          type="button"
+          role="switch"
+          aria-checked={on}
+          aria-labelledby={headingId}
+          aria-controls={bodyId}
+          className="dv-switch-btn"
+          onClick={() => setOn(!on)}
+        >
+          <span className={`dv-switch ${on ? "is-on" : ""}`} aria-hidden="true" />
+        </button>
       </div>
+      <div id={bodyId} data-dlv-return="">
+        {on ? (
+          <>
+            <p className="dv-help">
+              Printed on the envelope flap so it can come home if it can&apos;t be delivered.
+            </p>
+            <DlvAddressFields value={sender} onChange={setSender} errors={errors} compact autoCompleteSection="billing" />
+          </>
+        ) : (
+          <p className="dv-help is-flush">
+            {"No return address — the envelope ships clean. Toggle on to add yours."}
+          </p>
+        )}
+      </div>
+    </section>
+  );
+}
+
+function DlvScheduleSection({ when, setWhen, date, setDate, minDate, dateError }: DlvScheduleSectionProps) {
+  return (
+    <DlvSection
+      num={3}
+      title="When should it mail?"
+      aside={(
+        <DlvChoice<DeliveryWhen>
+          label="Mailing time"
+          value={when}
+          onChange={setWhen}
+          options={[{ value: "now", label: "Send now" }, { value: "schedule", label: "Schedule" }]}
+        />
+      )}
+    >
       {when === "schedule" ? (
-        <div className="dlv-schedule-date">
-          <label className="bmc-label">Mail-out date</label>
-          <input type="date" className="dlv-input" value={date} onChange={(event) => setDate(event.target.value)} style={{ maxWidth: 260 }} />
-          <div className="dlv-eta-note">
+        <div className="dv-schedule">
+          <FlowField label="Mail-out date" required error={dateError} className="dv-date-field">
+            {(control) => <input {...control} type="date" className="cf-input" data-dlv-field="mailDate" min={minDate} value={date} onChange={(event) => setDate(event.target.value)} />}
+          </FlowField>
+          <p className="dv-note">
             <BmcIcon name="message" w={16} />
             <span>We hand-write and post your card on this date, timed to land right on the occasion, not before.</span>
-          </div>
+          </p>
         </div>
       ) : (
-        <div className="dlv-eta-note">
+        <p className="dv-note">
           <BmcIcon name="sparkle" w={16} />
-          <span>{"Into production within one business day. Most cards are written, posted, and on their way within 1\u20132 business days."}</span>
-        </div>
+          <span>{"Into production within one business day. Most cards are written, posted, and on their way within 1–2 business days."}</span>
+        </p>
       )}
-    </div>
+    </DlvSection>
   );
 }
 
-function DlvShippingSection({ shipping, setShipping, country }: DlvShippingSectionProps) {
+// One speed today, so a plain line instead of a one-option radio list (owner,
+// 2026-11-06). Bring the radio list back when there's a second speed.
+function DlvShippingSection({ country }: DlvShippingSectionProps) {
   const carrier = dlvCountry(country).carrier;
-  const opts = [
-    { id: "standard", name: "Standard", sub: `${carrier} \u00b7 5\u20137 business days`, price: "Included", free: true },
-  ];
 
   return (
-    <div className="bmc-card dlv-section">
-      <div className="dlv-section-head">
-        <div className="dlv-section-title">
-          <span className="dlv-section-num">4</span> Shipping speed
-        </div>
-      </div>
-      <div className="dlv-ship-opts">
-        {opts.map((option) => (
-          <label key={option.id} className={`dlv-ship-opt ${shipping === option.id ? "is-active" : ""}`}>
-            <span className="dlv-radio" />
-            <input type="radio" name="dlv-ship" checked={shipping === option.id} onChange={() => setShipping(option.id)} style={{ position: "absolute", opacity: 0, pointerEvents: "none" }} />
-            <div>
-              <div className="dlv-ship-name">{option.name}</div>
-              <div className="dlv-ship-sub">{option.sub}</div>
-            </div>
-            <span className={`dlv-ship-price ${option.free ? "is-free" : ""}`}>{option.price}</span>
-          </label>
-        ))}
-      </div>
-    </div>
+    <DlvSection num={4} title="Shipping speed">
+      <p className="dv-ship-plain">
+        <span className="dv-ship-name">Standard shipping, included</span>
+        <span className="dv-ship-sub">{carrier} · 5–7 business days</span>
+      </p>
+    </DlvSection>
   );
 }
 

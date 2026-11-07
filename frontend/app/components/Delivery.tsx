@@ -3,14 +3,13 @@
 import * as React from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Navbar } from "./Navbar";
-import { Footer } from "./Footer";
 import { BmcIcon, BmcErrorModal, bmcError } from "./BmcShared";
 import { DlvKeepsake } from "./DeliveryKeepsake";
 import { consumeBlankSouvenoteGift, useBlankSouvenoteGiftCount } from "./GiftAddon";
 import { completeMockCheckout, createOrder, fetchCardDraftAssets, startCheckout, submitFulfillment } from "../lib/api";
-import type { CheckoutSession, FulfillmentRecord, Order, PostalAddress } from "../lib/api";
+import type { CardDraftAsset, CheckoutSession, FulfillmentRecord, Order, PostalAddress } from "../lib/api";
 import {
+  EMPTY_FLOW_STATE,
   findGeneratedImageAsset,
   hasGeneratedAsset,
   MOCK_MVP_FLOW_UPDATED_EVENT,
@@ -20,9 +19,9 @@ import {
   rememberSelectedAsset,
   writeMockMvpFlowState,
 } from "../lib/mockMvpFlow";
+import type { MockMvpFlowState } from "../lib/mockMvpFlow";
 import {
   DLV_EMPTY_RECIP,
-  dlvCountry,
   dlvValidate,
   DlvRecipientSection,
   DlvReturnSection,
@@ -32,26 +31,13 @@ import {
 import type { DeliveryErrors, DeliveryMode, DeliveryRecipient, DeliveryWhen } from "./DeliveryForm";
 import { readDemoBalance, useDemoBalance } from "./DemoBalance";
 import type { DemoBalance } from "./DemoBalance";
-import type { DemoCredits, DemoUser } from "./DemoUser";
-import { rememberPricingReturn } from "./PricingReturn";
-import {
-  addPricingCartItemToCart,
-  BIG_SENDER_TIERS,
-  clampBigSenderQuantity,
-  getBigSenderPricing,
-  makeBigSenderCartItem,
-  MIN_BIG_SENDER_CARDS,
-} from "./pricingCatalog";
-
-type DeliveryOrder = {
-  number: string;
-  to: string;
-  carrier: string;
-  scheduled: boolean;
-  arrival: string;
-  cards: number;
-  cardsLeft: number;
-};
+import type { DemoCredits } from "./DemoUser";
+import { openTopUp } from "./pricing/topUp";
+import { FlowDialog } from "./flow/FlowDialog";
+import { FlowField } from "./flow/FlowField";
+import { useAuth } from "./AuthProvider";
+import { deliveryStatusLabel } from "./delivery/deliveryStatus";
+import { useDeliveryBackHref } from "./delivery/deliverySource";
 
 type BackendAction =
   | "idle"
@@ -60,17 +46,6 @@ type BackendAction =
   | "starting_checkout"
   | "completing_checkout"
   | "submitting_fulfillment";
-
-type DlvSentModalProps = {
-  open: boolean;
-  order: DeliveryOrder | null;
-  onClose: () => void;
-};
-
-type DlvToastProps = {
-  msg?: string | null;
-  onClose: () => void;
-};
 
 type DlvBlankGiftModalProps = {
   open: boolean;
@@ -84,15 +59,7 @@ type DlvBlankGiftModalProps = {
   onSaveGift: () => void;
 };
 
-type DlvCardTopUpModalProps = {
-  open: boolean;
-  onClose: () => void;
-  onReserve: (quantity: number) => void;
-};
-
 type DeliveryAppProps = {
-  /** Fallback display user; the signed-in user from useAuth wins when present. */
-  user?: DemoUser;
   initialCards?: number;
   initialCredits?: DemoCredits;
 };
@@ -102,74 +69,6 @@ declare global {
     __dlvSetCards?: React.Dispatch<React.SetStateAction<number>>;
     __dlvOpenCheckout?: () => void;
   }
-}
-
-function DlvSentModal({ open, order, onClose }: DlvSentModalProps) {
-  if (!open || !order) return null;
-
-  return (
-    <div className="bmc-modal-wrap" role="dialog" aria-modal="true" data-screen-label="06 Delivery · Sent">
-      <div className="bmc-modal-scrim" onClick={onClose} />
-      <div className="bmc-modal co-confirm">
-        <div className="co-confirm-seal"><BmcIcon name="check" w={38} /></div>
-        <h2 className="bmc-modal-title" style={{ marginBottom: 6 }}>
-          On its <span className="souv-hero-italic text-metallic-rose-gold">way</span>
-        </h2>
-        <p className="bmc-modal-sub" style={{ marginBottom: 4 }}>
-          We&apos;re hand-writing your card now, and you&apos;ll get an email when it&apos;s posted.
-        </p>
-        <div className="co-confirm-order"><BmcIcon name="message" w={13} /> {order.number}</div>
-        <div className="co-confirm-rows">
-          <div className="co-confirm-row"><span className="co-confirm-row-k">To</span><span className="co-confirm-row-v">{order.to}</span></div>
-          <div className="co-confirm-row"><span className="co-confirm-row-k">Mailed via</span><span className="co-confirm-row-v">{order.carrier}</span></div>
-          <div className="co-confirm-row"><span className="co-confirm-row-k">{order.scheduled ? "Posts on" : "Estimated arrival"}</span><span className="co-confirm-row-v">{order.arrival}</span></div>
-          <div className="co-confirm-row"><span className="co-confirm-row-k">Cards used</span><span className="co-confirm-row-v">{order.cards} {"\u00b7"} {order.cardsLeft} left</span></div>
-        </div>
-        <div className="bmc-modal-acts dlv-sent-acts">
-          <Link href="/" className="dlv-sent-home" aria-label="Back to Souvenote">
-            <BmcIcon name="back" w={16} />
-            <img src="/assets/WordmarkLobster.png" alt="Souvenote" className="dlv-sent-home-logo" />
-          </Link>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function DlvToast({ msg, onClose }: DlvToastProps) {
-  React.useEffect(() => {
-    if (!msg) return undefined;
-    const timer = window.setTimeout(onClose, 3600);
-    return () => window.clearTimeout(timer);
-  }, [msg, onClose]);
-
-  if (!msg) return null;
-
-  return (
-    <div style={{
-      position: "fixed",
-      bottom: 28,
-      left: "50%",
-      transform: "translateX(-50%)",
-      zIndex: 300,
-      display: "inline-flex",
-      alignItems: "center",
-      gap: 10,
-      padding: "14px 22px",
-      borderRadius: 9999,
-      background: "var(--glass-strong)",
-      backdropFilter: "blur(20px)",
-      border: "1px solid rgba(212,175,55,0.4)",
-      boxShadow: "0 18px 40px rgba(0,0,0,0.5)",
-      fontFamily: "var(--font-sans)",
-      fontWeight: 600,
-      fontSize: 12.5,
-      letterSpacing: ".04em",
-      color: "var(--gold-hi)",
-    }}>
-      <BmcIcon name="spark2" w={15} /> {msg}
-    </div>
-  );
 }
 
 function DlvBlankGiftModal({
@@ -188,195 +87,103 @@ function DlvBlankGiftModal({
   const canSave = contact.trim().length > 3;
 
   return (
-    <div className="bmc-modal-wrap" role="dialog" aria-modal="true" aria-labelledby="dlv-blank-gift-title" data-screen-label="Delivery · Blank gift reminder">
-      <div className="bmc-modal-scrim" onClick={onClose} />
-      <div className="bmc-modal dlv-blank-gift-modal">
-        <button type="button" className="bmc-modal-close" aria-label="Close" onClick={onClose}>
-          <BmcIcon name="close" w={16} />
+    <FlowDialog
+      onClose={onClose}
+      labelledBy="dlv-blank-gift-title"
+      describedBy="dlv-blank-gift-sub"
+      className="fd-wide"
+      tone="berry"
+      screenLabel="Delivery · Blank gift reminder"
+    >
+      <div className="fd-split">
+        <div className="fd-split-main">
+          <p className="fd-eyebrow">
+            <BmcIcon name="spark2" w={14} />
+            <span>Blank Souvenote Gift</span>
+          </p>
+          <h2 id="dlv-blank-gift-title" className="fd-title">
+            You have a blank <span className="l-script">Souvenote</span> to give.
+          </h2>
+          <p id="dlv-blank-gift-sub" className="fd-lede">
+            Before you send this card, choose who should receive the blank Souvenote or keep it in your account for later.
+          </p>
+          <div className="fd-fields">
+            <FlowField label="Recipient name">
+              {(control) => <input {...control} className="cf-input" value={name} onChange={(event) => onNameChange(event.target.value)} placeholder="Who should receive it?" autoComplete="off" />}
+            </FlowField>
+            <FlowField label="Email or phone">
+              {(control) => <input {...control} className="cf-input" value={contact} onChange={(event) => onContactChange(event.target.value)} placeholder="name@example.com or phone" autoComplete="off" />}
+            </FlowField>
+          </div>
+        </div>
+        <aside className="fd-aside" aria-label="Blank Souvenote Gift">
+          <div className="fd-token" aria-hidden="true">
+            <span>A Souvenote,<br />on you</span>
+          </div>
+          <p className="fd-aside-name">Blank Souvenote Gift</p>
+          <dl className="cf-rows">
+            <div><dt>Available</dt><dd>{count} {count === 1 ? "gift" : "gifts"}</dd></div>
+            <div><dt>Recipient</dt><dd>{contact.trim() ? "Ready to save" : "Choose now or later"}</dd></div>
+            <div><dt>Reminder</dt><dd>Delivery step</dd></div>
+          </dl>
+        </aside>
+      </div>
+      <div className="fd-actions">
+        <button type="button" className="l-btn l-btn-secondary" onClick={onKeepLater}>Keep for later</button>
+        <button type="button" className="l-btn l-btn-primary" onClick={onSaveGift} disabled={!canSave}>
+          Save gift &amp; send card <BmcIcon name="arrow" w={15} />
         </button>
-        <div className="dlv-blank-gift-grid">
-          <div className="dlv-blank-gift-copy">
-            <div className="bmc-eyebrow dlv-blank-gift-eyebrow">
-              <BmcIcon name="spark2" w={14} />
-              <span>Blank Souvenote Gift</span>
-            </div>
-            <h2 id="dlv-blank-gift-title" className="bmc-modal-title">
-              You have a blank <span className="souv-hero-italic text-metallic-gold">Souvenote</span> to give.
-            </h2>
-            <p className="bmc-modal-sub">
-              Before you send this card, choose who should receive the blank Souvenote or keep it in your account for later.
-            </p>
-            <div className="dlv-blank-gift-fields">
-              <label className="acc-flabel">Recipient name</label>
-              <input className="input-dark" value={name} onChange={(event) => onNameChange(event.target.value)} placeholder="Who should receive it?" />
-              <label className="acc-flabel">Email or phone</label>
-              <input className="input-dark" value={contact} onChange={(event) => onContactChange(event.target.value)} placeholder="name@example.com or phone" />
-            </div>
-          </div>
-          <aside className="acc-panel acc-gift-summary dlv-blank-gift-summary">
-            <div className="acc-gift-token" aria-hidden="true">
-              <span className="acc-gift-token-label">A Souvenote,<br />on you</span>
-            </div>
-            <div className="acc-gift-name">Blank Souvenote Gift</div>
-            <div className="acc-gift-meta">
-              <div className="acc-summary-row"><span className="k">Available</span><span className="v">{count} {count === 1 ? "gift" : "gifts"}</span></div>
-              <div className="acc-summary-row"><span className="k">Recipient</span><span className="v">{contact.trim() ? "Ready to save" : "Choose now or later"}</span></div>
-              <div className="acc-summary-row"><span className="k">Reminder</span><span className="v">Delivery step</span></div>
-            </div>
-          </aside>
-        </div>
-        <div className="bmc-modal-acts dlv-blank-gift-actions">
-          <button type="button" className="bmc-cta-secondary" onClick={onKeepLater}>Keep for later</button>
-          <button type="button" className="bmc-cta" onClick={onSaveGift} disabled={!canSave}>
-            Save gift &amp; send card <BmcIcon name="arrow" w={15} />
-          </button>
-        </div>
       </div>
-    </div>
+    </FlowDialog>
   );
-}
-
-function DlvCardTopUpModal({
-  open,
-  onClose,
-  onReserve,
-}: DlvCardTopUpModalProps) {
-  const [qty, setQty] = React.useState(MIN_BIG_SENDER_CARDS);
-
-  if (!open) return null;
-
-  function setQtyClamped(nextRaw: number | string) {
-    setQty(clampBigSenderQuantity(nextRaw));
-  }
-
-  const pricing = getBigSenderPricing(qty);
-  const creationCredits = qty * 10;
-
-  return (
-    <div className="bmc-modal-wrap" role="dialog" aria-modal="true" aria-labelledby="dlv-card-topup-title" data-screen-label="Delivery - Card balance top-up modal">
-      <div className="bmc-modal-scrim" onClick={onClose} />
-      <div className="bmc-modal dlv-card-topup-modal is-gold">
-        <button type="button" className="bmc-modal-close" onClick={onClose} aria-label="Close"><BmcIcon name="close" w={16} /></button>
-        <div className="bmc-eyebrow dlv-card-topup-eyebrow">
-          <span>Card balance required</span>
-        </div>
-        <h2 id="dlv-card-topup-title" className="bmc-modal-title dlv-card-topup-title">
-          Top up your card balance to send this{' '}
-          <span className="dlv-card-topup-wordmark">
-            <img src="/assets/WordmarkLobster.png" alt="Souvenote" />
-          </span>
-        </h2>
-        <ul className="dlv-card-topup-sub" aria-label="Card balance benefits">
-          <li className="dlv-card-topup-subline">Choose between Bulk, multi or single sends at delivery</li>
-          <li className="dlv-card-topup-subline">Each card comes with 10 creation credits</li>
-        </ul>
-
-        <div className="dlv-card-topup-pack" aria-label="Choose card quantity">
-          <div className="dlv-card-topup-tiers" role="list" aria-label="Volume tiers">
-            {BIG_SENDER_TIERS.map((tier) => {
-              const active = qty >= tier.min && qty <= tier.max;
-              return (
-                <button
-                  key={tier.label}
-                  type="button"
-                  role="listitem"
-                  className={`dlv-card-topup-tier ${active ? "is-active" : ""}`}
-                  onClick={() => setQtyClamped(tier.min)}
-                >
-                  <span>{tier.label}</span>
-                  <b>${tier.pricePerCard.toFixed(2)}</b>
-                  <em>/ card</em>
-                </button>
-              );
-            })}
-          </div>
-
-          <div className="dlv-card-topup-stepper">
-            <span>How many cards?</span>
-            <div className="dlv-card-topup-value">
-              <strong>${pricing.totalText}</strong>
-              <em>{creationCredits} credits</em>
-            </div>
-            <div className="dlv-card-topup-controls">
-              <button type="button" aria-label="Decrease" onClick={() => setQtyClamped(qty - 1)} disabled={qty <= MIN_BIG_SENDER_CARDS}>-</button>
-              <input
-                aria-label="Card quantity"
-                type="number"
-                min={MIN_BIG_SENDER_CARDS}
-                value={qty}
-                onChange={(event) => setQtyClamped(event.target.value)}
-              />
-              {/* Big Sender has no maximum quantity. */}
-              <button type="button" aria-label="Increase" onClick={() => setQtyClamped(qty + 1)}>+</button>
-            </div>
-          </div>
-        </div>
-
-        <div className="bmc-modal-acts dlv-card-topup-actions">
-          <button type="button" className="bmc-cta" onClick={() => onReserve(qty)}>
-            Reserve {qty} {qty === 1 ? "card" : "cards"} - ${pricing.totalText} <BmcIcon name="arrow" w={15} />
-          </button>
-        </div>
-        <p className="dlv-card-topup-fineprint">
-          Your creations will be saved in "Saved Cards &amp; Songs" for 30 days upon generation.
-        </p>
-      </div>
-    </div>
-  );
-}
-
-function dlvArrival(_shipping: string, when: DeliveryWhen, date: string) {
-  const base = when === "schedule" && date ? new Date(date + "T12:00:00") : new Date();
-  const add = 7;
-  if (when !== "schedule") base.setDate(base.getDate() + add + 1);
-  const opts: Intl.DateTimeFormatOptions = { weekday: "short", month: "short", day: "numeric" };
-  if (when === "schedule" && date) return base.toLocaleDateString("en-CA", opts);
-  return "~" + base.toLocaleDateString("en-CA", opts);
 }
 
 const DELIVERY_DEFAULT_CREDITS: DemoCredits = { images: 0, songs: 0 };
 
-function dlvRecipientName(recipient: DeliveryRecipient, fallback: string) {
-  return [recipient.firstName, recipient.lastName].filter(Boolean).join(" ").trim() || fallback;
+// Blank Souvenote Gift reminder + pop-up on Delivery: off until version 2
+// (owner, 2026-11-06). Choosing a gift recipient isn't built, so there's nothing
+// to do here yet. The gift stays in the account.
+const GIFT_AT_DELIVERY_ENABLED = false;
+
+// Out of cards: "Continue to checkout" opens the nav's Top up pop-up on its cards
+// view (owner, 2026-11-07), and after paying the cart comes back here. Off until
+// the backend owns the card count: today it lives only in this browser
+// (DemoBalance), so it can be wrong or faked (build-fixes item 8).
+const CARD_BALANCE_CHECK_ENABLED = false;
+
+const DLV_DATE_MESSAGE = "Choose a mail-out date.";
+
+/** Tomorrow as YYYY-MM-DD in the visitor's time zone: the earliest mail-out date. */
+function dlvTomorrow() {
+  const d = new Date();
+  d.setDate(d.getDate() + 1);
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
 }
 
-function dlvPostalAddress(recipient: DeliveryRecipient, fallbackName: string): PostalAddress {
-  const line1 = [recipient.address1, recipient.address2, recipient.address3].filter(Boolean).join(", ");
+// The customer's own front image, only when the backend gives a real web
+// address. Generation is still mocked (addresses start with mock://), so for now
+// this is null and the preview shows an empty card frame, never a sample.
+function dlvFrontImageUrl(assets: CardDraftAsset[], selectedId: string | null) {
+  const asset = assets.find((item) => item.id === selectedId) || findGeneratedImageAsset(assets);
+  const url = asset?.mockUrl || "";
+  return /^https?:\/\//i.test(url) ? url : null;
+}
 
+// Only called after dlvValidate passes, so every required field is filled.
+// No fallback values: a blank field must never be replaced with a made-up address.
+function dlvPostalAddress(recipient: DeliveryRecipient): PostalAddress {
   return {
-    name: dlvRecipientName(recipient, fallbackName),
-    line1: line1 || "123 Main St",
-    city: recipient.city || "Toronto",
-    region: recipient.state || "ON",
-    postalCode: recipient.postalCode || "M1M 1M1",
+    name: [recipient.firstName, recipient.lastName].map((part) => part.trim()).filter(Boolean).join(" "),
+    line1: [recipient.address1, recipient.address2, recipient.address3].map((part) => part.trim()).filter(Boolean).join(", "),
+    city: recipient.city.trim(),
+    region: recipient.state.trim(),
+    postalCode: recipient.postalCode.trim(),
     country: recipient.country || "CA",
   };
 }
 
-function deliveryOrderNumber(orderId: string | null | undefined) {
-  return orderId ? `SVN-${orderId.slice(0, 8).toUpperCase()}` : "SVN-MOCK";
-}
-
-function backendStatusLabel(status: string | null | undefined) {
-  switch (status) {
-    case "pending":
-      return "Order created";
-    case "checkout_started":
-      return "Mock checkout started";
-    case "paid_mock":
-      return "Mock checkout paid";
-    case "fulfillment_started":
-      return "Mock fulfillment started";
-    case "fulfilled_mock":
-      return "Fulfilled locally";
-    case "failed_mock":
-      return "Mock fulfillment failed";
-    default:
-      return "Ready for mock checkout";
-  }
-}
-
-function DeliveryApp({ user, initialCards = 0, initialCredits = DELIVERY_DEFAULT_CREDITS }: DeliveryAppProps) {
+function DeliveryApp({ initialCards = 0, initialCredits = DELIVERY_DEFAULT_CREDITS }: DeliveryAppProps) {
   const router = useRouter();
   const defaultBalance: DemoBalance = React.useMemo(
     () => ({ credits: initialCredits, cardBank: initialCards }),
@@ -387,47 +194,45 @@ function DeliveryApp({ user, initialCards = 0, initialCredits = DELIVERY_DEFAULT
   const [mode, setMode] = React.useState<DeliveryMode>("single");
   const [quantity, setQuantity] = React.useState(1);
   const [recipients, setRecipients] = React.useState<DeliveryRecipient[]>([]);
-  const [draft, setDraft] = React.useState<DeliveryRecipient>({
-    ...DLV_EMPTY_RECIP,
-    firstName: "Alex",
-    lastName: "Smith",
-    address1: "123 Main St",
-    city: "Toronto",
-    state: "ON",
-    postalCode: "M1M 1M1",
-    country: "CA",
-  });
+  const auth = useAuth();
+  // Both addresses start empty (no sample people).
+  const [draft, setDraft] = React.useState<DeliveryRecipient>(DLV_EMPTY_RECIP);
   const [errors, setErrors] = React.useState<DeliveryErrors>({});
   const [editingIdx, setEditingIdx] = React.useState<number | null>(null);
   const [returnOn, setReturnOn] = React.useState(true);
-  const [sender, setSender] = React.useState<DeliveryRecipient>({
-    ...DLV_EMPTY_RECIP,
-    firstName: "Samuel",
-    lastName: "Mathew",
-    address1: "456 Sender St",
-    city: "Waterloo",
-    state: "ON",
-    postalCode: "N2L 1A1",
-    country: "CA",
-  });
+  const [sender, setSender] = React.useState<DeliveryRecipient>(DLV_EMPTY_RECIP);
+  const [senderErrors, setSenderErrors] = React.useState<DeliveryErrors>({});
+  const profileFirstName = auth.user?.first_name?.trim() || "";
+  const profileLastName = auth.user?.last_name?.trim() || "";
+
+  // Return address name comes from the signed-in profile. Profiles have no
+  // mailing address yet, so the address lines stay empty (backend gap). Never
+  // overwrites what the customer has already typed.
+  React.useEffect(() => {
+    if (!profileFirstName && !profileLastName) return;
+    setSender((current) => (current.firstName || current.lastName)
+      ? current
+      : { ...current, firstName: profileFirstName, lastName: profileLastName });
+  }, [profileFirstName, profileLastName]);
   const [when, setWhen] = React.useState<DeliveryWhen>("now");
   const [date, setDate] = React.useState("");
-  const [shipping, setShipping] = React.useState("standard");
-  const [cardBank, setCardBank] = React.useState(demoBalance.cardBank);
-  const [song, setSong] = React.useState(false);
-  const [flowState, setFlowState] = React.useState(() => readMockMvpFlowState());
+  const [dateError, setDateError] = React.useState<string | undefined>();
+  // The count itself is no longer shown (the "On its way" pop-up was removed, item 16).
+  const [, setCardBank] = React.useState(demoBalance.cardBank);
+  const backHref = useDeliveryBackHref();
+  // Starts empty (same as the server render) and reads the stored order after mount.
+  const [flowState, setFlowState] = React.useState<MockMvpFlowState>(EMPTY_FLOW_STATE);
   const [backendOrder, setBackendOrder] = React.useState<Order | null>(null);
-  const [checkoutSession, setCheckoutSession] = React.useState<CheckoutSession | null>(null);
-  const [fulfillment, setFulfillment] = React.useState<FulfillmentRecord | null>(null);
+  const [, setCheckoutSession] = React.useState<CheckoutSession | null>(null);
+  const [, setFulfillment] = React.useState<FulfillmentRecord | null>(null);
   const [backendAction, setBackendAction] = React.useState<BackendAction>("idle");
   const [backendError, setBackendError] = React.useState<string | null>(null);
   const assetLookupDraftRef = React.useRef<string | null>(null);
-  const songIncluded = flowState.generatedAssets.length ? hasGeneratedAsset(flowState.generatedAssets, "song") : true;
-  const [sent, setSent] = React.useState<DeliveryOrder | null>(null);
+  // Only when the card really has a song (no sample song).
+  const songIncluded = hasGeneratedAsset(flowState.generatedAssets, "song");
   const blankGiftCount = useBlankSouvenoteGiftCount();
   const [giftReminderDismissed, setGiftReminderDismissed] = React.useState(false);
   const [giftModalOpen, setGiftModalOpen] = React.useState(false);
-  const [cardTopUpOpen, setCardTopUpOpen] = React.useState(false);
   const [giftRecipientName, setGiftRecipientName] = React.useState("");
   const [giftRecipientContact, setGiftRecipientContact] = React.useState("");
 
@@ -436,28 +241,15 @@ function DeliveryApp({ user, initialCards = 0, initialCredits = DELIVERY_DEFAULT
   }, [demoBalance.cardBank]);
 
   const selectedImageAssetId = flowState.selectedAssetId || findGeneratedImageAsset(flowState.generatedAssets)?.id || null;
+  const frontImageUrl = dlvFrontImageUrl(flowState.generatedAssets, selectedImageAssetId);
   const cardsNeeded = mode === "single" ? quantity : Math.max(recipients.length, 0);
   const orderStatus = backendOrder?.status || flowState.orderStatus;
   const hasBackendOrderInputs = Boolean(flowState.cardDraftId && selectedImageAssetId);
   const enough = hasBackendOrderInputs && cardsNeeded > 0;
-  const needsCardTopUp = false;
   const backendBusy = backendAction !== "idle";
-  const carrier = dlvCountry(draft.country).carrier;
   const goToPricing = React.useCallback(() => {
     router.push("/pricing");
   }, [router]);
-
-  React.useEffect(() => {
-    const liveCardBank = readDemoBalance(defaultBalance).cardBank;
-
-    if (liveCardBank >= cardsNeeded && cardsNeeded > 0) {
-      setCardBank(liveCardBank);
-      setCardTopUpOpen(false);
-      return;
-    }
-
-    if (needsCardTopUp && !sent) setCardTopUpOpen(true);
-  }, [cardsNeeded, defaultBalance, needsCardTopUp, sent]);
 
   React.useEffect(() => {
     const syncFlowState = () => setFlowState(readMockMvpFlowState());
@@ -491,12 +283,12 @@ function DeliveryApp({ user, initialCards = 0, initialCredits = DELIVERY_DEFAULT
         if (imageAsset?.id) {
           rememberSelectedAsset(flowState.cardDraftId, imageAsset.id, assets);
         } else {
-          setBackendError("Generated image asset is not ready yet. Go back to Review and wait for generation to finish.");
+          setBackendError("Your card's artwork isn't ready yet. Go back to Review and wait for it to finish.");
         }
       })
       .catch((error) => {
         if (!active) return;
-        setBackendError(error instanceof Error ? error.message : "Generated assets could not be loaded from the backend.");
+        setBackendError(error instanceof Error ? error.message : "We couldn't load your card. Please try again.");
       })
       .finally(() => {
         if (active) setBackendAction("idle");
@@ -512,28 +304,11 @@ function DeliveryApp({ user, initialCards = 0, initialCredits = DELIVERY_DEFAULT
     window.__dlvOpenCheckout = goToPricing;
   }, [goToPricing]);
 
-  function buildSentOrder(order: Order): DeliveryOrder {
-    const primary = mode === "single" ? draft : recipients[0];
-    const toName = mode === "single"
-      ? [primary.title, primary.firstName, primary.lastName].filter(Boolean).join(" ")
-      : `${recipients.length} recipients`;
-
-    return {
-      number: deliveryOrderNumber(order.id),
-      to: toName,
-      carrier,
-      scheduled: when === "schedule",
-      arrival: dlvArrival(shipping, when, date),
-      cards: cardsNeeded,
-      cardsLeft: cardBank,
-    };
-  }
-
   function validateDeliveryInputs() {
     if (!flowState.cardDraftId || !selectedImageAssetId) {
-      const message = "Review a generated card first so Delivery can use the real card draft and generated image asset.";
+      const message = "Finish your card in Review before sending it.";
       setBackendError(message);
-      bmcError(message, "Generated card needed");
+      bmcError(message, "Card not ready");
       return false;
     }
 
@@ -553,6 +328,31 @@ function DeliveryApp({ user, initialCards = 0, initialCredits = DELIVERY_DEFAULT
       return false;
     }
 
+    // The return address is only checked (and sent) while its switch is on.
+    if (returnOn) {
+      const nextSenderErrors = dlvValidate(sender);
+      setSenderErrors(nextSenderErrors);
+      const firstInvalid = Object.keys(nextSenderErrors)[0];
+      if (firstInvalid) {
+        const field = document.querySelector<HTMLElement>(`[data-dlv-return] [data-dlv-field="${firstInvalid}"]`);
+        field?.scrollIntoView({ block: "center", behavior: "smooth" });
+        field?.focus({ preventScroll: true });
+        return false;
+      }
+    } else {
+      setSenderErrors({});
+    }
+
+    // Schedule needs a date, tomorrow or later.
+    if (when === "schedule" && (!date || date < dlvTomorrow())) {
+      setDateError(DLV_DATE_MESSAGE);
+      const field = document.querySelector<HTMLElement>('[data-dlv-field="mailDate"]');
+      field?.scrollIntoView({ block: "center", behavior: "smooth" });
+      field?.focus({ preventScroll: true });
+      return false;
+    }
+    setDateError(undefined);
+
     return true;
   }
 
@@ -567,8 +367,8 @@ function DeliveryApp({ user, initialCards = 0, initialCredits = DELIVERY_DEFAULT
       const order = await createOrder({
         cardDraftId: flowState.cardDraftId,
         selectedAssetId: selectedImageAssetId,
-        recipientAddress: dlvPostalAddress(primaryRecipient, "Alex Smith"),
-        senderAddress: dlvPostalAddress(sender, "Samuel Mathew"),
+        recipientAddress: dlvPostalAddress(primaryRecipient),
+        ...(returnOn ? { senderAddress: dlvPostalAddress(sender) } : {}),
       });
 
       setBackendOrder(order);
@@ -585,9 +385,9 @@ function DeliveryApp({ user, initialCards = 0, initialCredits = DELIVERY_DEFAULT
       setCheckoutSession(checkout.checkoutSession);
       rememberCheckoutResult(checkout.order, checkout.checkoutSession);
     } catch (error) {
-      const message = error instanceof Error ? error.message : "The mock checkout flow could not start.";
+      const message = error instanceof Error ? error.message : "We couldn't start checkout. Please try again.";
       setBackendError(message);
-      bmcError(message, "Mock checkout failed");
+      bmcError(message, "Checkout didn't start");
     } finally {
       setBackendAction("idle");
     }
@@ -606,9 +406,9 @@ function DeliveryApp({ user, initialCards = 0, initialCredits = DELIVERY_DEFAULT
       setCheckoutSession(checkout.checkoutSession);
       rememberCheckoutResult(checkout.order, checkout.checkoutSession);
     } catch (error) {
-      const message = error instanceof Error ? error.message : "Mock checkout could not be completed.";
+      const message = error instanceof Error ? error.message : "We couldn't confirm your payment. Please try again.";
       setBackendError(message);
-      bmcError(message, "Mock checkout failed");
+      bmcError(message, "Payment not confirmed");
     } finally {
       setBackendAction("idle");
     }
@@ -621,9 +421,9 @@ function DeliveryApp({ user, initialCards = 0, initialCredits = DELIVERY_DEFAULT
     if (backendBusy || !orderId) return;
 
     if (currentStatus !== "paid_mock") {
-      const message = "Complete mock checkout before submitting fulfillment.";
+      const message = "Please complete checkout before we send your card to print.";
       setBackendError(message);
-      bmcError(message, "Checkout required");
+      bmcError(message, "Checkout needed");
       return;
     }
 
@@ -635,12 +435,11 @@ function DeliveryApp({ user, initialCards = 0, initialCredits = DELIVERY_DEFAULT
       setBackendOrder(result.order);
       setFulfillment(result.fulfillment);
       rememberFulfillmentResult(result.order, result.fulfillment);
-      setSent(buildSentOrder(result.order));
       router.push("/delivery/confirmation");
     } catch (error) {
-      const message = error instanceof Error ? error.message : "Mock fulfillment could not be submitted.";
+      const message = error instanceof Error ? error.message : "We couldn't send your card to print. Please try again.";
       setBackendError(message);
-      bmcError(message, "Mock fulfillment failed");
+      bmcError(message, "Couldn't send to print");
     } finally {
       setBackendAction("idle");
     }
@@ -666,14 +465,14 @@ function DeliveryApp({ user, initialCards = 0, initialCredits = DELIVERY_DEFAULT
   }
 
   function handleSend() {
-    if (needsCardTopUp) {
-      setCardTopUpOpen(true);
+    if (CARD_BALANCE_CHECK_ENABLED && readDemoBalance(defaultBalance).cardBank < cardsNeeded) {
+      if (!openTopUp("cards", "/delivery")) goToPricing();
       return;
     }
 
     if (!validateDeliveryInputs()) return;
 
-    if (blankGiftCount > 0) {
+    if (GIFT_AT_DELIVERY_ENABLED && blankGiftCount > 0) {
       setGiftModalOpen(true);
       return;
     }
@@ -694,59 +493,49 @@ function DeliveryApp({ user, initialCards = 0, initialCredits = DELIVERY_DEFAULT
     void createOrderAndStartMockCheckout();
   }
 
-  function reserveCardsForDelivery(quantity: number) {
-    addPricingCartItemToCart(makeBigSenderCartItem(quantity));
-    rememberPricingReturn("/delivery");
-    setCardTopUpOpen(false);
-    router.push("/cart");
-  }
-
   const primaryActionLabel = (() => {
-    if (backendAction === "loading_assets") return "Loading assets...";
+    if (backendAction === "loading_assets") return "Loading your card...";
     if (backendAction === "creating_order") return "Creating order...";
     if (backendAction === "starting_checkout") return "Starting checkout...";
-    if (backendAction === "completing_checkout") return "Completing checkout...";
-    if (backendAction === "submitting_fulfillment") return "Submitting fulfillment...";
-    if (orderStatus === "checkout_started") return "Complete mock checkout";
-    if (orderStatus === "paid_mock") return "Submit mock fulfillment";
+    if (backendAction === "completing_checkout") return "Confirming payment...";
+    if (backendAction === "submitting_fulfillment") return "Sending to print...";
+    if (orderStatus === "checkout_started") return "Confirm payment";
+    if (orderStatus === "paid_mock") return "Send to print";
     if (orderStatus === "fulfilled_mock") return "View confirmation";
-    return "Start mock checkout";
+    return "Continue to checkout";
   })();
 
-  const backendStatus = backendStatusLabel(orderStatus);
-  const checkoutDetail = checkoutSession?.id || flowState.checkoutSessionId;
-  const fulfillmentDetail = fulfillment?.mockFulfillmentId || flowState.fulfillment?.mockFulfillmentId;
+  const backendStatus = deliveryStatusLabel(orderStatus);
+
 
   return (
     <>
-      <Navbar user={user} credits={{ images: 0, songs: 0 }} cardBank={0} />
-
-      <div className="bmc-shell" data-screen-label="06 Delivery">
-        <div className="bmc-head" style={{ textAlign: "center", margin: "0 auto 40px", maxWidth: 780 }}>
-          <div className="bmc-eyebrow" style={{ justifyContent: "center", whiteSpace: "nowrap" }}>
-            <span className="bmc-eyebrow-num">07</span>
+      <div className="cf-wrap dv-wrap" data-screen-label="06 Delivery">
+        <header className="cf-head">
+          <p className="cf-eyebrow">
+            <span className="cf-eyebrow-num">07</span>
             <span>Delivery</span>
-          </div>
-          <h1 className="bmc-title">
-            A card{" "}
-            <span className="souv-hero-italic text-metallic-rose-gold">worth sending</span>
-          </h1>
-          <p className="bmc-lede" style={{ margin: "0 auto" }}>
-            Your card is printed and folded, your message is hand-written in real ink, and any optional song is tucked
-            behind a QR code inside. Tell us where it&apos;s going, then walk the local mock order through checkout and fulfillment.
           </p>
-        </div>
+          <h1 className="cf-title">
+            A card{" "}
+            <span className="l-script">worth sending</span>
+          </h1>
+          <p className="cf-lede dv-lede">
+            We’ll print and fold your card, handwrite your message, and link your optional song to a QR code inside.
+            Just tell us where to send it, and we’ll take care of the rest.
+          </p>
+        </header>
 
-        {blankGiftCount > 0 && !giftReminderDismissed && (
-          <div className="dlv-gift-reminder" role="status">
-            <span className="dlv-gift-reminder-ico"><BmcIcon name="spark2" w={18} /></span>
+        {GIFT_AT_DELIVERY_ENABLED && blankGiftCount > 0 && !giftReminderDismissed && (
+          <div className="dv-gift-reminder" role="status">
+            <span className="dv-gift-reminder-ico" aria-hidden="true"><BmcIcon name="spark2" w={18} /></span>
             <div>
-              <div className="dlv-gift-reminder-title">You have a blank Souvenote to give</div>
+              <p className="dv-gift-reminder-title">You have a blank Souvenote to give</p>
               <p>We&apos;ll remind you when you send this card. You have {blankGiftCount} {blankGiftCount === 1 ? "blank gift" : "blank gifts"} ready.</p>
             </div>
             <button
               type="button"
-              className="dlv-gift-reminder-dismiss"
+              className="l-btn l-btn-secondary dv-gift-reminder-dismiss"
               onClick={() => setGiftReminderDismissed(true)}
             >
               Dismiss
@@ -754,12 +543,12 @@ function DeliveryApp({ user, initialCards = 0, initialCredits = DELIVERY_DEFAULT
           </div>
         )}
 
-        <div className="dlv-grid">
-          <div className="dlv-keepsake-col">
-            <DlvKeepsake song={song} songIncluded={songIncluded} onPlaySong={() => setSong((current) => !current)} />
+        <div className="dv-grid">
+          <div className="dv-keepsake-col">
+            <DlvKeepsake imageUrl={frontImageUrl} songIncluded={songIncluded} />
           </div>
 
-          <div className="dlv-form">
+          <form className="dv-form" aria-label="Delivery details" noValidate onSubmit={(event) => event.preventDefault()}>
             <DlvRecipientSection
               mode={mode}
               setMode={setMode}
@@ -774,38 +563,43 @@ function DeliveryApp({ user, initialCards = 0, initialCredits = DELIVERY_DEFAULT
               editingIdx={editingIdx}
               setEditingIdx={setEditingIdx}
             />
-            <DlvReturnSection on={returnOn} setOn={setReturnOn} sender={sender} setSender={setSender} />
-            <DlvScheduleSection when={when} setWhen={setWhen} date={date} setDate={setDate} />
-            <DlvShippingSection shipping={shipping} setShipping={setShipping} country={draft.country} />
-          </div>
+            <DlvReturnSection on={returnOn} setOn={setReturnOn} sender={sender} setSender={setSender} errors={senderErrors} />
+            <DlvScheduleSection
+              when={when}
+              setWhen={(value) => { setWhen(value); setDateError(undefined); }}
+              date={date}
+              setDate={(value) => { setDate(value); setDateError(undefined); }}
+              minDate={dlvTomorrow()}
+              dateError={dateError}
+            />
+            <DlvShippingSection country={draft.country} />
+          </form>
         </div>
 
-        <div className="dlv-actionbar">
-          <div className="dlv-cost">
-            <span className="dlv-cost-main">
+        <div className="dv-actionbar">
+          <div className="dv-status" aria-live="polite">
+            <p className="dv-status-main">
               <BmcIcon name="message" w={15} />
               {backendStatus}
-            </span>
-            <span className={`dlv-cost-sub ${!enough ? "is-low" : ""}`}>
+            </p>
+            <p className={`dv-status-sub ${!enough || backendError ? "is-low" : ""}`}>
               {backendError
                 ? backendError
                 : enough
-                  ? <>Draft {flowState.cardDraftId?.slice(0, 8)} {"\u00b7"} image asset {selectedImageAssetId?.slice(0, 8)}{checkoutDetail ? ` \u00b7 checkout ${checkoutDetail.slice(0, 18)}` : ""}{fulfillmentDetail ? ` \u00b7 ${fulfillmentDetail.slice(0, 24)}` : ""}</>
-                  : <>Go back to Review so Delivery can use a generated backend image asset.</>}
-            </span>
+                  ? "Your card is ready to send."
+                  : "Go back to Review to finish your card before sending."}
+            </p>
           </div>
-          <div className="dlv-actionbar-right">
-            <Link href="/create/build-my-card#review" className="bmc-cta-secondary"><BmcIcon name="back" w={14} /> Back to review</Link>
-            <button type="button" className="bmc-cta bmc-cta-lg" onClick={handlePrimaryAction} disabled={backendBusy || (!enough && orderStatus !== "fulfilled_mock")}>
-              {primaryActionLabel} <BmcIcon name="arrow" w={16} />
+          <div className="dv-actionbar-right">
+            <Link href={backHref} className="l-btn l-btn-secondary dv-back"><BmcIcon name="back" w={14} /> Back to review</Link>
+            <button type="button" className="l-btn l-btn-primary dv-primary" onClick={handlePrimaryAction} disabled={backendBusy || (!enough && orderStatus !== "fulfilled_mock")} aria-busy={backendBusy || undefined}>
+              {backendBusy && <span className="cf-spin" aria-hidden="true" />}
+              {primaryActionLabel} {!backendBusy && <BmcIcon name="arrow" w={16} />}
             </button>
           </div>
         </div>
       </div>
 
-      <Footer />
-
-      <DlvSentModal open={!!sent} order={sent} onClose={() => setSent(null)} />
       <DlvBlankGiftModal
         open={giftModalOpen}
         count={blankGiftCount}
@@ -817,14 +611,9 @@ function DeliveryApp({ user, initialCards = 0, initialCredits = DELIVERY_DEFAULT
         onKeepLater={keepGiftForLaterAndSend}
         onSaveGift={saveGiftRecipientAndSend}
       />
-      <DlvCardTopUpModal
-        open={cardTopUpOpen}
-        onClose={() => setCardTopUpOpen(false)}
-        onReserve={reserveCardsForDelivery}
-      />
       <BmcErrorModal />
     </>
   );
 }
 
-export { DeliveryApp, DlvSentModal, DlvToast };
+export { DeliveryApp };

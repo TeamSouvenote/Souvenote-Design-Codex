@@ -152,7 +152,8 @@ export function makePrintAndSendCartItem(): PricingCartItem {
     price: PRINT_AND_SEND_PRICE,
     qty: 1,
     cardCount: 1,
-    creditsPerCard: 0,
+    // 10 AI creation credits included (owner, 2026-11-06), same as each Big Sender card.
+    creditsPerCard: 10,
     lockedQuantity: true,
     replaceGroup: PRINT_AND_SEND_CART_ID,
     unitNote: `$${PRINT_AND_SEND_PRICE.toFixed(2)} / card`,

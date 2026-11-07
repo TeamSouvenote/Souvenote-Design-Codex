@@ -1,6 +1,8 @@
 "use client";
 
 import * as React from "react";
+import { rememberDeliverySource } from "./delivery/deliverySource";
+import { openTopUp } from "./pricing/topUp";
 import { useRouter } from "next/navigation";
 import { BmcReview } from "./BmcReview";
 import { BmcErrorModal, bmcError } from "./BmcShared";
@@ -287,7 +289,7 @@ const TEMPLATES: Template[] = [
     art: {
       bg: 'radial-gradient(50% 60% at 30% 30%, #c93c54 0%, #6b0e1f 65%, #2a040a 100%)',
       eyebrow: '★ ★ ★ ISSUE #032 ★ ★ ★',
-      glyph: <>POW!<br/><em style={{color:'#ffe27a',fontSize:18}}>(it's your birthday)</em></>,
+      glyph: <>POW!<br/><em style={{color:'#ffe27a',fontSize:18}}>(it&apos;s your birthday)</em></>,
       foot: '— A halftone hero —',
     },
   },
@@ -315,7 +317,7 @@ const TEMPLATES: Template[] = [
     art: {
       bg: 'radial-gradient(70% 70% at 50% 50%, #f4c4a8 0%, #c87a92 55%, #5e2440 100%)',
       eyebrow: 'A CARD THAT SAYS IT',
-      glyph: <>You're allowed<br/><em style={{color:'#fff0c8'}}>to feel it all.</em></>,
+      glyph: <>You&apos;re allowed<br/><em style={{color:'#fff0c8'}}>to feel it all.</em></>,
       foot: '— A quiet word, well-meant —',
     },
   },
@@ -660,7 +662,7 @@ const TEMPLATES: Template[] = [
     art: {
       bg: 'radial-gradient(60% 70% at 50% 40%, #28384e 0%, #121c28 65%, #050709 100%)',
       eyebrow: 'UNTIL NEXT TIME',
-      glyph: <>I'll be<br/><em style={{color:'#a8c8e8'}}>missing you.</em></>,
+      glyph: <>I&apos;ll be<br/><em style={{color:'#a8c8e8'}}>missing you.</em></>,
       foot: '— Miles, not hearts —',
     },
   },
@@ -809,7 +811,7 @@ function padOccasion(items: Template[], occId: string): Template[] {
 // ============================================================
 // TEMPLATE CARD
 // ============================================================
-function PtTemplateCard({ tmpl, onPersonalize, compact }: PtTemplateCardProps) {
+function PtTemplateCard({ tmpl, onPersonalize }: PtTemplateCardProps) {
   return (
     <div className="pt-card">
       <div className="pt-card-name">{tmpl.name}</div>
@@ -930,7 +932,7 @@ function PtMarketplace({ onPersonalize }: PtMarketplaceProps) {
           </h1>
           <p className="pt-lede">
             Our designs, your personal touch. Choose a template, swap the photos and text,
-            and we'll generate the perfect card instantly.
+            and we&apos;ll generate the perfect card instantly.
           </p>
         </div>
 
@@ -1222,7 +1224,7 @@ function PtPersonalizeModal({
                   <span className="souv-hero-italic text-metallic-rose-gold">or describe it</span>
                 </h2>
                 <p className="pt-modal-step-sub">
-                  Add a photo and we'll reimagine the people in <em className="text-metallic-gold" style={{ fontStyle: 'italic' }}>{tmpl.name}'s</em> style. Or skip the upload and describe the card you want; we'll imagine it from your words.
+                  Add a photo and we&apos;ll reimagine the people in <em className="text-metallic-gold" style={{ fontStyle: 'italic' }}>{tmpl.name}&apos;s</em> style. Or skip the upload and describe the card you want; we&apos;ll imagine it from your words.
                 </p>
               </div>
 
@@ -1256,7 +1258,7 @@ function PtPersonalizeModal({
                 <div className={`pt-photo-or ${describe ? 'is-active' : ''}`}>
                   <span className="pt-photo-or-eyebrow">— OR —</span>
                   <span className="pt-photo-or-title">Skip upload</span>
-                  <p className="pt-photo-or-sub">Describe a memory, joke, or imaginary scene. We'll generate the card from your words alone.</p>
+                  <p className="pt-photo-or-sub">Describe a memory, joke, or imaginary scene. We&apos;ll generate the card from your words alone.</p>
                   <button type="button" className={describe ? 'pt-cta' : 'pt-cta-secondary'}
                           onClick={() => { setDescribe(true); removePersonalizePhoto(); }}>
                     Describe My Card <PtIcon name="sparkle" w={14} />
@@ -1409,7 +1411,7 @@ function PtPersonalizeModal({
 
               <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap: 40, marginTop: 28, paddingTop: 28, borderTop: '1px solid rgba(232,234,238,0.10)' }}>
                 <div className="pt-field" style={{ margin: 0 }}>
-                  <label className="pt-label" style={{ fontSize: 15, letterSpacing: '.05em', marginBottom: 16 }}>You're all set, let's generate.</label>
+                  <label className="pt-label" style={{ fontSize: 15, letterSpacing: '.05em', marginBottom: 16 }}>You&apos;re all set, let&apos;s generate.</label>
                   <div style={{ display:'flex', flexDirection:'column', gap: 12, fontFamily:'var(--font-sans)', fontSize:14.5, color:'var(--text-secondary)' }}>
                     <span style={{ display:'flex', alignItems:'center', gap: 10 }}>
                       <PtIcon name="check" w={14} /> Front card image
@@ -1485,7 +1487,7 @@ function PtPersonalizeModal({
             <span className="pt-prompt-icon"><PtIcon name="sparkle" w={22} /></span>
             <h3 className="pt-prompt-title">Describe your idea first</h3>
             <p className="pt-prompt-body">
-              Tell us the memory, inside joke, or scene you have in mind and we'll generate
+              Tell us the memory, inside joke, or scene you have in mind and we&apos;ll generate
               the card from your words. Add a few details before continuing.
             </p>
             <button
@@ -1511,9 +1513,9 @@ function PtPersonalizeModal({
 // ============================================================
 const CHAT_PRESETS: ChatPreset[] = ['Caption', 'Personal Message', 'Vibe Check', 'Custom'];
 const CHAT_INITIAL: ChatMessage[] = [
-  { role: 'bot', text: <>Hi, I'm <b>Nova</b>, your card assistant. Need help with a caption or a personal message?</> },
+  { role: 'bot', text: <>Hi, I&apos;m <b>Nova</b>, your card assistant. Need help with a caption or a personal message?</> },
   { role: 'user', text: 'Caption for a 60th birthday for my mom, warm but not sappy.' },
-  { role: 'bot', text: <>Try: <em>"Sixty looks good on you, Mom."</em> or <em>"Sixty trips around the sun, all of them better because you're in them."</em></> },
+  { role: 'bot', text: <>Try: <em>&quot;Sixty looks good on you, Mom.&quot;</em> or <em>&quot;Sixty trips around the sun, all of them better because you&apos;re in them.&quot;</em></> },
 ];
 
 function PtChat({ open, setOpen }: PtChatProps) {
@@ -1574,7 +1576,6 @@ function PersonalizeApp({
   const router = useRouter();
   const [chosen, setChosen] = React.useState<Template | null>(openModal ? TEMPLATES[0] : null);
   const [modalOpen, setModalOpen] = React.useState(openModal);
-  const [chatOpen, setChatOpen] = React.useState(true);
   const [view, setView] = React.useState<PersonalizeView>('marketplace');
   const [reviewGen, setReviewGen] = React.useState(false);
   const [reviewIncludeSong, setReviewIncludeSong] = React.useState(true);
@@ -1777,8 +1778,9 @@ function PersonalizeApp({
     }
     setModalOpen(false);
   };
-  const openPricingForCredits = () => {
-    router.push(goToPricingAfterPurchase('/create/personalize-a-template'));
+  // Out of credits mid-personalize: the Top up credits pop-up (owner, 2026-11-07); Pricing if it isn't available.
+  const openPricingForCredits = (returnTo = '/create/personalize-a-template') => {
+    if (!openTopUp('credits', returnTo)) router.push(goToPricingAfterPurchase(returnTo));
   };
   // Create my Card → close modal, jump to the Review page (which auto-opens the invite modal while generating).
   const onCreate = async (includeSong = true, draftInput: PersonalizeDraftInput = { creativeBrief: {} }) => {
@@ -1801,6 +1803,24 @@ function PersonalizeApp({
     }
 
     if (totalCredits < generationCost) {
+      // Not enough credits (owner, 2026-11-07): save what they've entered, open the
+      // Top up credits pop-up, and after paying come back into this draft on its last
+      // step (same resume link as Saved Cards & Songs). If the draft can't be saved,
+      // show the error below instead, so nothing they typed is silently lost.
+      let savedDraftId: string | null = null;
+      setGenerationPending(true);
+      try {
+        savedDraftId = await ensureDraftSaved(draftInput, includeSong);
+        await uploadReferenceImages(savedDraftId, draftInput);
+      } catch {
+        savedDraftId = null;
+      } finally {
+        setGenerationPending(false);
+      }
+      if (savedDraftId) {
+        openPricingForCredits(`/create/personalize-a-template?modal=1&draftId=${encodeURIComponent(savedDraftId)}&step=caption`);
+        return;
+      }
       bmcError(
         `You need ${generationCost} ${generationCost === 1 ? "credit" : "credits"} to generate this card. Your current backend balance is ${totalCredits}.`,
         "Not enough credits",
@@ -1918,9 +1938,10 @@ function PersonalizeApp({
             }
 
             rememberSelectedAsset(currentDraftId, selectedAssetId, reviewAssets);
+            rememberDeliverySource('personalize');
             router.push('/delivery');
           }}
-          onTopUp={openPricingForCredits}
+          onTopUp={() => openPricingForCredits()}
           onRegenerateAsset={spendRegenerationCredit}
         />
         <BmcErrorModal />

@@ -155,7 +155,8 @@ export type CreateOrderRequest = {
   cardDraftId: string;
   selectedAssetId: string;
   recipientAddress: PostalAddress;
-  senderAddress: PostalAddress;
+  /** Left out when the customer turns the return address off. */
+  senderAddress?: PostalAddress;
 };
 
 export type Order = {

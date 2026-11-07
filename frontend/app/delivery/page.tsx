@@ -1,11 +1,15 @@
+import type { Metadata } from "next";
 import { DeliveryApp } from "../components/Delivery";
-import { PageChrome } from "../components/PageChrome";
+import { FlowPageShell } from "../components/flow/FlowPageShell";
+
+// Signed-in screen: noindex comes from delivery/layout.tsx; no description or
+// structured data, since the page holds the visitor's card and addresses.
+export const metadata: Metadata = { title: "Delivery | Souvenote" };
 
 export default function DeliveryPage() {
   return (
-    <div className="souv-route-page">
-      <PageChrome variant="bmc" />
-      <main className="bmc-page"><DeliveryApp /></main>
-    </div>
+    <FlowPageShell className="souv-delivery" signedInOnly>
+      <DeliveryApp />
+    </FlowPageShell>
   );
 }

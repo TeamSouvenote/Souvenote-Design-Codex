@@ -10,6 +10,7 @@ import { demoUser } from "./DemoUser";
 import { useCreditBalance } from "../lib/creditBalance";
 import { MIN_GENERATION_CREDITS } from "./createFlowRules";
 import { goToPricingAfterPurchase } from "./PricingReturn";
+import { openTopUp } from "./pricing/topUp";
 import { useAuth } from "./AuthProvider";
 import { AuthGatePrompt } from "./AuthGatePrompt";
 
@@ -52,7 +53,8 @@ export function BuildMyCardClient() {
     if (creditBalance.status !== "ready") return;
     entryGateChecked.current = true;
     if (creditBalance.balance < MIN_GENERATION_CREDITS) {
-      router.replace(goToPricingAfterPurchase("/create/build-my-card"));
+      // Out of credits: the Top up credits pop-up on this page (owner, 2026-11-07); Pricing if it isn't available.
+      if (!openTopUp("credits", "/create/build-my-card")) router.replace(goToPricingAfterPurchase("/create/build-my-card"));
     }
   }, [balanceReady, creditBalance.balance, creditBalance.status, isAuthenticated, resumeDraftId, router]);
 

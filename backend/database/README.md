@@ -17,6 +17,8 @@ This folder contains the PostgreSQL database setup for the Souvenote backend.
 
 `006_print_and_send_offer.sql` adds the Print and Send offer (`print_and_send`: 999 CAD cents, 1 card, 0 credits, shipping included) to `pricing_catalog`, so the Pricing page reads its price from the database. Run it on any database seeded before 2026-11-05; fresh databases get the row from the seed. Safe to re-run.
 
+`007_print_and_send_credits.sql` sets Print and Send to 10 AI creation credits (owner decision 2026-11-06; 006 created it with 0). Run it after 006 on any existing database; fresh databases get 10 from the seed. Safe to re-run.
+
 Planned core tables:
 - users
 - credit_ledger

@@ -311,17 +311,150 @@ Owner-approved. A fine paper grain on the page background of every screen, keepi
 ## Top-up credits pop-up and nav menu (2026-11-05, uncommitted)
 
 Owner-approved.
-- **Nav Credits/Cards box menu** (hover or keyboard focus, every signed-in screen): Top up credits (opens the pop-up),
-  See pricing (`/pricing`), Saved Cards & Songs. Clicking the box itself still goes to Saved Cards & Songs. On touch
-  screens there's no hover, so the menu doesn't appear there; use the hamburger instead.
-- **Hamburger:** "Top Up Cards/Credits" is now two items: **Top Up Cards** (`/pricing`, card packs at the top) and
-  **Top Up Credits** (opens the same pop-up; focus returns to the menu button when it closes). The pop-up's open state
-  lives in `NavRight` so both menus share it.
-- **`components/pricing/TopUpCreditsModal.tsx`**: the Pricing page's three packs and buy flow (choose -> pop-up closes,
-  pack added to the cart, cart opens), with the Pricing page's approved "Top up credits" heading and intro. Shared dialog
-  behaviour from `useModalDialog.ts`. Loaded with `next/dynamic` on first open, so its code and CSS aren't on every page.
+- **Nav Credits/Cards box menu** (hover or keyboard focus, every signed-in screen): Top up cards, Top up credits
+  (both open the Top up pop-up), Saved Cards & Songs. Clicking the box itself still goes to Saved Cards & Songs. On
+  touch screens there's no hover, so the menu doesn't appear there; use the hamburger instead.
+- **Hamburger:** **Top Up Cards** and **Top Up Credits** both open the Top up pop-up (cards / credits view); focus
+  returns to the menu button when it closes. The open state lives in `NavRight` so both menus share it.
+- **`components/pricing/TopUpModal.tsx`** (replaces `TopUpCreditsModal.tsx`, 2026-11-07): one dialog, two views.
+  Cards view = the Pricing page's Print and Send + Big Sender boxes (with How it works), heading "Top up cards", intro
+  = Pricing lede, bottom button "Buy only credits". Credits view = the three credit packs, bottom button "Buy a full
+  card + credits". The buttons swap views in place and move focus to the new heading. Buy flow as on Pricing (choose ->
+  pop-up closes, item added to the cart, cart opens). Shared dialog behaviour from `useModalDialog.ts`. Loaded with
+  `next/dynamic` on first open, so its code and CSS aren't on every page.
+- **Opening it from anywhere:** `openTopUp(view, returnTo)` in `components/pricing/topUp.ts` fires a window event the
+  nav listens for; it returns false if no signed-in nav is on the page, and callers then fall back to `/pricing`.
+  `returnTo` is saved only once a pack is chosen, so after paying the customer goes straight back. Used when out of
+  credits in Create a Card, Build My Card (wizard + Review) and Personalize (credits view), and on Delivery when out
+  of cards (cards view, behind `CARD_BALANCE_CHECK_ENABLED = false`, see backend gap 5 below).
+- **Personalize, too few credits on "Create my Card"** (owner, 2026-11-07): instead of the "Not enough credits"
+  error box, the draft (and any photos) is saved first, then the credits pop-up opens. After paying, the customer
+  comes back through the Saved Cards & Songs resume link (`?modal=1&draftId=...&step=caption`) with what they typed
+  still filled in. If the draft can't be saved, the old error box shows instead.
+- **Build My Card, too few credits on "Generate"** (owner, 2026-11-07): same as Personalize. Draft + photos saved,
+  credits pop-up opens, and after paying the customer returns via `/create/build-my-card?draftId=...#song` (QR Song
+  step) with their answers restored. Falls back to the old "Not enough credits" box if the draft can't be saved.
+- **After paying** (`CartPage.tsx`): Print and Send still always shows "Your cards are waiting", except when it was
+  bought from Delivery's out-of-cards pop-up (return page `/delivery`): then it goes straight back to Delivery, like
+  Big Sender and credits.
+- Removed the unused `BmcPricingModal` (old Single/Studio/Atelier packs) from `BmcShared.tsx`.
   Styles: `.tu-*` in `styles/pricing.css`. `PricingCreditPacks` now takes `returnTo` and `onChosen`.
 - **Not built:** buying credits is still the frontend demo cart; no backend top-up.
+- **QA 2026-11-07** (`build-fixes/cart-delivery-2026-11-06/qa-scripts/topup/topup.js`, run from `~/souv-qa/topup`,
+  everything stubbed): 91/91. Covers opening from the Credits box menu (mouse + keyboard) and the hamburger (desktop +
+  phone) on 9 signed-in screens, dialog behaviour (focus, Tab trap, Escape, x, backdrop, inert page, scroll lock,
+  reduced motion), copy and the three packs, the buy flow and credits granted, signed-out (not reachable), 8 screen
+  sizes incl. sideways phone, tap targets, axe. Two bugs found and fixed:
+  1. **Cart page didn't refresh** when a pack was added while it was open (pop-up or another tab): it showed and
+     charged the old cart, and its next save dropped the new item. `CartPage.tsx` now follows `souv-cart-changed` /
+     `storage` events (only replaces lines that really differ, so its own saves don't loop).
+  2. **Keyboard focus** went to the page heading after closing the pop-up opened from the Credits box menu; it now
+     returns to the Credits box (`Navbar.tsx`, keyboard activation only).
+- **After-purchase pop-up for every pack (owner, 2026-11-07):** the Print and Send pop-up ("Your card is waiting", four
+  option buttons; `PrintSendReadyModal.tsx`) now also opens after paying for **Big Sender** or **credits**
+  (`CartPage.tsx` `handlePaid`). Print and Send always shows it. Big Sender / credits bought after being sent from
+  another page (saved return page, e.g. out of credits in Build My Card, or "Reserve cards" on Delivery) still go
+  straight back there, with no pop-up. Title: "Your credits are *waiting*" when only credits were bought, "Your cards
+  are *waiting*" for Print and Send or a card pack (also when credits are in the same cart). QA:
+  `qa-scripts/topup/after-purchase.js` 18/18.
+
+## Cart / Delivery fixes (2026-11-06, uncommitted)
+
+Owner-approved, from `build-fixes/cart-delivery-2026-11-06/` (BUILD-FIXES.md items, decisions in DECISIONS.md).
+Owner rule: **no dummy data** (no made-up codes, addresses, prices or results).
+
+Done in the frontend:
+- **Promo codes (items 1, 2):** one shared check in `lib/promo.ts`, used by the cart and the payment pop-up. The
+  hard-coded `SOUVENOTE10` and the pop-up's "any text = 10% off" are gone. A code applied in the cart is passed into
+  the payment pop-up (`CheckoutModal` `promo` prop), so both show the same total. Until Stripe is connected
+  `lookupPromo` returns null, so every code shows "That code isn't valid."
+- **Card fields (item 3):** Pay checks that card number, expiry, CVC and billing postal code are filled in (per-field
+  messages, focus moves to the first one). Apple Pay / Google Pay skip this. It only checks the fields are complete.
+- **Delivery addresses (items 4, 5, 7):** recipient starts empty; the return address name comes from the signed-in
+  profile (`first_name`/`last_name`), the address lines start empty. The hidden "123 Main St / Toronto" fallback is
+  removed: required fields must be filled or nothing is sent. With the return address switch on, its fields are
+  checked too; with it off, `senderAddress` is left out of `POST /orders` (backend already stores `{}`).
+- **Card preview (item 9):** no sample card. `DeliveryKeepsake.tsx` shows the selected asset's image only when it
+  has a real `http(s)` address; generation is still mocked (`mock://...`), so today it's an empty card frame. The
+  handwritten message preview and the song line are hidden; "Song QR printed inside" shows only when the card really
+  has a song asset.
+- **Blank Souvenote Gift (item 11): off until version 2.** `GIFT_OFFER_ENABLED = false` in `CartPage.tsx` (no
+  "Add a blank Souvenote?" before checkout) and `GIFT_AT_DELIVERY_ENABLED = false` in `Delivery.tsx` (no reminder
+  banner, no "You have a blank Souvenote to give" pop-up). The code is kept for V2. Gift lines already in a cart
+  still show and can be removed; `/gift` is untouched (not linked anywhere).
+- **Cart (12, 13, 14, 21, 25):** made-up "SV-123456" order number removed; "GST calculated from your delivery
+  address" removed (flat 5% kept); "← Back to cart" closes the payment pop-up; gift price reads
+  `BLANK_SOUVENOTE_GIFT_PRICE`; no hyphens used as dashes.
+- **Delivery (15, 16, 18, 20, 24, 25):** Schedule needs a date, tomorrow or later ("Choose a mail-out date.");
+  the "On its way" pop-up and its made-up "+7 days" arrival estimate are removed (straight to Confirmation);
+  "Back to review" returns to the builder the card came from (`components/delivery/deliverySource.ts`, set by
+  BmcWizard / BmcReview / Personalize / MyCards; Personalize's review isn't linkable, so it lands on the Personalize
+  page); shipping is a plain "Standard shipping, included" line; top-up pop-up copy updated.
+- **Signed-in only (17):** `/delivery` and `/delivery/confirmation` send signed-out visitors to `/`
+  (`FlowPageShell signedInOnly`, same script + `SignedOutRedirect` as `/create`). `/cart` stays open.
+- **Confirmation (22, 23):** no "Nothing to confirm yet" flash; spacing tightened on short phones (<600px wide and
+  <700px tall) so Confirmation fits iPhone SE and the empty cart fits 320x568.
+- **Error pop-up (27):** `BmcErrorModal` (shared with Build My Card) now uses `useModalDialog`: focus trap, scroll
+  lock, page inert, focus return, labelled `alertdialog`. Dark look kept until the Build My Card redesign.
+- **Lint (29):** ESLint 9 + `eslint-config-next` (`frontend/eslint.config.mjs`, `npm run lint`). First run found
+  37 errors + 37 warnings, all from before this work (report: `build-fixes/cart-delivery-2026-11-06/lint-2026-11-06.json`).
+  Owner-approved clean-up (2026-11-06): the 37 errors (`react/no-unescaped-entities`, apostrophes/quotes now
+  `&apos;`/`&quot;`, pages look identical), 21 unused leftovers removed (old icons in Options.tsx,
+  LegacySettingsPayments, unused Cognito helpers/types, unused state), and the MyCards hook dependency. **Now: 0 errors,
+  15 warnings**, all `@next/next/no-img-element` (switch to `next/image` during each page's redesign, with a visual
+  check). `next build` runs lint again (Next.js default; the temporary skip was removed once errors hit 0).
+  Production build verified 2026-11-06: passes, 0 lint errors, all suites green on `next start`.
+
+**Raw backend errors are shown on purpose (item 10, owner 2026-11-06).** This is a frontend rebuild while the
+backend is built, so Delivery's error pop-ups show the backend's own text (e.g. "Mock checkout completion failed
+with status 500.", "Checkout response did not include a checkout session and order." from `lib/api.ts`). **Backend
+gap, going forward for every such message:** give each error customer wording before launch.
+
+**Version 2:** Blank Souvenote Gift recipients (name + email/phone saved, sent, and redeemable), then switch the two
+gift flags back on.
+
+**Backend gaps (must do before real customers):**
+1. **Stripe payments + receipt email** (item 3). Payment is still simulated (`Checkout.tsx` waits 1.3 s and calls
+   `onPaid`). The copy "Payments secured by Stripe" and "A receipt is on its way to your inbox" was kept by the owner
+   but isn't true until Stripe Checkout/Elements and a receipt email exist.
+2. **Promo codes from Stripe** (items 1, 2). Codes should be Stripe promotion codes checked server-side; replace
+   `lookupPromo` in `lib/promo.ts` with a backend call, and send the applied code with the checkout so Stripe charges
+   the discounted total.
+3. **Mailing address on the profile** (item 4). Profiles have only name + billing postal code. Once there's an
+   address, pre-fill the Delivery return address lines from it.
+4. **Several recipients + quantity per order** (item 6, owner chose to leave as is for now). `POST /orders` takes one
+   recipient, so with "Multiple" only `recipients[0]` is sent, and "How many cards to this address?" is never sent.
+5. **Card balance on the backend** (item 8). The card bank is browser-only (`DemoBalance`), so the out-of-cards check on
+   Delivery stays off (`CARD_BALANCE_CHECK_ENABLED = false` in `Delivery.tsx`) and a customer with 0 cards can still
+   send. When on, it opens the Top up pop-up on its cards view. Turn it on once the backend owns the card balance.
+6. **Card message + song saved with the card** (item 9). Card drafts store only the chosen image; the inside message
+   and song details aren't saved, so Delivery can't preview them. Real image addresses are also needed (generation
+   returns `mock://`).
+7. **Real tax by province** (item 13), e.g. Stripe Tax. Tax is a flat 5% GST today.
+8. **Mail-out date + "Send now"/"Schedule" sent with the order** (item 15), and a real arrival estimate from the
+   print/mail partner (no estimate is shown until then).
+9. **"Posted" email** (item 19). Confirmation says "you'll get an email when it's posted"; no email is sent yet.
+10. **Raw error messages** (item 10): see above.
+
+## Pricing copy + Print and Send credits (2026-11-06, uncommitted)
+
+Owner-approved.
+- **Print and Send now includes 10 AI creation credits** (same as each Big Sender card). `makePrintAndSendCartItem`
+  in `pricingCatalog.ts` has `creditsPerCard: 10`, so paying in the cart grants 10 credits (`grantCredits`, still
+  the mock checkout) and adds 1 card to the card bank. Saved carts pick it up automatically (P&S is rebuilt from the
+  catalog on load).
+- **Backend: run migration `007_print_and_send_credits.sql` before deploying** (sets `credits_per_card = 10` on
+  `print_and_send`; 006 created it with 0). Seed updated too. Not run on any database yet.
+- **Copy:** Pricing intro "Every card includes shipping + 10 AI credits. Buy just one or stock up on more to save."
+  (gold underline on "10 AI credits"); Print and Send line "Send 1 card · Shipping and 10 AI creation credits
+  included", step 1 "Buy your card + credits" / "It waits in your card bank, shown as Credits and Cards at the top of
+  the page and in the menu.", step 2 body "Choose from four different creation options."; Big Sender line "Send
+  multiple different cards · Shipping and 10 AI creation credits included per card". Long meta lines now stack on
+  every screen (`.pr-meta-row.is-long`). Post-purchase pop-up (`PrintSendReadyModal.tsx`): title "Your cards are
+  *waiting*" (credits only: "Your credits are *waiting*"), body "Choose one of the following options to create a new card or send a saved one.", and four buttons
+  from `CREATE_OPTIONS` in the Create Options colours (Personalize a Template gold, Build My Card berry, Community
+  Cards forest, Saved Cards & Songs espresso; 2x2 from 520px, stacked on phones). Search description + structured data mention
+  the 10 credits.
 
 ## Running it locally
 

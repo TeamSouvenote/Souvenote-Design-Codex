@@ -98,16 +98,6 @@ export type HostedUiAttempt = {
   provider?: CognitoSocialProvider;
 };
 
-type CognitoAuthResponse = {
-  AuthenticationResult?: CognitoAuthResult;
-  ChallengeName?: string;
-};
-
-type CognitoSignUpResponse = {
-  UserConfirmed?: boolean;
-  CodeDeliveryDetails?: CognitoCodeDelivery;
-};
-
 type JwtClaims = {
   sub?: string;
   email?: string;
@@ -210,10 +200,6 @@ function getHostedUiConfig() {
     redirectUri,
     scopes: scopes.length ? scopes : ["openid", "email", "profile"],
   };
-}
-
-function cognitoEndpoint(region: string) {
-  return `https://cognito-idp.${region}.amazonaws.com/`;
 }
 
 function getCognitoUserPool() {
@@ -366,31 +352,6 @@ function buildSessionFromCognitoUserSession(session: CognitoUserSession): Cognit
 
 function isExpired(session: CognitoSession) {
   return session.expiresAt <= Date.now() + EXPIRY_SKEW_MS;
-}
-
-async function cognitoRequest<T>(target: string, body: Record<string, unknown>): Promise<T> {
-  const { region } = getCognitoConfig();
-  const response = await fetch(cognitoEndpoint(region), {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/x-amz-json-1.1",
-      "X-Amz-Target": `AWSCognitoIdentityProviderService.${target}`,
-    },
-    body: JSON.stringify(body),
-  });
-
-  const payload = await response.json().catch(() => ({})) as {
-    __type?: string;
-    message?: string;
-    Message?: string;
-  };
-
-  if (!response.ok) {
-    const code = String(payload.__type || response.status).split("#").pop() || "CognitoError";
-    throw new CognitoClientError(payload.message || payload.Message || "Cognito request failed.", code);
-  }
-
-  return payload as T;
 }
 
 export function getStoredCognitoSession(options: { allowExpired?: boolean } = {}): CognitoSession | null {

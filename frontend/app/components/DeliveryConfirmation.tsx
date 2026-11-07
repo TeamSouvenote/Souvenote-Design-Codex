@@ -2,22 +2,31 @@
 
 import * as React from "react";
 import Link from "next/link";
-import { Navbar } from "./Navbar";
-import { Footer } from "./Footer";
-import { PageChrome } from "./PageChrome";
 import { BmcIcon } from "./BmcShared";
-import { demoUser } from "./DemoUser";
-import { MOCK_MVP_FLOW_UPDATED_EVENT, readMockMvpFlowState } from "../lib/mockMvpFlow";
+import { deliveryOrderNumber, deliveryStatusLabel } from "./delivery/deliveryStatus";
+import { EMPTY_FLOW_STATE, MOCK_MVP_FLOW_UPDATED_EVENT, readMockMvpFlowState } from "../lib/mockMvpFlow";
+import type { MockMvpFlowState } from "../lib/mockMvpFlow";
+
+// Delivery confirmation: reads the order stored by Delivery. Customer wording
+// approved 2026-11-06; the internal IDs sit in a closed "Reference details"
+// section (for support) instead of the main list.
 
 function shortId(value: string | null | undefined) {
   return value ? value.slice(0, 12) : "Not returned";
 }
 
 function DeliveryConfirmationApp() {
-  const [flowState, setFlowState] = React.useState(() => readMockMvpFlowState());
+  // Starts empty (same as the server render) and reads the stored order after mount.
+  const [flowState, setFlowState] = React.useState<MockMvpFlowState>(EMPTY_FLOW_STATE);
+  // False until the stored order has been read, so "Nothing to confirm yet"
+  // doesn't flash before "On its way" (build-fixes item 22).
+  const [ready, setReady] = React.useState(false);
 
   React.useEffect(() => {
-    const sync = () => setFlowState(readMockMvpFlowState());
+    const sync = () => {
+      setFlowState(readMockMvpFlowState());
+      setReady(true);
+    };
 
     sync();
     window.addEventListener("storage", sync);
@@ -31,53 +40,57 @@ function DeliveryConfirmationApp() {
   const fulfilled = flowState.orderStatus === "fulfilled_mock";
 
   return (
-    <div className="souv-route-page">
-      <PageChrome variant="bmc" />
-      <div className="bmc-page">
-        <Navbar user={demoUser} credits={{ images: 0, songs: 0 }} cardBank={0} />
-        <main className="bmc-shell" data-screen-label="08 Delivery Confirmation">
-          <div className="bmc-head" style={{ textAlign: "center", margin: "0 auto 36px", maxWidth: 760 }}>
-            <div className="bmc-eyebrow" style={{ justifyContent: "center" }}>
-              <span className="bmc-eyebrow-num">08</span>
-              <span>Confirmation</span>
-            </div>
-            <h1 className="bmc-title">
-              {fulfilled ? "Fulfilled " : "Order "}
-              <span className="souv-hero-italic text-metallic-rose-gold">locally</span>
-            </h1>
-            <p className="bmc-lede" style={{ margin: "0 auto" }}>
-              {fulfilled
-                ? "The mock backend has marked this order as fulfilled_mock. This is the final local MVP stop before real auth, Stripe, S3, AI providers, and Scribeless are added."
-                : "No fulfilled mock order is stored yet. Complete checkout and mock fulfillment from Delivery first."}
-            </p>
-          </div>
+    <div className={`cf-wrap dc-wrap ${ready ? "" : "is-loading"}`.trim()} data-screen-label="08 Delivery Confirmation" aria-busy={ready ? undefined : true}>
+      <header className="cf-head">
+        <p className="cf-eyebrow">
+          <span className="cf-eyebrow-num">08</span>
+          <span>Confirmation</span>
+        </p>
+        <h1 className="cf-title">
+          {fulfilled
+            ? <>On its <span className="l-script">way</span></>
+            : <>Nothing to <span className="l-script">confirm</span> yet</>}
+        </h1>
+        <p className="cf-lede">
+          {fulfilled
+            ? "We're hand-writing your card now, and you'll get an email when it's posted."
+            : "We don't have a sent order to show yet. Finish sending your card from Delivery first."}
+        </p>
+      </header>
 
-          <div className="bmc-card dlv-section" style={{ maxWidth: 760, margin: "0 auto" }}>
-            <div className="dlv-section-title">
-              <span className="dlv-section-num">{fulfilled ? <BmcIcon name="check" w={15} /> : "!"}</span>
-              Backend result
-            </div>
-            <div className="co-confirm-rows" style={{ marginTop: 18 }}>
-              <div className="co-confirm-row"><span className="co-confirm-row-k">Order status</span><span className="co-confirm-row-v">{flowState.orderStatus || "Not started"}</span></div>
-              <div className="co-confirm-row"><span className="co-confirm-row-k">Order ID</span><span className="co-confirm-row-v">{shortId(flowState.orderId)}</span></div>
-              <div className="co-confirm-row"><span className="co-confirm-row-k">Card draft</span><span className="co-confirm-row-v">{shortId(flowState.cardDraftId)}</span></div>
-              <div className="co-confirm-row"><span className="co-confirm-row-k">Selected asset</span><span className="co-confirm-row-v">{shortId(flowState.selectedAssetId)}</span></div>
-              <div className="co-confirm-row"><span className="co-confirm-row-k">Checkout session</span><span className="co-confirm-row-v">{shortId(flowState.checkoutSessionId)}</span></div>
-              <div className="co-confirm-row"><span className="co-confirm-row-k">Payment</span><span className="co-confirm-row-v">{shortId(flowState.paymentId)}</span></div>
-              <div className="co-confirm-row"><span className="co-confirm-row-k">Fulfillment</span><span className="co-confirm-row-v">{shortId(flowState.fulfillment?.mockFulfillmentId || flowState.fulfillment?.id)}</span></div>
-            </div>
-            <div className="bmc-modal-acts" style={{ marginTop: 24 }}>
-              <Link href="/create/my-cards-and-songs" className="bmc-cta-secondary">
-                Saved Cards &amp; Songs
-              </Link>
-              <Link href="/create" className="bmc-cta">
-                Create another <BmcIcon name="arrow" w={15} />
-              </Link>
-            </div>
-          </div>
-        </main>
-        <Footer />
-      </div>
+      <section className={`dc-card ${fulfilled ? "is-done" : "is-pending"}`} aria-labelledby="dc-card-title">
+        <h2 id="dc-card-title" className="dc-card-title">
+          <span className="dc-card-ico" aria-hidden="true">{fulfilled ? <BmcIcon name="check" w={16} /> : "!"}</span>
+          Order details
+        </h2>
+        <dl className="cf-rows dc-rows">
+          {flowState.orderId && (
+            <div><dt>Order number</dt><dd>{deliveryOrderNumber(flowState.orderId)}</dd></div>
+          )}
+          <div><dt>Order status</dt><dd>{flowState.orderStatus ? deliveryStatusLabel(flowState.orderStatus) : "Not started"}</dd></div>
+        </dl>
+
+        <details className="dc-ref">
+          <summary>Reference details</summary>
+          <dl className="cf-rows dc-ref-rows">
+            <div><dt>Order ID</dt><dd>{shortId(flowState.orderId)}</dd></div>
+            <div><dt>Card draft</dt><dd>{shortId(flowState.cardDraftId)}</dd></div>
+            <div><dt>Selected asset</dt><dd>{shortId(flowState.selectedAssetId)}</dd></div>
+            <div><dt>Checkout session</dt><dd>{shortId(flowState.checkoutSessionId)}</dd></div>
+            <div><dt>Payment</dt><dd>{shortId(flowState.paymentId)}</dd></div>
+            <div><dt>Fulfillment</dt><dd>{shortId(flowState.fulfillment?.mockFulfillmentId || flowState.fulfillment?.id)}</dd></div>
+          </dl>
+        </details>
+
+        <div className="dc-actions">
+          <Link href="/create/my-cards-and-songs" className="l-btn l-btn-secondary">
+            Saved Cards &amp; Songs
+          </Link>
+          <Link href="/create" className="l-btn l-btn-primary">
+            Create another <BmcIcon name="arrow" w={15} />
+          </Link>
+        </div>
+      </section>
     </div>
   );
 }

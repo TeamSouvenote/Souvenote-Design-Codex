@@ -7,6 +7,7 @@ import { useAuth } from "./AuthProvider";
 import { CREATE_OPTIONS, type CreateOption, type CreateOptionKey } from "./createOptions";
 import { getCreateFlowGate } from "./createFlowRules";
 import { goToPricingAfterPurchase } from "./PricingReturn";
+import { openTopUp } from "./pricing/topUp";
 import { carouselPos, useCardCarousel } from "./useCardCarousel";
 import { fetchCreditBalance } from "../lib/api";
 import { getStoredLocalUser } from "../lib/cognitoAuth";
@@ -21,9 +22,10 @@ import { publishCreditBalance } from "../lib/creditBalance";
 //
 // Template and Build need AI credits. Every time one is opened, the balance is
 // fetched fresh from the backend before anything happens (owner, 2026-11-04):
-// with credits the option opens; without, Pricing (which returns here to the
-// same option after buying); if the backend can't be reached, the user stays
-// here and sees a message. Community and Saved never check credits.
+// with credits the option opens; without, the Top up credits pop-up opens here
+// (owner, 2026-11-07; after paying, the cart goes on to that option), falling back
+// to Pricing if the pop-up isn't available; if the backend can't be reached, the
+// user stays here and sees a message. Community and Saved never check credits.
 
 const PRIMARY = [CREATE_OPTIONS.template, CREATE_OPTIONS.build] as const;
 const SECONDARY = [CREATE_OPTIONS.community, CREATE_OPTIONS.saved] as const;
@@ -139,8 +141,14 @@ export function CreateOptionsClient() {
       const balance = await fetchCreditBalance(userId);
       publishCreditBalance(balance); // the nav and the credits line show the fresh figure
       const gate = getCreateFlowGate({ credits: { images: balance.balance, songs: 0 }, cardBank: 0 }, "generation");
-      // The page is left now, so the spinner stays until it goes.
-      router.push(gate.allowed ? opt.href : goToPricingAfterPurchase(opt.href));
+      if (gate.allowed) {
+        // The page is left now, so the spinner stays until it goes.
+        router.push(opt.href);
+        return;
+      }
+      checkingRef.current = false;
+      setChecking(null);
+      if (!openTopUp("credits", opt.href)) router.push(goToPricingAfterPurchase(opt.href));
     } catch {
       checkingRef.current = false;
       setChecking(null);

@@ -32,10 +32,6 @@ export function LandingHero({ titleId = "landing-title", actions }: LandingHeroP
               {ledeParts.closeBefore}
               <span className="l-hero-mark">
                 {ledeParts.closeMark}
-                {/* Hand-drawn pen stroke under the phrase (design system 2.9a). */}
-                <svg className="l-hero-mark-line" viewBox="0 0 200 12" preserveAspectRatio="none" aria-hidden="true" focusable="false">
-                  <path d="M3 8.5 C 38 4.5, 70 10.5, 104 6.5 S 168 4, 197 7" />
-                </svg>
               </span>
               {ledeParts.closeAfter}
             </span>

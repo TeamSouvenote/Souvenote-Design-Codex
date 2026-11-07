@@ -2,6 +2,7 @@
 
 import * as React from "react";
 import { createPortal } from "react-dom";
+import { useModalDialog } from "./useModalDialog";
 
 export type BmcIconName =
   | "check"
@@ -75,20 +76,6 @@ type BmcCheckProps = {
   onChange?: (checked: boolean) => void;
   error?: boolean;
   children: React.ReactNode;
-};
-
-type CreditPack = {
-  id: string;
-  name: string;
-  credits: number;
-  price: string;
-  blurb: string;
-  featured: boolean;
-};
-
-type BmcPricingModalProps = {
-  open: boolean;
-  onClose: () => void;
 };
 
 type BmcErrorDetail = {
@@ -252,56 +239,15 @@ function BmcCheck({ checked, onChange, error = false, children }: BmcCheckProps)
   );
 }
 
-const CREDIT_PACKS: CreditPack[] = [
-  { id: "single", name: "Single", credits: 10, price: "$2", blurb: "A quick top-up for one more card.", featured: false },
-  { id: "studio", name: "Studio", credits: 80, price: "$10", blurb: "Our most popular: a season of cards & songs.", featured: true },
-  { id: "atelier", name: "Atelier", credits: 250, price: "$25", blurb: "Best value for gift-givers and makers.", featured: false },
-];
-
-function BmcPricingModal({ open, onClose }: BmcPricingModalProps) {
-  if (!open) return null;
-
-  return (
-    <div className="bmc-modal-wrap" role="dialog" aria-modal="true" data-screen-label="Modal · Pricing">
-      <div className="bmc-modal-scrim" onClick={onClose} />
-      <div className="bmc-modal is-wide is-gold">
-        <button type="button" className="bmc-modal-close" onClick={onClose} aria-label="Close"><BmcIcon name="close" w={16} /></button>
-        <div className="bmc-eyebrow" style={{ justifyContent: "center", color: "var(--gold)" }}>
-          <BmcIcon name="coin" w={14} /><span>Out of credits</span>
-        </div>
-        <h2 className="bmc-modal-title">
-          Add credits to <span className="souv-hero-italic text-metallic-rose-gold">generate</span>
-        </h2>
-        <p className="bmc-modal-sub" style={{ maxWidth: "46ch" }}>
-          1 credit = 1 generation action. Image + optional QR song costs 2, image or song alone costs 1, and the inside
-          message is always free.
-        </p>
-        <div className="bmc-packs">
-          {CREDIT_PACKS.map((pack) => (
-            <div key={pack.id} className={`bmc-pack ${pack.featured ? "is-featured" : ""}`}>
-              {pack.featured && <span className="bmc-pack-badge">Most popular</span>}
-              <div className="bmc-pack-name">{pack.name}</div>
-              <div className="bmc-pack-credits"><span className="text-metallic-rose-gold">{pack.credits}</span></div>
-              <div className="bmc-pack-credits-label">Credits</div>
-              <div className="bmc-pack-price"><span className="text-metallic-gold">{pack.price}</span></div>
-              <p className="bmc-pack-blurb">{pack.blurb}</p>
-              <button type="button" className={pack.featured ? "bmc-cta" : "bmc-cta-secondary"} style={{ width: "100%" }}>
-                Choose {pack.name}
-              </button>
-            </div>
-          ))}
-        </div>
-        <button type="button" className="bmc-text-link" onClick={onClose} style={{ marginTop: 18 }}>Maybe later</button>
-      </div>
-    </div>
-  );
-}
-
 function bmcError(message: React.ReactNode, title: React.ReactNode = "One more thing") {
   if (typeof window === "undefined") return;
   window.dispatchEvent(new CustomEvent<BmcErrorDetail>("bmc-error", { detail: { message, title } }));
 }
 
+// Shared error pop-up (Build My Card, Personalize, Delivery). Dark look kept
+// until the Build My Card redesign; behaviour matches the other pop-ups
+// (build-fixes item 27): focus moves in, Tab stays inside, Escape closes, page
+// scroll locked, page behind inert, focus returns to where it was.
 function BmcErrorModal() {
   const [state, setState] = React.useState<BmcErrorDetail | null>(null);
 
@@ -313,36 +259,48 @@ function BmcErrorModal() {
         message: detail.message || "",
       });
     };
-    const onKey = (event: KeyboardEvent) => {
-      if (event.key === "Escape") setState(null);
-    };
 
     window.addEventListener("bmc-error", onErr);
-    window.addEventListener("keydown", onKey);
-    return () => {
-      window.removeEventListener("bmc-error", onErr);
-      window.removeEventListener("keydown", onKey);
-    };
+    return () => window.removeEventListener("bmc-error", onErr);
   }, []);
 
   if (!state) return null;
+  return createPortal(<BmcErrorDialog state={state} onClose={() => setState(null)} />, document.body);
+}
 
-  const close = () => setState(null);
-  const ui = (
-    <div className="bmc-modal-wrap" role="alertdialog" aria-modal="true" data-screen-label="Modal · Error">
-      <div className="bmc-modal-scrim" onClick={close} />
-      <div className="bmc-modal" style={{ width: "min(440px, 100%)" }}>
-        <span className="bmc-error-icon"><BmcIcon name="warn" w={26} /></span>
-        <h2 className="bmc-modal-title" style={{ fontSize: "clamp(1.4rem, 2.2vw, 1.8rem)" }}>{state.title}</h2>
-        <p className="bmc-modal-sub">{state.message}</p>
+function BmcErrorDialog({ state, onClose }: { state: BmcErrorDetail; onClose: () => void }) {
+  const dialogRef = useModalDialog(onClose, ".bmc-modal-wrap");
+  const buttonRef = React.useRef<HTMLButtonElement>(null);
+  const titleId = React.useId();
+  const messageId = React.useId();
+
+  // Runs after useModalDialog has focused the dialog: start on "Got it".
+  React.useEffect(() => {
+    buttonRef.current?.focus({ preventScroll: true });
+  }, []);
+
+  return (
+    <div className="bmc-modal-wrap" data-screen-label="Modal · Error">
+      <div className="bmc-modal-scrim" onClick={onClose} />
+      <div
+        ref={dialogRef}
+        className="bmc-modal"
+        role="alertdialog"
+        aria-modal="true"
+        aria-labelledby={titleId}
+        aria-describedby={state.message ? messageId : undefined}
+        tabIndex={-1}
+        style={{ width: "min(440px, 100%)" }}
+      >
+        <span className="bmc-error-icon" aria-hidden="true"><BmcIcon name="warn" w={26} /></span>
+        <h2 id={titleId} className="bmc-modal-title" style={{ fontSize: "clamp(1.4rem, 2.2vw, 1.8rem)" }}>{state.title}</h2>
+        <p id={messageId} className="bmc-modal-sub">{state.message}</p>
         <div className="bmc-modal-acts">
-          <button type="button" className="bmc-cta" onClick={close} autoFocus>Got it</button>
+          <button ref={buttonRef} type="button" className="bmc-cta" onClick={onClose}>Got it</button>
         </div>
       </div>
     </div>
   );
-
-  return createPortal(ui, document.body);
 }
 
 export {
@@ -354,8 +312,6 @@ export {
   FreeCost,
   CreditCost,
   BmcCheck,
-  BmcPricingModal,
-  CREDIT_PACKS,
   BmcNavContext,
   BmcErrorModal,
   bmcError,

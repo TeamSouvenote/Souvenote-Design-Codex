@@ -8,8 +8,6 @@ import "./styles/bmc.css";
 import "./styles/cardart.css";
 import "./styles/pt.css";
 import "./styles/mycards.css";
-import "./styles/cart.css";
-import "./styles/delivery.css";
 import "./styles/account.css";
 import "./styles/pages.css";
 import "./styles/landing-chrome.css";
