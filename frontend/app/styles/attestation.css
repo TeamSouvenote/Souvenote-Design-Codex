@@ -1,0 +1,46 @@
+/* Upload rights pop-up (components/bmc/BmcAttestationDialog.tsx), summary
+   version (2026-11-08). The checkbox rows and photo strip keep their
+   bmc-dialogs.css styles (.bmcq-attest-*); these are the new pieces. */
+.fd-overlay .att-promises {
+  margin-top: 16px; padding: 16px 18px; border-radius: 12px;
+  background: var(--l-raised); color: var(--l-paper-ink);
+}
+.fd-overlay .att-promises-title { font-size: 16px; font-weight: 700; }
+.fd-overlay .att-promises ul { margin: 8px 0 0; padding-left: 1.2em; font-size: 16px; line-height: 1.5; }
+.fd-overlay .att-promises li + li { margin-top: 6px; }
+.fd-overlay .att-links { margin-top: 12px; font-size: 16px; }
+.fd-overlay .att-links a { color: var(--l-paper-ink); text-decoration: underline; text-underline-offset: 4px; }
+.fd-overlay .att-links a:hover { color: var(--l-hover); }
+.fd-overlay .att-dialog .bmcq-attest-checks { margin-top: 16px; }
+
+/* Phones (owner, 2026-11-09, audit §8 D6): two screens (the promises, then the ticks), each fitting
+   one screen. The promises keep every word, in slightly smaller type. */
+@media (max-width: 599px) {
+  .fd-overlay .att-dialog .fd-title { font-size: 1.6rem; }
+  .fd-overlay .att-dialog .fd-lede { font-size: 15px; line-height: 1.45; }
+  .fd-overlay .att-promises { margin-top: 12px; padding: 12px 14px; }
+  .fd-overlay .att-promises-title { font-size: 15px; }
+  .fd-overlay .att-promises ul { font-size: 15px; line-height: 1.45; }
+  .fd-overlay .att-promises li + li { margin-top: 4px; }
+  .fd-overlay .att-links { margin-top: 8px; font-size: 15px; }
+  .fd-overlay .att-dialog .bmcq-attest-photos { margin-top: 12px; }
+  /* Cancel/Back and Next/Agree side by side, equal widths. */
+  .fd-overlay .att-dialog .fd-actions { flex-direction: row; }
+  .fd-overlay .att-dialog .fd-actions .l-btn { flex: 1 1 0; min-width: 0; padding: 0 12px; white-space: nowrap; }
+  .fd-overlay .att-dialog .bmcq-attest-checks + .bmcq-attest-status { margin-top: 6px; }
+}
+
+/* Prompt 2 flows B-2 (owner, 2026-11-09): on short phones (667px) the promises screen fits
+   one screen. Every word and ATTESTATION_VERSION are unchanged. Header rules are in bmc-dialogs.css. */
+@media (max-width: 599px) and (max-height: 700px) {
+  .fd-overlay .att-dialog .fd-lede { margin-top: 6px; font-size: 14px; line-height: 1.4; }
+  .fd-overlay .att-promises { margin-top: 8px; padding: 10px 12px; }
+  .fd-overlay .att-promises-title { font-size: 14px; }
+  .fd-overlay .att-promises ul { margin-top: 4px; font-size: 14px; line-height: 1.4; }
+  .fd-overlay .att-promises li + li { margin-top: 2px; }
+  .fd-overlay .att-links { font-size: 14px; }
+}
+@media (max-width: 599px) and (max-height: 700px) {
+  .fd-overlay .att-dialog .fd-title { margin-top: 0; font-size: 1.4rem; }
+  .fd-overlay .att-dialog .fd-actions { margin-top: 14px; }
+}

@@ -29,25 +29,17 @@ type CartTopUpItem = {
   cards?: unknown;
 };
 
-export type CartTopUpDelta = {
+type CartTopUpDelta = {
   credits: number;
   cards: number;
 };
 
-declare global {
-  interface Window {
-    __souvSetDemoBalance?: (next: DemoBalanceInput) => void;
-    __souvZeroDemoBalance?: () => void;
-    __souvClearDemoBalance?: () => void;
-  }
-}
-
-export const DEMO_BALANCE_STORAGE_KEY = "souv_demo_balance";
-export const ZERO_DEMO_BALANCE: DemoBalance = {
+const DEMO_BALANCE_STORAGE_KEY = "souv_demo_balance";
+const ZERO_DEMO_BALANCE: DemoBalance = {
   credits: { images: 0, songs: 0 },
   cardBank: 0,
 };
-export const DEFAULT_DEMO_BALANCE: DemoBalance = ZERO_DEMO_BALANCE;
+const DEFAULT_DEMO_BALANCE: DemoBalance = ZERO_DEMO_BALANCE;
 
 function normalizeNumber(value: unknown, fallback = 0): number {
   const next = Number(value);
@@ -98,7 +90,7 @@ function readDemoBalanceOverride(fallback: DemoBalance): DemoBalance | null {
   }, fallback);
 }
 
-export function normalizeDemoBalance(value: DemoBalanceInput, fallback: DemoBalance = DEFAULT_DEMO_BALANCE): DemoBalance {
+function normalizeDemoBalance(value: DemoBalanceInput, fallback: DemoBalance = DEFAULT_DEMO_BALANCE): DemoBalance {
   const source = value && typeof value === "object" ? value : {};
   const sourceCredits = source.credits && typeof source.credits === "object" ? source.credits : {};
 
@@ -109,10 +101,6 @@ export function normalizeDemoBalance(value: DemoBalanceInput, fallback: DemoBala
     },
     cardBank: normalizeNumber(source.cardBank, fallback.cardBank),
   };
-}
-
-export function getTotalDemoCredits(balance: DemoBalanceInput): number {
-  return normalizeNumber(balance?.credits?.images) + normalizeNumber(balance?.credits?.songs);
 }
 
 export function readDemoBalance(fallback: DemoBalance = DEFAULT_DEMO_BALANCE): DemoBalance {
@@ -133,7 +121,7 @@ export function readDemoBalance(fallback: DemoBalance = DEFAULT_DEMO_BALANCE): D
   }
 }
 
-export function writeDemoBalance(balance: DemoBalanceInput): void {
+function writeDemoBalance(balance: DemoBalanceInput): void {
   if (typeof window === "undefined") return;
 
   const next = normalizeDemoBalance(balance);
@@ -187,50 +175,11 @@ export function getCartTopUpDelta(items: unknown): CartTopUpDelta {
   }, { credits: 0, cards: 0 });
 }
 
-export function spendDemoCredits(amount: unknown): DemoBalance {
-  if (typeof window === "undefined") return DEFAULT_DEMO_BALANCE;
-
-  const current = readDemoBalance();
-  let remainingSpend = normalizeNumber(amount);
-  const imageCredits = normalizeNumber(current.credits.images);
-  const songCredits = normalizeNumber(current.credits.songs);
-  const imagesSpent = Math.min(imageCredits, remainingSpend);
-  remainingSpend -= imagesSpent;
-  const songsSpent = Math.min(songCredits, remainingSpend);
-
-  const next = normalizeDemoBalance({
-    credits: {
-      images: imageCredits - imagesSpent,
-      songs: songCredits - songsSpent,
-    },
-    cardBank: current.cardBank,
-  });
-  writeDemoBalance(next);
-  return next;
-}
-
-export function applyDemoTopUpFromCart(items: unknown): DemoBalance {
-  if (!Array.isArray(items) || items.length === 0) return readDemoBalance();
-
-  return addDemoBalance(getCartTopUpDelta(items));
-}
-
-export function clearDemoBalance(): void {
-  if (typeof window === "undefined") return;
-
-  window.localStorage.removeItem(DEMO_BALANCE_STORAGE_KEY);
-  window.dispatchEvent(new CustomEvent("souv-demo-balance", { detail: null }));
-}
-
 export function useDemoBalance(fallback: DemoBalance = DEFAULT_DEMO_BALANCE): DemoBalance {
   const [balance, setBalance] = React.useState<DemoBalance>(fallback);
 
   React.useEffect(() => {
     const sync = () => setBalance(readDemoBalance(fallback));
-
-    window.__souvSetDemoBalance = (next) => writeDemoBalance(next);
-    window.__souvZeroDemoBalance = () => writeDemoBalance(ZERO_DEMO_BALANCE);
-    window.__souvClearDemoBalance = clearDemoBalance;
 
     sync();
     window.addEventListener("storage", sync);

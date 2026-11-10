@@ -1,9 +1,12 @@
 // "Last updated" dates for the documents a user accepts at sign-up. The legal
-// pages (components/LegalData.tsx) display these, and sign-up records them as
+// pages (components/legal/legalDocs.ts) display these, and sign-up records them as
 // the accepted version, so the two can never drift apart.
 export const LEGAL_LAST_UPDATED = {
   terms: "June 1, 2026",
   privacy: "June 1, 2026",
+  // Not part of the sign-up acceptance record (TERMS_VERSION), shown on their pages.
+  refund: "June 1, 2026",
+  cookie: "June 1, 2026",
 } as const;
 
 /** Stored as `users.terms_version` when someone accepts the Terms and Privacy Policy. */

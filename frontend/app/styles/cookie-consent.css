@@ -1,0 +1,41 @@
+/* Cookie banner (components/content/CookieConsent.tsx). The root is also
+   .souv-landing for the palette roles and buttons. Bottom-left card that
+   leaves the page usable; on phones it spans the width above the safe area. */
+.souv-landing.cc-banner {
+  position: fixed; z-index: 90;
+  left: 12px; right: 12px; bottom: calc(12px + env(safe-area-inset-bottom, 0px));
+  /* No inner scroll (audit I12, 2026-11-08): the banner is short, so it only
+     scrolls as a last resort on very short screens (landscape phones). */
+  padding: 18px 18px 16px; border-radius: var(--l-radius);
+  background: var(--l-paper); color: var(--l-paper-ink);
+  box-shadow: 0 18px 50px rgba(74, 59, 57, 0.28), 0 2px 8px rgba(74, 59, 57, 0.12);
+  border-top: 4px solid var(--l-stripe);
+  font-family: var(--l-font);
+}
+@media (max-height: 480px) { .souv-landing.cc-banner { max-height: calc(100dvh - 24px); overflow-y: auto; } }
+@media (min-width: 600px) { .souv-landing.cc-banner { right: auto; width: 440px; left: 20px; bottom: 20px; } }
+.cc-banner .cc-title { font-size: 18px; font-weight: 700; }
+.cc-banner .cc-title:focus { outline: none; }
+.cc-banner .cc-body { margin-top: 6px; font-size: 16px; line-height: 1.5; color: var(--l-paper-ink-2); }
+.cc-banner .cc-body a { color: var(--l-paper-ink); text-decoration: underline; text-underline-offset: 4px; }
+.cc-banner .cc-current { margin-top: 8px; font-size: 15px; font-weight: 700; }
+.cc-banner .cc-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 14px; }
+/* Equal weight: both choices look the same. */
+.cc-banner .cc-btn { justify-content: center; background: var(--l-btn-bg); color: var(--l-btn-ink); border-color: transparent; }
+.cc-banner .cc-btn:hover { background: var(--l-btn-bg-hover); }
+.cc-banner .cc-btn:focus-visible { outline: 2px solid var(--l-focus); outline-offset: 3px; }
+
+/* Footer link */
+.cc-settings-link {
+  display: inline-flex; align-items: center; min-height: 44px; padding: 0;
+  background: none; border: 0; cursor: pointer; color: inherit; font: inherit;
+  text-decoration: underline; text-underline-offset: 4px;
+}
+.cc-settings-link:focus-visible { outline: 2px solid currentColor; outline-offset: 2px; border-radius: 4px; }
+@media print { .cc-banner { display: none; } }
+
+/* Footer: "Cookie settings" sits on the copyright line, in the same small caps. */
+.souv-footer-base .souv-footer-cookie { margin-left: 18px; letter-spacing: inherit; text-transform: inherit; font-size: inherit; min-height: 44px; }
+
+/* High contrast (audit A2, 2026-11-09): an edge, since the card's shadow vanishes. */
+@media (forced-colors: active) { .souv-landing.cc-banner { border: 1px solid CanvasText; } }

@@ -9,7 +9,8 @@ import * as React from "react";
 //   under the pointer can't change just before a click.
 // - Touch: press and hold rotates it until the finger lifts; a swipe moves one card.
 // - A tap on a side card brings it to the centre; a tap on the centre card opens it.
-// - Keyboard focus centres the focused card.
+// - Keyboard focus centres the focused card; Left/Right move focus (and the centre)
+//   to the previous or next card, wrapping round (audit A6, owner 2026-11-09).
 // - Reduced motion: no auto-rotation (taps, swipes and the dots still work).
 
 export const CARD_CAROUSEL_QUERY = "(max-width: 1099px)";
@@ -141,6 +142,17 @@ export function useCardCarousel({ count, initial, query = CARD_CAROUSEL_QUERY }:
     },
     // Blocks the long-press menu on touch; mouse right-click ("open in new tab") still works.
     onContextMenu: (e) => { if (lastPointer.current !== "mouse") e.preventDefault(); },
+    // Arrow keys on a focused card: the previous or next card takes focus and the centre.
+    onKeyDown: (e) => {
+      if (e.key !== "ArrowLeft" && e.key !== "ArrowRight") return;
+      const items = Array.from(listRef.current?.children ?? []);
+      const current = items.findIndex((item) => item.contains(document.activeElement));
+      if (current < 0) return;
+      e.preventDefault();
+      const next = (current + (e.key === "ArrowRight" ? 1 : -1) + count) % count;
+      choose(next);
+      items[next]?.querySelector<HTMLElement>("a, button")?.focus({ preventScroll: true });
+    },
   } : {};
 
   const choose = React.useCallback((i: number) => {

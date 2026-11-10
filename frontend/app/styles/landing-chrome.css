@@ -1,6 +1,6 @@
 /* Page-scoped: gold/rose-gold metallic shimmer on the hero "Start for Free"
    and the nav "Get Started" CTAs. The shared navbar shape lives in site.css. */
-.souv-btn-colorful, .souv-cta-flow {
+.souv-cta-flow {
   color: #1a1208;
   background: linear-gradient(120deg, #F1D074 0%, #D4AF37 25%, #E5B8B1 50%, #C88B86 75%, #F1D074 100%);
   background-size: 240% 240%;
@@ -8,18 +8,9 @@
   border-color: transparent;
   box-shadow: 0 10px 30px rgba(212,175,55,.28), inset 0 1px 0 rgba(255,245,210,.6);
 }
-.souv-btn-colorful:hover, .souv-cta-flow:hover {
+.souv-cta-flow:hover {
   background: linear-gradient(120deg, #F1D074 0%, #D4AF37 25%, #E5B8B1 50%, #C88B86 75%, #F1D074 100%);
   background-size: 240% 240%;
   border-color: transparent;
   box-shadow: 0 14px 40px rgba(212,175,55,.4), inset 0 1px 0 rgba(255,245,210,.7);
-}
-/* Filled CTA: keep the label solid black. */
-.souv-btn-colorful > span {
-  background: none;
-  -webkit-background-clip: border-box;
-  background-clip: border-box;
-  -webkit-text-fill-color: #1a1208;
-  color: #1a1208;
-  animation: none;
 }

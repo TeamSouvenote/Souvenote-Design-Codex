@@ -4,19 +4,20 @@ import * as React from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { fetchPricingOffers, type PricingOffer } from "../../lib/api";
+import { offersIn, printAndSendPriceFrom } from "./printAndSendPrice";
+import { usePriceCountry } from "./usePriceCountry";
+import { PRICE_LISTS, formatAmount, formatMoney, type Currency } from "../../lib/priceLists";
 import { useAuth } from "../AuthProvider";
-import { notifyCartChanged } from "../cartStorage";
+import { addItemToCart } from "../cartStorage";
 import {
   type BigSenderTier,
   MIN_BIG_SENDER_CARDS,
-  PRINT_AND_SEND_PRICE,
-  SOUV_CART_KEY,
   clampBigSenderQuantity,
   getBigSenderPricing,
   makeBigSenderCartItem,
   makePrintAndSendCartItem,
 } from "../pricingCatalog";
-import { CREDIT_PACKS, type CreditPack } from "./pricingContent";
+import { creditPacksFor, type CreditPack } from "./pricingContent";
 
 // The Pricing page's interactive parts (/pricing, also /account/top-up), on the
 // berry & ivory system. Styles: styles/pricing.css.
@@ -25,10 +26,12 @@ import { CREDIT_PACKS, type CreditPack } from "./pricingContent";
 // - Big Sender tiers come from the PostgreSQL pricing endpoint (GET /pricing).
 // - Buying while signed out goes to /signup?returnTo=/pricing; signed in, the
 //   item is added to the cart (localStorage "souv_cart") and the cart opens.
-// Changed (owner decisions 2026-11-04):
-// - Print and Send ($9.99) replaces Try Risk-Free. Its price comes from the catalog
-//   (migration 006), falling back to PRINT_AND_SEND_PRICE in pricingCatalog.ts.
-// - Big Sender has no maximum quantity (the last tier is open-ended).
+// Changed (owner decisions 2026-11-04 and 2026-11-08):
+// - Print and Send replaces Try Risk-Free; Big Sender has no maximum quantity
+//   (the last tier is open-ended) and starts at 2 cards.
+// - Canada and the US: every price comes from the visitor's list (usePriceCountry:
+//   the account's country, or the "Prices for" switch when signed out), from the
+//   catalog rows in that currency, falling back to lib/priceLists.ts.
 
 type CartItem = {
   id: string;
@@ -44,29 +47,12 @@ type CartItem = {
   creditsPerCard?: number;
   tokens?: string;
   lockedQuantity?: boolean;
+  currency: Currency;
 };
 
-function money(value: number) {
-  return `$${value.toFixed(2)}`;
-}
-
-// Same cart rules as before: catalog packs replace an earlier copy of
-// themselves, other items stack.
-function addToCart(item: CartItem) {
-  try {
-    let current = JSON.parse(window.localStorage.getItem(SOUV_CART_KEY) || "[]") as CartItem[];
-    if (!Array.isArray(current)) current = [];
-    if (item.replaceGroup) {
-      current = current.filter((candidate) => candidate?.replaceGroup !== item.replaceGroup && candidate?.id !== item.id);
-    }
-    const existing = item.replaceGroup ? null : current.find((candidate) => candidate?.id === item.id);
-    if (existing) existing.qty += item.qty || 1;
-    else current.push(item);
-    window.localStorage.setItem(SOUV_CART_KEY, JSON.stringify(current));
-    notifyCartChanged();
-  } catch {
-    // Storage may be unavailable; the cart still opens.
-  }
+/** The small currency code after a big price ("$9.99 CAD"). */
+function PriceWithCode({ value, currency, className }: { value: number; currency: Currency; className: string }) {
+  return <p className={className}>{formatAmount(value)}<span className="pr-cur"> {currency}</span></p>;
 }
 
 /** Signed out: sign up, then come back to `returnTo`. Signed in: add to the cart and open it. */
@@ -78,7 +64,7 @@ function useBuy(returnTo = "/pricing") {
       router.push(`/signup?returnTo=${encodeURIComponent(returnTo)}`);
       return;
     }
-    addToCart(item);
+    addItemToCart(item);
     router.push("/cart");
   }, [auth.status, returnTo, router]);
 }
@@ -115,21 +101,37 @@ function MetaLine({ rows }: { rows: string[][] }) {
 
 type HowItem = { title: string; body: React.ReactNode };
 
-function HowItWorks({ id, items }: { id: string; items: HowItem[] }) {
+/**
+ * Numbered steps under each offer. `collapsed` (the Top up pop-up, owner
+ * 2026-11-08, audit I4) puts them behind a closed "How it works" toggle so the
+ * pop-up fits one screen; the Pricing page shows them open.
+ */
+function HowItWorks({ id, items, collapsed = false }: { id: string; items: HowItem[]; collapsed?: boolean }) {
+  const list = (
+    <ol className="pr-how-list" aria-labelledby={id}>
+      {items.map((item, index) => (
+        <li key={item.title} className="pr-how-item">
+          <span className="pr-how-num" aria-hidden="true">{String(index + 1).padStart(2, "0")}</span>
+          <div>
+            <p className="pr-how-item-title">{item.title}</p>
+            <p className="pr-how-item-body">{item.body}</p>
+          </div>
+        </li>
+      ))}
+    </ol>
+  );
+  if (collapsed) {
+    return (
+      <details className="pr-how is-collapsible">
+        <summary id={id} className="pr-how-title pr-how-toggle">How it works</summary>
+        {list}
+      </details>
+    );
+  }
   return (
     <div className="pr-how">
       <h3 id={id} className="pr-how-title">How it works</h3>
-      <ol className="pr-how-list" aria-labelledby={id}>
-        {items.map((item, index) => (
-          <li key={item.title} className="pr-how-item">
-            <span className="pr-how-num" aria-hidden="true">{String(index + 1).padStart(2, "0")}</span>
-            <div>
-              <p className="pr-how-item-title">{item.title}</p>
-              <p className="pr-how-item-body">{item.body}</p>
-            </div>
-          </li>
-        ))}
-      </ol>
+      {list}
     </div>
   );
 }
@@ -138,46 +140,31 @@ function HowItWorks({ id, items }: { id: string; items: HowItem[] }) {
 // Print and Send (condensed copy approved 2026-11-04: shorter intro, and the
 // card-bank explanation is now step 1 of How it works)
 // ============================================================
-/**
- * Print and Send's price from the pricing catalog (`print_and_send`, migration 006), in dollars.
- * Falls back to PRINT_AND_SEND_PRICE while loading or if the backend is down, so the card never waits.
- * The cart and checkout still price it from PRINT_AND_SEND_PRICE (like Big Sender's tiers), so a
- * mismatch is logged in development; keep the two equal until checkout reads the catalog.
- */
-function printAndSendPriceFrom(offers: PricingOffer[]): number {
-  const offer = offers.find((candidate) => candidate.type === "print_and_send" || candidate.id === "print_and_send");
-  const price = offer && Number.isFinite(offer.priceCents) && offer.priceCents > 0 ? offer.priceCents / 100 : null;
-  if (price === null) return PRINT_AND_SEND_PRICE;
-  if (price !== PRINT_AND_SEND_PRICE && process.env.NODE_ENV !== "production") {
-    console.warn(`Print and Send: catalog says $${price.toFixed(2)} but the cart uses $${PRINT_AND_SEND_PRICE.toFixed(2)} (pricingCatalog.ts).`);
-  }
-  return price;
-}
 
 /**
  * Shared by the Pricing page and the nav's Top up pop-up (owner, 2026-11-07).
  * idPrefix keeps element ids unique when the pop-up opens over the Pricing page
  * ("pr" on the page, "tu" in the pop-up). onChosen runs before the cart opens.
  */
-type PackOptions = { idPrefix?: string; returnTo?: string; onChosen?: () => void };
+type PackOptions = { idPrefix?: string; returnTo?: string; onChosen?: () => void; /** Top up pop-up: "How it works" starts closed. */ compactHow?: boolean };
 
-function PrintAndSendCard({ price: priceValue, idPrefix = "pr", returnTo, onChosen }: { price: number } & PackOptions) {
+function PrintAndSendCard({ price, currency, idPrefix = "pr", returnTo, onChosen, compactHow }: { price: number; currency: Currency } & PackOptions) {
   const buy = useBuy(returnTo);
-  const price = money(priceValue);
 
   return (
     <article className="pr-offer" aria-labelledby={`${idPrefix}-ps-name`}>
       <div className="pr-offer-top">
         <header className="pr-offer-head">
           <h2 id={`${idPrefix}-ps-name`} className="pr-offer-name">Print and Send</h2>
-          <MetaLine rows={[["Send 1 card", "Shipping and 10 AI creation credits included"]]} />
+          <MetaLine rows={[["Send 1 card", "Postage and 10 AI creation credits included"]]} />
         </header>
-        <p className="pr-price">{price}</p>
+        <PriceWithCode className="pr-price" value={price} currency={currency} />
       </div>
-      <p className="pr-offer-text">One flat price, shipping included Canada-wide. Prices in CAD; tax is extra.</p>
+      <p className="pr-offer-text">One flat price, postage included to Canada and the US. Prices in {currency}; tax is extra.</p>
 
       <HowItWorks
         id={`${idPrefix}-ps-how`}
+        collapsed={compactHow}
         items={[
           { title: "Buy your card + credits", body: "It waits in your card bank, shown as Credits and Cards at the top of the page and in the menu." },
           { title: "Choose a card", body: "Choose from four different creation options." },
@@ -185,7 +172,7 @@ function PrintAndSendCard({ price: priceValue, idPrefix = "pr", returnTo, onChos
         ]}
       />
 
-      <button type="button" className="l-btn l-btn-primary pr-cta" onClick={() => { onChosen?.(); buy(makePrintAndSendCartItem()); }}>
+      <button type="button" className="l-btn l-btn-primary pr-cta" onClick={() => { onChosen?.(); buy(makePrintAndSendCartItem(currency, price)); }}>
         <span>Buy Print and Send</span>
         <IconArrow />
       </button>
@@ -200,6 +187,7 @@ type BigSenderData = {
   tiers: BigSenderTier[];
   minCards: number;
   creditsPerCard: number;
+  currency: Currency;
 };
 
 function formatTierLabel(min: number, max: number, isLast: boolean) {
@@ -209,11 +197,15 @@ function formatTierLabel(min: number, max: number, isLast: boolean) {
   return `${min}-${max} cards`;
 }
 
-function buildBigSender(offers: PricingOffer[]): BigSenderData | null {
-  const sorted = offers
+function buildBigSender(offers: PricingOffer[], currency: Currency): BigSenderData {
+  const sorted = offersIn(offers, currency)
     .filter((offer) => offer.type === "big_sender")
     .sort((a, b) => a.cardCountMin - b.cardCountMin);
-  if (sorted.length === 0) return null;
+  // No catalog rows for this currency (or the backend is down): use the price list.
+  if (sorted.length === 0) {
+    const tiers = PRICE_LISTS[currency].bigSender;
+    return { tiers, minCards: tiers[0]?.min ?? MIN_BIG_SENDER_CARDS, creditsPerCard: 10, currency };
+  }
   return {
     tiers: sorted.map((offer, index) => ({
       min: offer.cardCountMin,
@@ -221,15 +213,16 @@ function buildBigSender(offers: PricingOffer[]): BigSenderData | null {
       pricePerCard: Number(((offer.priceCents ?? 0) / 100).toFixed(2)),
       label: formatTierLabel(offer.cardCountMin, offer.cardCountMax, index === sorted.length - 1),
     })),
-    minCards: sorted[0].cardCountMin ?? MIN_BIG_SENDER_CARDS,
+    minCards: Math.max(MIN_BIG_SENDER_CARDS, sorted[0].cardCountMin ?? MIN_BIG_SENDER_CARDS),
     creditsPerCard: sorted[0].creditsPerCard ?? 10,
+    currency,
   };
 }
 
-function BigSenderCard({ data, idPrefix = "pr", returnTo, onChosen }: { data: BigSenderData } & PackOptions) {
+function BigSenderCard({ data, idPrefix = "pr", returnTo, onChosen, compactHow }: { data: BigSenderData } & PackOptions) {
   const buy = useBuy(returnTo);
   const qtyId = `${idPrefix}-bs-qty`;
-  const { tiers, minCards, creditsPerCard } = data;
+  const { tiers, minCards, creditsPerCard, currency } = data;
   const [qty, setQty] = React.useState(minCards);
   // What's in the box while typing (may be empty); `qty` is always valid.
   const [draft, setDraft] = React.useState(String(minCards));
@@ -248,7 +241,7 @@ function BigSenderCard({ data, idPrefix = "pr", returnTo, onChosen }: { data: Bi
       <div className="pr-offer-top">
         <header className="pr-offer-head">
           <h2 id={`${idPrefix}-bs-name`} className="pr-offer-name">Big Sender</h2>
-          <MetaLine rows={[["Send multiple different cards", `Shipping and ${creditsPerCard} AI creation credits included per card`]]} />
+          <MetaLine rows={[[`Send ${minCards} or more cards`, `Postage and ${creditsPerCard} AI creation credits included per card`]]} />
         </header>
       </div>
 
@@ -264,7 +257,7 @@ function BigSenderCard({ data, idPrefix = "pr", returnTo, onChosen }: { data: Bi
               onClick={() => setQtyClamped(tier.min)}
             >
               <span className="pr-tier-range">{tier.label}</span>
-              <span className="pr-tier-price">{money(tier.pricePerCard)}</span>
+              <span className="pr-tier-price">{formatAmount(tier.pricePerCard)}</span>
               <span className="pr-tier-unit">/ card</span>
             </button>
           );
@@ -274,7 +267,7 @@ function BigSenderCard({ data, idPrefix = "pr", returnTo, onChosen }: { data: Bi
       <div className="pr-qty">
         <label className="pr-qty-label" htmlFor={qtyId}>How many cards?</label>
         <div className="pr-stepper">
-          <button type="button" aria-label="Decrease" onClick={() => setQtyClamped(qty - 1)} disabled={qty <= minCards}>
+          <button type="button" aria-label="Decrease" onClick={() => { if (qty > minCards) setQtyClamped(qty - 1); }} aria-disabled={qty <= minCards || undefined}>
             <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" aria-hidden="true" focusable="false"><path d="M6 12h12" /></svg>
           </button>
           <input
@@ -294,20 +287,21 @@ function BigSenderCard({ data, idPrefix = "pr", returnTo, onChosen }: { data: Bi
             <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" aria-hidden="true" focusable="false"><path d="M6 12h12M12 6v12" /></svg>
           </button>
         </div>
-        <output className="pr-qty-total" htmlFor={qtyId} aria-live="polite">${pricing.totalText}</output>
+        <output className="pr-qty-total" htmlFor={qtyId} aria-live="polite">{formatMoney(pricing.total, currency)}</output>
       </div>
 
       <HowItWorks
         id={`${idPrefix}-bs-how`}
+        collapsed={compactHow}
         items={[
           { title: "Share the Love", body: "Send a completed card to each of your loved ones." },
           { title: "Flexible Sending Options", body: "Send the same card to everyone, or a unique card to each." },
-          { title: "Always saved", body: "Design now, send later. Your cards are saved in Saved Cards & Songs for 15 months." },
+          { title: "Always saved", body: "Design now, send later. Your designs are saved in Saved Cards & Songs for 12 months from your last edit." },
         ]}
       />
 
-      <button type="button" className="l-btn l-btn-primary pr-cta" onClick={() => { onChosen?.(); buy(makeBigSenderCartItem(pricing.qty, tiers)); }}>
-        <span>Reserve {pricing.qty} cards · ${pricing.totalText}</span>
+      <button type="button" className="l-btn l-btn-primary pr-cta" onClick={() => { onChosen?.(); buy(makeBigSenderCartItem(pricing.qty, tiers, currency)); }}>
+        <span>Reserve {pricing.qty} cards · {formatMoney(pricing.total, currency)}</span>
         <IconArrow />
       </button>
     </article>
@@ -329,31 +323,25 @@ function BigSenderPlaceholder({ status, idPrefix = "pr" }: { status: "loading" |
 }
 
 export function PricingCardPacks(options: PackOptions = {}) {
+  const { currency } = usePriceCountry();
   const [state, setState] = React.useState<
-    { status: "loading" } | { status: "error" } | { status: "ready"; data: BigSenderData }
+    { status: "loading" } | { status: "error" } | { status: "ready"; offers: PricingOffer[] }
   >({ status: "loading" });
-  const [printAndSendPrice, setPrintAndSendPrice] = React.useState(PRINT_AND_SEND_PRICE);
 
   React.useEffect(() => {
     let active = true;
     fetchPricingOffers()
-      .then((offers) => {
-        if (!active) return;
-        setPrintAndSendPrice(printAndSendPriceFrom(offers));
-        const data = buildBigSender(offers);
-        setState(data ? { status: "ready", data } : { status: "error" });
-      })
-      .catch(() => {
-        if (active) setState({ status: "error" });
-      });
+      .then((offers) => { if (active) setState({ status: "ready", offers }); })
+      .catch(() => { if (active) setState({ status: "error" }); });
     return () => { active = false; };
   }, []);
 
+  const offers = state.status === "ready" ? state.offers : [];
   return (
     <div className="pr-offers">
-      <PrintAndSendCard price={printAndSendPrice} {...options} />
+      <PrintAndSendCard price={printAndSendPriceFrom(offers, currency)} currency={currency} {...options} />
       {state.status === "ready"
-        ? <BigSenderCard data={state.data} {...options} />
+        ? <BigSenderCard key={currency} data={buildBigSender(offers, currency)} {...options} />
         : <BigSenderPlaceholder status={state.status} idPrefix={options.idPrefix} />}
     </div>
   );
@@ -371,7 +359,7 @@ type CreditPacksProps = {
   onChosen?: () => void;
 };
 
-function CreditPackCard({ pack, idPrefix = "pr", returnTo, onChosen }: CreditPacksProps & { pack: CreditPack }) {
+function CreditPackCard({ pack, currency, idPrefix = "pr", returnTo, onChosen }: CreditPacksProps & { pack: CreditPack; currency: Currency }) {
   const buy = useBuy(returnTo);
   const titleId = `${idPrefix}-credit-${pack.id}`;
   return (
@@ -379,7 +367,7 @@ function CreditPackCard({ pack, idPrefix = "pr", returnTo, onChosen }: CreditPac
       <article aria-labelledby={titleId}>
         {pack.featured && <p className="pr-badge">{pack.badge}</p>}
         <h3 id={titleId} className="pr-credit-name">{pack.name}</h3>
-        <p className="pr-credit-price">{money(pack.price)}</p>
+        <PriceWithCode className="pr-credit-price" value={pack.price} currency={currency} />
         <p className="pr-credit-count">
           <span className="pr-credit-count-label">Credits</span>
           <span className="pr-credit-count-num">{pack.tokens}</span>
@@ -398,6 +386,7 @@ function CreditPackCard({ pack, idPrefix = "pr", returnTo, onChosen }: CreditPac
             qty: 1,
             unitNote: "one-time top-up",
             tokens: String(pack.tokens),
+            currency,
           }); }}
         >
           <span>Choose {pack.name}</span>
@@ -410,9 +399,10 @@ function CreditPackCard({ pack, idPrefix = "pr", returnTo, onChosen }: CreditPac
 
 /** The three credit packs. Used by the Pricing page and the Top up pop-up (TopUpModal.tsx). */
 export function PricingCreditPacks({ idPrefix, returnTo, onChosen }: CreditPacksProps = {}) {
+  const { list, currency } = usePriceCountry();
   return (
     <ul className="pr-credits-grid">
-      {CREDIT_PACKS.map((pack) => <CreditPackCard key={pack.id} pack={pack} idPrefix={idPrefix} returnTo={returnTo} onChosen={onChosen} />)}
+      {creditPacksFor(list).map((pack) => <CreditPackCard key={pack.id} pack={pack} currency={currency} idPrefix={idPrefix} returnTo={returnTo} onChosen={onChosen} />)}
     </ul>
   );
 }

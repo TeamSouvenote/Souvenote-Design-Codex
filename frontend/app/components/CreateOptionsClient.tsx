@@ -2,16 +2,9 @@
 
 import * as React from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { useAuth } from "./AuthProvider";
-import { CREATE_OPTIONS, type CreateOption, type CreateOptionKey } from "./createOptions";
-import { getCreateFlowGate } from "./createFlowRules";
-import { goToPricingAfterPurchase } from "./PricingReturn";
-import { openTopUp } from "./pricing/topUp";
+import { CREATE_OPTIONS, type CreateOption } from "./createOptions";
 import { carouselPos, useCardCarousel } from "./useCardCarousel";
-import { fetchCreditBalance } from "../lib/api";
-import { getStoredLocalUser } from "../lib/cognitoAuth";
-import { publishCreditBalance } from "../lib/creditBalance";
+import { SongMark } from "./WelcomeSketches";
 
 // The four create options on /create (styles in styles/create-options.css).
 // Template and Build are the main two; Community and Saved come second.
@@ -20,18 +13,15 @@ import { publishCreditBalance } from "../lib/creditBalance";
 // - Below 1024px: Template and Build in the Welcome-style carousel, then
 //   Community and Saved as two small closed cards (front only) side by side.
 //
-// Template and Build need AI credits. Every time one is opened, the balance is
-// fetched fresh from the backend before anything happens (owner, 2026-11-04):
-// with credits the option opens; without, the Top up credits pop-up opens here
-// (owner, 2026-11-07; after paying, the cart goes on to that option), falling back
-// to Pricing if the pop-up isn't available; if the backend can't be reached, the
-// user stays here and sees a message. Community and Saved never check credits.
+// Every option opens straight away; none checks credits here. Personalize a
+// Template and Build My Card ask for a top-up only when Create (or a paid redo)
+// is pressed without enough credits (owner, 2026-11-07 for Build, 2026-11-08 for
+// Personalize). Community Cards uses no AI credits.
 
 const PRIMARY = [CREATE_OPTIONS.template, CREATE_OPTIONS.build] as const;
 const SECONDARY = [CREATE_OPTIONS.community, CREATE_OPTIONS.saved] as const;
 // Below 1024px wide the main two become a carousel. Must match create-options.css.
 const CAROUSEL_QUERY = "(max-width: 1023px)";
-const CHECK_FAILED_MESSAGE = "We couldn't check your credits. Please try again.";
 
 function StarIcon() {
   return (
@@ -56,27 +46,20 @@ function keepLastTwoTogether(title: string) {
   return `${words.slice(0, -2).join(" ")} ${words.slice(-2).join(" ")}`;
 }
 
-/** A plain left click (no new tab or window), which this page may take over. */
-function isPlainClick(e: React.MouseEvent) {
-  return e.button === 0 && !e.metaKey && !e.ctrlKey && !e.shiftKey && !e.altKey;
-}
-
 type CardProps = {
   opt: CreateOption;
-  busy: boolean;
-  onClick: (e: React.MouseEvent<HTMLAnchorElement>) => void;
+  onClick?: (e: React.MouseEvent<HTMLAnchorElement>) => void;
   onFocus?: (e: React.FocusEvent<HTMLAnchorElement>) => void;
 };
 
 /** An opened 5x7 card: title + sketch inside left, handwriting inside right. */
-function OpenedCard({ opt, busy, onClick, onFocus, size }: CardProps & { size: "primary" | "secondary" }) {
+function OpenedCard({ opt, onClick, onFocus, size }: CardProps & { size: "primary" | "secondary" }) {
   const { Sketch } = opt;
   return (
     <Link
-      className={`sv-ocard cr-card is-${size} is-${opt.key}${busy ? " is-checking" : ""}`}
+      className={`sv-ocard cr-card is-${size} is-${opt.key}`}
       href={opt.href}
       draggable={false}
-      aria-busy={busy || undefined}
       onFocus={onFocus}
       onClick={onClick}
     >
@@ -92,8 +75,11 @@ function OpenedCard({ opt, busy, onClick, onFocus, size }: CardProps & { size: "
       </span>
       <span className="sv-ocard-right cr-card-right">
         <span className="sv-ocard-hand cr-card-sub">{opt.sub}</span>
-        <span className="sv-ocard-go cr-card-go" aria-hidden="true">
-          {busy ? <span className="cr-spinner" /> : <ArrowIcon />}
+        <span className="sv-ocard-foot">
+          {opt.song && <SongMark />}
+          <span className="sv-ocard-go cr-card-go" aria-hidden="true">
+            <ArrowIcon />
+          </span>
         </span>
       </span>
     </Link>
@@ -101,10 +87,10 @@ function OpenedCard({ opt, busy, onClick, onFocus, size }: CardProps & { size: "
 }
 
 /** A closed 5x7 card (front only), for the secondary options on phones and tablets. */
-function ClosedCard({ opt, onClick }: Pick<CardProps, "opt" | "onClick">) {
+function ClosedCard({ opt }: Pick<CardProps, "opt">) {
   const { Sketch } = opt;
   return (
-    <Link className={`cr-closed is-${opt.key}`} href={opt.href} onClick={onClick}>
+    <Link className={`cr-closed is-${opt.key}`} href={opt.href}>
       <span className="sv-ocard-title cr-card-title">{keepLastTwoTogether(opt.title)}</span>
       {/* The handwriting isn't shown on the small front, but screen readers still hear it. */}
       <span className="l-sr-only">{opt.sub}</span>
@@ -115,54 +101,9 @@ function ClosedCard({ opt, onClick }: Pick<CardProps, "opt" | "onClick">) {
 }
 
 export function CreateOptionsClient() {
-  const router = useRouter();
-  const auth = useAuth();
   const count = PRIMARY.length;
   const { active, listRef, pointerHandlers, choose, onCardFocus, onCardClick } =
     useCardCarousel({ count, initial: 0, query: CAROUSEL_QUERY });
-  const [checking, setChecking] = React.useState<CreateOptionKey | null>(null);
-  const [checkFailed, setCheckFailed] = React.useState(false);
-  const checkingRef = React.useRef(false);
-  const errorRef = React.useRef<HTMLParagraphElement>(null);
-
-  // On short screens the message can land below the fold: bring it into view.
-  React.useEffect(() => {
-    if (checkFailed) errorRef.current?.scrollIntoView({ block: "nearest" });
-  }, [checkFailed]);
-
-  const openWithCreditCheck = async (opt: CreateOption) => {
-    if (checkingRef.current) return;
-    checkingRef.current = true;
-    setChecking(opt.key);
-    setCheckFailed(false);
-    try {
-      const userId = auth.user?.id || getStoredLocalUser()?.id;
-      if (!userId) throw new Error("No signed-in user.");
-      const balance = await fetchCreditBalance(userId);
-      publishCreditBalance(balance); // the nav and the credits line show the fresh figure
-      const gate = getCreateFlowGate({ credits: { images: balance.balance, songs: 0 }, cardBank: 0 }, "generation");
-      if (gate.allowed) {
-        // The page is left now, so the spinner stays until it goes.
-        router.push(opt.href);
-        return;
-      }
-      checkingRef.current = false;
-      setChecking(null);
-      if (!openTopUp("credits", opt.href)) router.push(goToPricingAfterPurchase(opt.href));
-    } catch {
-      checkingRef.current = false;
-      setChecking(null);
-      setCheckFailed(true);
-    }
-  };
-
-  /** Runs the credit check for Template/Build on a plain click; other clicks follow the link. */
-  const openCard = (e: React.MouseEvent<HTMLAnchorElement>, opt: CreateOption) => {
-    if (!opt.requiresCredits || !isPlainClick(e)) return;
-    // New tabs open directly: the option pages check credits themselves.
-    e.preventDefault();
-    void openWithCreditCheck(opt);
-  };
 
   return (
     // Both layouts are in the HTML from the start and create-options.css shows
@@ -178,9 +119,8 @@ export function CreateOptionsClient() {
               <OpenedCard
                 opt={opt}
                 size="primary"
-                busy={checking === opt.key}
                 onFocus={(e) => onCardFocus(e, i)}
-                onClick={(e) => { if (onCardClick(e, i)) openCard(e, opt); }}
+                onClick={(e) => { onCardClick(e, i); /* a side card only moves to the centre */ }}
               />
             </li>
           );
@@ -203,13 +143,11 @@ export function CreateOptionsClient() {
       <ul className="cr-options cr-secondary">
         {SECONDARY.map((opt) => (
           <li key={opt.key}>
-            <OpenedCard opt={opt} size="secondary" busy={checking === opt.key} onClick={(e) => openCard(e, opt)} />
-            <ClosedCard opt={opt} onClick={(e) => openCard(e, opt)} />
+            <OpenedCard opt={opt} size="secondary" />
+            <ClosedCard opt={opt} />
           </li>
         ))}
       </ul>
-      <p className="l-sr-only" aria-live="polite">{checking ? "Checking your credits" : ""}</p>
-      <p ref={errorRef} className="cr-error" role="alert">{checkFailed ? CHECK_FAILED_MESSAGE : ""}</p>
     </div>
   );
 }

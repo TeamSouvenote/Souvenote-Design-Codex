@@ -12,12 +12,22 @@ import type { UserProfileUpdate } from "../lib/api";
 import { TERMS_VERSION } from "../lib/legalVersions";
 import {
   CognitoClientError,
+  TOTP_REQUIRED_CODE,
   cleanHostedUiReturnPath,
   consumeHostedUiError,
   type CognitoSocialProvider,
   type HostedUiError,
 } from "../lib/cognitoAuth";
 import { useModalDialog } from "./useModalDialog";
+import { strength, strengthLabel } from "../lib/passwordStrength";
+import { CURRENCY_BY_COUNTRY, toCountry, type Country } from "../lib/priceLists";
+import { SongMark } from "./WelcomeSketches";
+import { CookieSettingsButton } from "./content/CookieConsent";
+import Image from "next/image";
+// Sign-in screens and the Welcome modal (audit E3: no longer global). opened-card.css first,
+// as in the old global order.
+import "../styles/opened-card.css";
+import "../styles/auth.css";
 
 // Auth.tsx - Souvenote auth surface (berry & ivory design system; styles in styles/auth.css).
 // 7 state components: signup, login, welcome (post-signup modal), forgot, reset, verify, recover.
@@ -136,7 +146,7 @@ function AuthTopbar() {
   return (
     <header className="auth-topbar">
       <Link className="auth-topbar-logo" href="/">
-        <img className="auth-topbar-logo-img" src="/assets/wordmark-gold.png" alt="Souvenote" width={900} height={208} />
+        <Image className="auth-topbar-logo-img" src="/assets/wordmark-gold.png" alt="Souvenote" width={900} height={208} sizes="190px" priority />
       </Link>
       <Link className="auth-topbar-back" href="/">
         <AuthIcon name="back" w={16} /> Back to site
@@ -153,6 +163,8 @@ function AuthFooter() {
         <Link href="/legal/privacy-policy">Privacy</Link>
         <Link href="/legal/terms-of-service">Terms</Link>
         <Link href="/faq">Help</Link>
+        {/* Reopens the cookie banner, so a visitor who declined it here can change their mind. */}
+        <CookieSettingsButton className="auth-foot-cookie" />
       </span>
     </footer>
   );
@@ -220,6 +232,7 @@ function ResendCodeButton({ email, startWaiting = false }: { email: string; star
   const [attempt, countAttempt] = useSubmitCount();
 
   const resend = async () => {
+    if (sending || countdown.secondsLeft > 0) return;
     countAttempt();
     setError(null);
     setSending(true);
@@ -237,7 +250,7 @@ function ResendCodeButton({ email, startWaiting = false }: { email: string; star
 
   return (
     <div className="auth-resend-code">
-      <button type="button" className="auth-link" onClick={() => void resend()} disabled={sending || countdown.secondsLeft > 0}>
+      <button type="button" className="auth-link" onClick={() => void resend()} aria-disabled={sending || countdown.secondsLeft > 0 || undefined}>
         {countdown.secondsLeft > 0 ? `You can resend in ${countdown.secondsLeft}s` : 'Resend code'}
       </button>
       <AuthFeedback message={sentTo ? `A new code is on its way to ${sentTo}.` : null} error={error} feedbackKey={attempt} />
@@ -246,18 +259,6 @@ function ResendCodeButton({ email, startWaiting = false }: { email: string; star
 }
 
 // Password strength estimator (simple, visual only)
-function strength(p: string) {
-  if (!p) return 0;
-  let s = 0;
-  if (p.length >= 8) s++;
-  if (p.length >= 12) s++;
-  if (/\d/.test(p) && /[a-z]/i.test(p)) s++;
-  if (/[^a-zA-Z0-9]/.test(p)) s++;
-  return Math.min(s, 4);
-}
-function strengthLabel(s: number) {
-  return ['Too short', 'Weak', 'Okay', 'Strong', 'Solid'][s] || 'Strong';
-}
 function strengthTone(s: number) {
   if (s >= 3) return 'is-strong';
   if (s === 0) return 'is-short';
@@ -299,7 +300,6 @@ function friendlyResetError(error: unknown) {
   return friendlyAuthError(error);
 }
 
-const CURRENCY_BY_COUNTRY: Record<string, string> = { CA: "CAD", US: "USD" };
 
 // After the user presses "send", the resend button waits this long (the
 // forgot-password copy promises "You can resend after 60 seconds").
@@ -355,6 +355,9 @@ function loginHrefAfterSignup(email: string, returnTo: string, reason: "created"
 function signupLoginMessage(reason: string | null) {
   if (reason === "created") return "Account created. Log in with your email and password to continue.";
   if (reason === "exists") return "That email already has an account. Log in with your email and password instead.";
+  // From Account Settings: password change, or "Sign out of all devices".
+  if (reason === "password") return "Your password was changed and you were signed out everywhere. Log in with your new password.";
+  if (reason === "signed-out") return "You were signed out on all devices. Log in again to continue.";
   return null;
 }
 
@@ -393,9 +396,9 @@ function SignUpView() {
   const [pw2, setPw2] = React.useState('');
   const [show, setShow] = React.useState(false);
   const [dob, setDob] = React.useState('');
-  const [country, setCountry] = React.useState('CA');
-  // Both start unticked: consent must be an active choice (CASL for marketing).
-  const [marketing, setMarketing] = React.useState(false);
+  // Canada or the United States only (owner decision 2026-11-08): it sets the
+  // account's prices and currency. Always starts on Canada (owner decision 2026-11-09).
+  const [country, setCountry] = React.useState<Country>('CA');
   const [terms, setTerms] = React.useState(false);
   const [confirmationCode, setConfirmationCode] = React.useState('');
   const [needsConfirmation, setNeedsConfirmation] = React.useState(false);
@@ -452,7 +455,6 @@ function SignUpView() {
         ...(dob ? { birthday: dob } : {}),
         country,
         currency: CURRENCY_BY_COUNTRY[country],
-        marketingOptIn: marketing,
         termsAccepted: true,
         termsVersion: TERMS_VERSION,
       };
@@ -473,7 +475,7 @@ function SignUpView() {
     } finally {
       setSubmitting(false);
     }
-  }, [country, dob, email, marketing, pw, pw2, returnTo, router, signup, terms]);
+  }, [country, dob, email, pw, pw2, returnTo, router, signup, terms]);
 
   const handleConfirm = React.useCallback(async () => {
     setAuthError(null);
@@ -513,6 +515,8 @@ function SignUpView() {
 
   const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
+    // Busy buttons stay focusable (aria-disabled), so a press while busy is ignored here.
+    if (submitting) return;
     countAttempt();
     if (needsConfirmation) void handleConfirm();
     else void handleSignup();
@@ -525,7 +529,6 @@ function SignUpView() {
         <Engraving name="envelope" className="auth-eng auth-eng-right" />
         <div className="auth-compact">
           <div className="auth-compact-intro">
-            <div className="auth-eyebrow auth-hide-phone">Sign Up · Welcome</div>
             <h1 className="auth-title">
               Sign up and claim <span className="auth-script">2 free credits</span>
             </h1>
@@ -535,7 +538,6 @@ function SignUpView() {
             <>
               <section aria-labelledby={`${id}-social`}>
                 <div className="auth-method-head">
-                  <div className="auth-method-kicker">Fastest</div>
                   <h2 className="auth-method-title" id={`${id}-social`}>Sign up with social</h2>
                   <p className="auth-method-sub">Use an existing account and we&apos;ll open your welcome credits right away.</p>
                 </div>
@@ -548,9 +550,8 @@ function SignUpView() {
 
           <section aria-labelledby={`${id}-email-title`}>
             <div className="auth-method-head">
-              <div className="auth-method-kicker">Email</div>
               <h2 className="auth-method-title" id={`${id}-email-title`}>Sign up with email</h2>
-              <p className="auth-method-sub">Set your login details, birthday reminder, and country preferences.</p>
+              <p className="auth-method-sub">Set your login details.</p>
             </div>
 
             {needsConfirmation ? (
@@ -563,8 +564,8 @@ function SignUpView() {
                   <input ref={codeRef} id={`${id}-code`} className="auth-input" inputMode="numeric" autoComplete="one-time-code" placeholder="123456" value={confirmationCode} onChange={(e) => setConfirmationCode(e.target.value)} />
                 </div>
 
-                <button type="submit" className="auth-submit" disabled={submitting}>
-                  {submitting ? "Confirming..." : "Confirm & Go to Login"} <AuthIcon name="arrow" w={16} />
+                <button type="submit" className="auth-submit" aria-disabled={submitting || undefined}>
+                  {submitting ? "Confirming…" : "Confirm & Go to Login"} <AuthIcon name="arrow" w={16} />
                 </button>
 
                 <div className="auth-code-acts">
@@ -605,21 +606,17 @@ function SignUpView() {
                   <div className="auth-field">
                     <label className="auth-label" htmlFor={`${id}-dob`}>Birthday <em>· optional</em></label>
                     <input id={`${id}-dob`} className="auth-input" type="date" autoComplete="bday" aria-describedby={`${id}-dob-hint`} value={dob} onChange={(e) => setDob(e.target.value)} />
-                    <p className="auth-hint auth-optional" id={`${id}-dob-hint`}>Add your birthday so your loved ones are reminded when it&apos;s your turn to get a gift.</p>
+                    <p className="auth-hint auth-optional" id={`${id}-dob-hint`}>Optional. Only used to personalize your account.</p>
                   </div>
                   <div className="auth-field">
                     <label className="auth-label" htmlFor={`${id}-country`}>Country</label>
-                    <select id={`${id}-country`} className="auth-select" autoComplete="country" aria-describedby={`${id}-country-hint`} value={country} onChange={(e) => setCountry(e.target.value)}>
+                    <select id={`${id}-country`} className="auth-select" autoComplete="country" aria-describedby={`${id}-country-hint`} value={country} onChange={(e) => setCountry(toCountry(e.target.value) || 'CA')}>
                       <option value="CA">{isPhone ? 'Canada' : 'Canada (CAD)'}</option>
                       <option value="US">{isPhone ? 'United States' : 'United States (USD)'}</option>
                     </select>
-                    <p className="auth-hint auth-optional" id={`${id}-country-hint`}>Sets your currency, attestation, and tax.</p>
+                    <p className="auth-hint auth-optional" id={`${id}-country-hint`}>Sets your prices and currency. To change it later, contact us.</p>
                   </div>
                 </div>
-
-                <AuthCheckbox checked={marketing} onChange={setMarketing}>
-                  Send me occasional ideas, seasonal nudges, and the rare new feature email. Unsubscribe anytime.
-                </AuthCheckbox>
 
                 <AuthCheckbox checked={terms} onChange={setTerms}>
                   I agree to the <Link href="/legal/terms-of-service">Terms of Service</Link> and the <Link href="/legal/privacy-policy">Privacy Policy</Link>.
@@ -627,8 +624,8 @@ function SignUpView() {
 
                 <AuthFeedback message={authMessage} error={authError} feedbackKey={attempt} />
 
-                <button type="submit" className="auth-submit" disabled={submitting}>
-                  {submitting ? "Creating..." : "Create Account"} <AuthIcon name="arrow" w={16} />
+                <button type="submit" className="auth-submit" aria-disabled={submitting || undefined}>
+                  {submitting ? "Creating…" : "Create Account"} <AuthIcon name="arrow" w={16} />
                 </button>
 
                 <div className="auth-cardfoot">
@@ -650,19 +647,26 @@ function SignUpView() {
 function LoginView() {
   const router = useRouter();
   const searchParams = useAuthParams();
-  const { login, confirmSignup, startSocialSignIn, error: authContextError } = useAuth();
+  const { login, completeTotpLogin, cancelTotpLogin, confirmSignup, startSocialSignIn, error: authContextError } = useAuth();
   const [email, setEmail] = React.useState(() => searchParams.get("email") || '');
   const [pw, setPw] = React.useState('');
   const [show, setShow] = React.useState(false);
   const [remember, setRemember] = React.useState(true);
   const [confirmationCode, setConfirmationCode] = React.useState('');
   const [needsConfirmation, setNeedsConfirmation] = React.useState(false);
+  // Two-step sign-in: the password was right, the authenticator code comes next.
+  const [needsTotp, setNeedsTotp] = React.useState(false);
+  const [totpCode, setTotpCode] = React.useState('');
+  // A short or wrong code marks the field invalid and focuses it (the alert line still says why).
+  const [totpInvalid, setTotpInvalid] = React.useState(false);
   const [authMessage, setAuthMessage] = React.useState<string | null>(() => signupLoginMessage(searchParams.get("signup")));
   const [authError, setAuthError] = React.useState<string | null>(null);
   const [submitting, setSubmitting] = React.useState(false);
   const returnTo = cleanReturnTo(searchParams.get("returnTo"), "/create");
   const id = React.useId();
   const codeRef = useFocusWhen(needsConfirmation);
+  const totpRef = useFocusWhen(needsTotp);
+  const pwRef = React.useRef<HTMLInputElement>(null);
   const [attempt, countAttempt] = useSubmitCount();
 
   React.useEffect(() => {
@@ -687,6 +691,12 @@ function LoginView() {
       await login(email, pw, { remember });
       router.push(returnTo);
     } catch (error) {
+      if (error instanceof CognitoClientError && error.code === TOTP_REQUIRED_CODE) {
+        setNeedsTotp(true);
+        setTotpCode('');
+        setAuthMessage("Enter the 6-digit code from your authenticator app.");
+        return;
+      }
       if (error instanceof CognitoClientError && error.code === "UserNotConfirmedException") {
         setNeedsConfirmation(true);
       }
@@ -695,6 +705,54 @@ function LoginView() {
       setSubmitting(false);
     }
   }, [email, login, pw, remember, returnTo, router]);
+
+  // Back to email and password: drop the code step's message and error, and put
+  // focus on the (now empty) password field instead of letting it fall to <body>.
+  // The timed-out path below sets its own error after calling this.
+  const leaveTotp = React.useCallback(() => {
+    cancelTotpLogin();
+    setNeedsTotp(false);
+    setTotpCode('');
+    setTotpInvalid(false);
+    setPw('');
+    setAuthError(null);
+    setAuthMessage(null);
+    window.requestAnimationFrame(() => pwRef.current?.focus());
+  }, [cancelTotpLogin]);
+
+  const handleTotp = React.useCallback(async () => {
+    setAuthError(null);
+    setAuthMessage(null);
+    const code = totpCode.replace(/\s+/g, '');
+    if (!/^\d{6}$/.test(code)) {
+      setAuthError("Enter the 6-digit code from your authenticator app.");
+      setTotpInvalid(true);
+      totpRef.current?.focus();
+      return;
+    }
+    setTotpInvalid(false);
+
+    setSubmitting(true);
+    try {
+      await completeTotpLogin(code);
+      router.push(returnTo);
+    } catch (error) {
+      if (error instanceof CognitoClientError && error.code === "CodeMismatchException") {
+        setAuthError("That code didn't match. Check your authenticator app and try the newest code.");
+        setTotpInvalid(true);
+        window.requestAnimationFrame(() => totpRef.current?.focus());
+      } else if (error instanceof CognitoClientError && (error.code === "TooManyFailedAttemptsException" || error.code === "NotAuthorizedException")) {
+        leaveTotp();
+        setAuthError(error.code === "TooManyFailedAttemptsException"
+          ? "Too many wrong codes. Wait a few minutes, then log in again."
+          : "Your sign-in timed out. Enter your email and password again.");
+      } else {
+        setAuthError(friendlyAuthError(error));
+      }
+    } finally {
+      setSubmitting(false);
+    }
+  }, [completeTotpLogin, leaveTotp, returnTo, router, totpCode, totpRef]);
 
   const handleConfirm = React.useCallback(async () => {
     setAuthError(null);
@@ -731,8 +789,11 @@ function LoginView() {
 
   const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
+    // Busy buttons stay focusable (aria-disabled), so a press while busy is ignored here.
+    if (submitting) return;
     countAttempt();
-    if (needsConfirmation) void handleConfirm();
+    if (needsTotp) void handleTotp();
+    else if (needsConfirmation) void handleConfirm();
     else void handleLogin();
   };
 
@@ -743,7 +804,6 @@ function LoginView() {
         <Engraving name="heart" className="auth-eng auth-eng-right" />
         <div className="auth-compact">
           <div className="auth-compact-intro">
-            <div className="auth-eyebrow">Welcome back</div>
             <h1 className="auth-title">
               Pick up where you{' '}
               <span className="auth-script">left off</span>
@@ -753,7 +813,6 @@ function LoginView() {
 
             <section aria-labelledby={`${id}-social`}>
               <div className="auth-method-head">
-                <div className="auth-method-kicker">Social</div>
                 <h2 className="auth-method-title" id={`${id}-social`}>Log in with social</h2>
                 <p className="auth-method-sub">Continue with the same provider you used to create your Souvenote account.</p>
               </div>
@@ -764,12 +823,20 @@ function LoginView() {
 
             <section aria-labelledby={`${id}-email-title`}>
               <div className="auth-method-head">
-                <div className="auth-method-kicker">Email</div>
                 <h2 className="auth-method-title" id={`${id}-email-title`}>Log in with email</h2>
                 <p className="auth-method-sub">Use your email and password to get back to your saved cards and songs.</p>
               </div>
 
               <form className="auth-email-fields" onSubmit={handleSubmit} noValidate aria-busy={submitting}>
+                {needsTotp ? (
+                  <div className="auth-field">
+                    <label className="auth-label" htmlFor={`${id}-totp`}>Authenticator code</label>
+                    <p className="auth-hint" id={`${id}-totp-hint`}>Open your authenticator app and enter the 6-digit code for Souvenote ({email.trim()}).</p>
+                    <input ref={totpRef} id={`${id}-totp`} className={`auth-input ${totpInvalid ? 'is-error' : ''}`} inputMode="numeric" autoComplete="one-time-code" pattern="[0-9]*" maxLength={6} aria-describedby={`${id}-totp-hint`} aria-invalid={totpInvalid || undefined} placeholder="123456" value={totpCode} onChange={(e) => { setTotpCode(e.target.value.replace(/\D/g, '').slice(0, 6)); setTotpInvalid(false); }} />
+                    <button type="button" className="auth-link" onClick={leaveTotp}>Back to email and password</button>
+                  </div>
+                ) : (
+                <>
                 <div className="auth-field">
                   <label className="auth-label" htmlFor={`${id}-email`}>Email</label>
                   <input id={`${id}-email`} className="auth-input" type="text" inputMode="email" autoComplete="email" autoCapitalize="none" spellCheck={false} placeholder="you@example.com" value={email} onChange={(e) => setEmail(e.target.value)} />
@@ -781,7 +848,7 @@ function LoginView() {
                     <Link className="auth-link" href="/forgot">Forgot?</Link>
                   </div>
                   <div className="auth-input-wrap">
-                    <input id={`${id}-pw`} className="auth-input" type={show ? 'text' : 'password'} autoComplete="current-password" placeholder="Your password" value={pw} onChange={(e) => setPw(e.target.value)} />
+                    <input ref={pwRef} id={`${id}-pw`} className="auth-input" type={show ? 'text' : 'password'} autoComplete="current-password" placeholder="Your password" value={pw} onChange={(e) => setPw(e.target.value)} />
                     <button type="button" className="auth-input-reveal" onClick={() => setShow(s => !s)} aria-label={show ? 'Hide password' : 'Show password'}>
                       <AuthIcon name={show ? 'eye-off' : 'eye'} />
                     </button>
@@ -791,6 +858,8 @@ function LoginView() {
                 <AuthCheckbox checked={remember} onChange={setRemember}>
                   Remember me on this device · 30-day rolling session
                 </AuthCheckbox>
+                </>
+                )}
 
                 <AuthFeedback message={authMessage} error={authError} feedbackKey={attempt} />
 
@@ -803,13 +872,17 @@ function LoginView() {
                   </div>
                 )}
 
-                {needsConfirmation ? (
-                  <button type="submit" className="auth-submit" disabled={submitting}>
-                    {submitting ? "Confirming..." : "Confirm & Log In"} <AuthIcon name="arrow" w={16} />
+                {needsTotp ? (
+                  <button type="submit" className="auth-submit" aria-disabled={submitting || undefined}>
+                    {submitting ? "Checking…" : "Verify & Log In"} <AuthIcon name="arrow" w={16} />
+                  </button>
+                ) : needsConfirmation ? (
+                  <button type="submit" className="auth-submit" aria-disabled={submitting || undefined}>
+                    {submitting ? "Confirming…" : "Confirm & Log In"} <AuthIcon name="arrow" w={16} />
                   </button>
                 ) : (
-                  <button type="submit" className="auth-submit" disabled={submitting}>
-                    {submitting ? "Logging in..." : "Log In"} <AuthIcon name="arrow" w={16} />
+                  <button type="submit" className="auth-submit" aria-disabled={submitting || undefined}>
+                    {submitting ? "Logging in…" : "Log In"} <AuthIcon name="arrow" w={16} />
                   </button>
                 )}
 
@@ -870,8 +943,11 @@ function WelcomeOptions() {
                 </span>
                 <span className="sv-ocard-right auth-wcard-right">
                   <span className="sv-ocard-hand auth-welcome-option-sub">{opt.sub}</span>
-                  <span className="sv-ocard-go auth-wcard-go" aria-hidden="true">
-                    <AuthIcon name="arrow" w={18} />
+                  <span className="sv-ocard-foot">
+                    {opt.song && <SongMark />}
+                    <span className="sv-ocard-go auth-wcard-go" aria-hidden="true">
+                      <AuthIcon name="arrow" w={18} />
+                    </span>
                   </span>
                 </span>
               </Link>
@@ -929,6 +1005,7 @@ export function WelcomeModal() {
           role="dialog"
           aria-modal="true"
           aria-labelledby={`${id}-title`}
+          aria-describedby={`${id}-sub`}
           tabIndex={-1}
         >
           <button type="button" className="auth-modal-close" onClick={close} aria-label="Close">
@@ -941,13 +1018,13 @@ export function WelcomeModal() {
           <h2 className="auth-modal-title auth-welcome-title" id={`${id}-title`}>
             <span>Welcome to</span>
             <span className="auth-welcome-mark">
-              <img src="/assets/wordmark-gold.png" alt="Souvenote" width={900} height={208} />
+              <Image src="/assets/wordmark-gold.png" alt="Souvenote" width={900} height={208} sizes="320px" />
             </span>
           </h2>
           <span className="auth-modal-pill auth-welcome-pill">
             <AuthIcon name="gift" w={16} /> <b>2 CREDITS</b> in your account.
           </span>
-          <p className="auth-modal-sub auth-welcome-sub">
+          <p className="auth-modal-sub auth-welcome-sub" id={`${id}-sub`}>
             Pick a card to get started.
           </p>
           <WelcomeOptions />
@@ -977,6 +1054,7 @@ function ForgotView() {
   }, [sent]);
 
   const sendCode = async () => {
+    if (sending) return;
     countAttempt();
     setAuthError(null);
     if (!email.trim()) {
@@ -1001,7 +1079,6 @@ function ForgotView() {
   return (
     <div className="auth-stage">
       <div className="auth-card auth-card-secondary">
-        <div className="auth-eyebrow">Account · Reset</div>
         <h1 className="auth-title">
           Reset your{' '}
           <span className="auth-script">password</span>
@@ -1023,7 +1100,7 @@ function ForgotView() {
               <Link className="auth-submit" href={`/reset?${new URLSearchParams({ email: normalizedEmail }).toString()}`}>
                 Enter reset code <AuthIcon name="arrow" w={16} />
               </Link>
-              <button type="button" className="auth-submit-secondary" onClick={() => void sendCode()} disabled={sending || resend.secondsLeft > 0}>
+              <button type="button" className="auth-submit-secondary" onClick={() => { if (resend.secondsLeft <= 0) void sendCode(); }} aria-disabled={sending || resend.secondsLeft > 0 || undefined}>
                 Resend reset code
               </button>
             </div>
@@ -1036,7 +1113,7 @@ function ForgotView() {
               <input id={`${id}-email`} className="auth-input" type="text" inputMode="email" autoComplete="email" autoCapitalize="none" spellCheck={false} placeholder="you@example.com" value={email} onChange={(e) => setEmail(e.target.value)} />
             </div>
             <AuthFeedback message={null} error={authError} feedbackKey={attempt} />
-            <button type="submit" className="auth-submit" disabled={sending}>
+            <button type="submit" className="auth-submit" aria-disabled={sending || undefined}>
               Send reset code <AuthIcon name="mail" w={16} />
             </button>
           </form>
@@ -1075,6 +1152,7 @@ function ResetView() {
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
+    if (submitting) return;
     countAttempt();
     setAuthError(null);
 
@@ -1105,7 +1183,6 @@ function ResetView() {
   return (
     <div className="auth-stage">
       <div className="auth-card auth-card-secondary">
-        <div className="auth-eyebrow">Account · Reset</div>
         <h1 className="auth-title">
           Set a{' '}
           <span className="auth-script">new password</span>
@@ -1164,7 +1241,7 @@ function ResetView() {
             )}
           </div>
 
-          <button type="submit" className="auth-submit" disabled={submitting || passwordChanged}>
+          <button type="submit" className="auth-submit" disabled={passwordChanged} aria-disabled={submitting || undefined}>
             Set new password &amp; sign in <AuthIcon name="arrow" w={16} />
           </button>
         </form>
@@ -1193,6 +1270,7 @@ function ResendVerificationForm() {
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
+    if (sending) return;
     countAttempt();
     setAuthError(null);
     setSentTo(null);
@@ -1218,7 +1296,7 @@ function ResendVerificationForm() {
         <label className="auth-label" htmlFor={`${id}-email`}>Account email</label>
         <input id={`${id}-email`} className="auth-input" type="text" inputMode="email" autoComplete="email" autoCapitalize="none" spellCheck={false} placeholder="you@example.com" value={email} onChange={(e) => setEmail(e.target.value)} />
       </div>
-      <button type="submit" className="auth-submit" disabled={sending}>
+      <button type="submit" className="auth-submit" aria-disabled={sending || undefined}>
         Resend verification email <AuthIcon name="mail" w={16} />
       </button>
       <div className="auth-feedback">
@@ -1247,7 +1325,6 @@ function VerifyView({ variant = 'success' }: VerifyViewProps) {
             <span className="auth-status-icon">
               <AuthIcon name="check" w={36} />
             </span>
-            <div className="auth-eyebrow">Verified · Welcome aboard</div>
             <h1 className="auth-title">
               Email{' '}
               <span className="auth-script">verified</span>
@@ -1266,7 +1343,6 @@ function VerifyView({ variant = 'success' }: VerifyViewProps) {
             <span className="auth-status-icon is-rose">
               <AuthIcon name="alert" w={36} />
             </span>
-            <div className="auth-eyebrow">Expired code</div>
             <h1 className="auth-title">
               That code{' '}
               <span className="auth-script">timed out</span>
@@ -1292,7 +1368,6 @@ function RecoverView() {
         <span className="auth-status-icon is-rose">
           <AuthIcon name="clock" w={36} />
         </span>
-        <div className="auth-eyebrow">Account · 30-day grace</div>
         <h1 className="auth-title">
           Welcome back. Want to{' '}
           <span className="auth-script">restore</span>{' '}
@@ -1329,17 +1404,19 @@ function RecoverView() {
 // ============================================================
 // TERMS CONSENT (after a first social sign-in)
 // ============================================================
-// Social sign-ups skip the sign-up form, so the Terms checkbox (and the
-// optional marketing choice) is asked once here. AuthProvider sends a
+// Social sign-ups skip the sign-up form, so the Terms checkbox and the
+// country (Canada or United States: prices and currency) are asked once here. AuthProvider sends a
 // signed-in social user here when no acceptance is on record.
 function TermsView() {
   const router = useRouter();
   const searchParams = useAuthParams();
   const { acceptTerms, status, user } = useAuth();
-  const [marketing, setMarketing] = React.useState(false);
+  // Always starts on Canada (owner decision 2026-11-09).
+  const [country, setCountry] = React.useState<Country>('CA');
   const [terms, setTerms] = React.useState(false);
   const [submitting, setSubmitting] = React.useState(false);
   const [authError, setAuthError] = React.useState<string | null>(null);
+  const countryId = React.useId();
   const [attempt, countAttempt] = useSubmitCount();
   const returnTo = cleanReturnTo(searchParams.get("returnTo"), "/create");
 
@@ -1351,6 +1428,7 @@ function TermsView() {
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
+    if (submitting) return;
     countAttempt();
     setAuthError(null);
     if (!terms) {
@@ -1360,7 +1438,7 @@ function TermsView() {
 
     setSubmitting(true);
     try {
-      await acceptTerms(marketing);
+      await acceptTerms(country);
       router.push(returnTo);
     } catch {
       setAuthError("We couldn't save that. Please try again.");
@@ -1371,7 +1449,6 @@ function TermsView() {
   return (
     <div className="auth-stage">
       <div className="auth-card auth-card-secondary">
-        <div className="auth-eyebrow">One last step</div>
         <h1 className="auth-title">
           Before you <span className="auth-script">start</span>
         </h1>
@@ -1380,9 +1457,14 @@ function TermsView() {
         </p>
 
         <form className="auth-email-fields" onSubmit={handleSubmit} noValidate aria-busy={submitting}>
-          <AuthCheckbox checked={marketing} onChange={setMarketing}>
-            Send me occasional ideas, seasonal nudges, and the rare new feature email. Unsubscribe anytime.
-          </AuthCheckbox>
+          <div className="auth-field">
+            <label className="auth-label" htmlFor={countryId}>Country</label>
+            <select id={countryId} className="auth-select" autoComplete="country" aria-describedby={`${countryId}-hint`} value={country} onChange={(e) => setCountry(toCountry(e.target.value) || 'CA')}>
+              <option value="CA">Canada (CAD)</option>
+              <option value="US">United States (USD)</option>
+            </select>
+            <p className="auth-hint auth-optional" id={`${countryId}-hint`}>Sets your prices and currency. To change it later, contact us.</p>
+          </div>
 
           <AuthCheckbox checked={terms} onChange={setTerms}>
             I agree to the <Link href="/legal/terms-of-service">Terms of Service</Link> and the <Link href="/legal/privacy-policy">Privacy Policy</Link>.
@@ -1390,7 +1472,7 @@ function TermsView() {
 
           <AuthFeedback message={null} error={authError} feedbackKey={attempt} />
 
-          <button type="submit" className="auth-submit" disabled={submitting || status !== "authenticated"}>
+          <button type="submit" className="auth-submit" disabled={status !== "authenticated"} aria-disabled={submitting || undefined}>
             Continue <AuthIcon name="arrow" w={16} />
           </button>
         </form>

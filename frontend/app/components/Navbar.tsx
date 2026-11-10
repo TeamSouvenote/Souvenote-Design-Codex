@@ -12,6 +12,7 @@ import { useDemoBalance } from "./DemoBalance";
 import { useCartCount } from "./cartCount";
 import { OPEN_TOP_UP_EVENT } from "./pricing/topUp";
 import type { OpenTopUpDetail, TopUpView } from "./pricing/topUp";
+import Image from "next/image";
 
 // Top-up pop-up: loaded the first time it opens, so its code and styles aren't on every page.
 const TopUpModal = dynamic(() => import("./pricing/TopUpModal"), { ssr: false });
@@ -50,17 +51,16 @@ type NavRightProps = {
 };
 
 type NavbarProps = {
-  loggedIn?: boolean;
   user?: DemoUser;
   credits?: DemoCredits;
   cardBank?: number;
   followUserOnScroll?: boolean;
   /**
-   * "landing" is used only by the public landing page (`/`): Community Cards
-   * replaces Pricing, and signed-out visitors get a small-screen menu.
-   * Every other screen uses "default", which is unchanged.
+   * Every screen uses the landing bar since 2026-11-08 (the old "default" bar,
+   * its separator dots and the un-tinted logo files were removed, audit P3).
+   * Kept so the pages that pass it still read clearly.
    */
-  navVariant?: "default" | "landing";
+  navVariant?: "landing";
   /**
    * Show the signed-in cluster (credits, cards, cart, menu)
    * even when there is no session. Used by the signed-in home (`/home`).
@@ -70,11 +70,12 @@ type NavbarProps = {
 
 const COMMUNITY_CARDS_HREF = "/community-cards";
 
+// The four links' base copy; the bar uses LANDING_NAV_LINKS below, built from it.
 const NAV_LINKS: NavLink[] = [
   { label: "Personalize a Template", stackedLabel: ["Personalize", "a Template"], sub: "Curated designs, ready to make yours.", signedOutSub: "Browse card styles, then sign up to save, purchase credits, and generate.", href: "/create/personalize-a-template" },
   { label: "Build My Card", stackedLabel: ["Build", "My Card"], sub: "Start from scratch: photo, moment, optional QR song.", signedOutSub: "Preview step one, then sign up and purchase credits to continue.", href: "/create/build-my-card" },
   { label: "Saved Cards & Songs", stackedLabel: ["Saved", "Cards & Songs"], sub: "Saved cards, drafts, songs, and send-ready creations.", signedOutSub: "Sign up or log in to purchase cards and tokens, then save everything you make.", href: "/create/my-cards-and-songs" },
-  { label: "Pricing", sub: "Card packs, credits, and what shipping covers.", signedOutSub: "Pricing is public. Purchase buttons ask you to sign up or log in first.", href: "/pricing" },
+  { label: "Pricing", sub: "Card packs, credits, and what postage covers.", signedOutSub: "Pricing is public. Purchase buttons ask you to sign up or log in first.", href: "/pricing" },
 ];
 
 const findLink = (href: string) => NAV_LINKS.find((link) => link.href === href)!;
@@ -100,8 +101,9 @@ const LANDING_NAV_LINKS: NavLink[] = [
   },
   {
     ...findLink("/pricing"),
-    sub: "Choose from flexible options as low as $6.99.",
-    signedOutSub: "Choose from flexible options as low as $6.99.",
+    // Lowest Big Sender per-card price in each country (21+ cards).
+    sub: "Choose from flexible options as low as $6.99 CAD or $4.99 USD a card.",
+    signedOutSub: "Choose from flexible options as low as $6.99 CAD or $4.99 USD a card.",
   },
 ];
 
@@ -355,11 +357,16 @@ function NavRight({
                 <div className="souv-popmenu-sep" />
               </>
             )}
-            <Link href="/account/profile" className="souv-popmenu-item">Profile</Link>
-            <Link href="/account/settings" className="souv-popmenu-item">Account Settings</Link>
+            {/* Pairs sit two across so the whole menu fits the screen without
+                scrolling inside it (audit B1, 2026-11-08). */}
+            <div className="souv-popmenu-pair">
+              <Link href="/account/profile" className="souv-popmenu-item">Profile</Link>
+              <Link href="/account/settings" className="souv-popmenu-item">Account Settings</Link>
+            </div>
             <div className="souv-popmenu-sep" />
             <Link href="/create/my-cards-and-songs" className="souv-popmenu-item">Saved Cards &amp; Songs</Link>
             {/* Owner, 2026-11-07: both open the Top up pop-up (cards or credits view). */}
+            <div className="souv-popmenu-pair">
             {(["cards", "credits"] as const).map((view) => (
               <button
                 key={view}
@@ -376,23 +383,30 @@ function NavRight({
                 {view === "cards" ? "Top Up Cards" : "Top Up Credits"}
               </button>
             ))}
+            </div>
             <div className="souv-popmenu-sep" />
             {compactLinks && (
               // Phones only (hidden from 701px up, where the bar shows these).
               <div className="souv-popmenu-compact-links">
-                {compactLinks.map((link) => (
-                  <Link key={link.href} href={link.href} className="souv-popmenu-item">{link.label}</Link>
-                ))}
+                <div className="souv-popmenu-pair">
+                  {compactLinks.map((link) => (
+                    <Link key={link.href} href={link.href} className="souv-popmenu-item">{link.label}</Link>
+                  ))}
+                </div>
                 <div className="souv-popmenu-sep" />
               </div>
             )}
-            <Link href="/faq" className="souv-popmenu-item">FAQ</Link>
-            <Link href="/contact" className="souv-popmenu-item">Contact Us</Link>
+            <div className="souv-popmenu-pair">
+              <Link href="/faq" className="souv-popmenu-item">FAQ</Link>
+              <Link href="/contact" className="souv-popmenu-item">Contact Us</Link>
+            </div>
             <div className="souv-popmenu-sep" />
-            <Link href="/legal/cookie-policy" className="souv-popmenu-item">Cookie Policy</Link>
-            <Link href="/legal/refund-policy" className="souv-popmenu-item">Refund Policy</Link>
-            <Link href="/legal/terms-of-service" className="souv-popmenu-item">Terms of Service</Link>
-            <Link href="/legal/privacy-policy" className="souv-popmenu-item">Privacy Policy</Link>
+            <div className="souv-popmenu-pair">
+              <Link href="/legal/terms-of-service" className="souv-popmenu-item">Terms of Service</Link>
+              <Link href="/legal/privacy-policy" className="souv-popmenu-item">Privacy Policy</Link>
+              <Link href="/legal/cookie-policy" className="souv-popmenu-item">Cookie Policy</Link>
+              <Link href="/legal/refund-policy" className="souv-popmenu-item">Refund Policy</Link>
+            </div>
             <div className="souv-popmenu-sep" />
             {hasSession ? (
               <button
@@ -421,11 +435,9 @@ function Navbar({
   credits = { images: 0, songs: 0 },
   cardBank = 0,
   followUserOnScroll = false,
-  navVariant = "default",
   alwaysSignedIn = false,
 }: NavbarProps) {
-  const isLanding = navVariant === "landing";
-  const navLinks = isLanding ? LANDING_NAV_LINKS : NAV_LINKS;
+  const navLinks = LANDING_NAV_LINKS;
   const auth = useAuth();
   const [hovered, setHovered] = React.useState<string | null>(null);
   const [menuOpen, setMenuOpen] = React.useState(false);
@@ -439,10 +451,8 @@ function Navbar({
   // its own count; most pass 0, so the stored count is used then.
   const storedBalance = useDemoBalance();
   const resolvedCardBank = cardBank || storedBalance.cardBank;
-  // The landing uses pre-tinted gold artwork; every other screen keeps the originals.
-  const logoSrc = resolvedLoggedIn
-    ? (isLanding ? "/assets/logomark-gold-silver.png" : "/assets/LogoMark.png")
-    : (isLanding ? "/assets/wordmark-gold.png" : "/assets/WordmarkLobster.png");
+  // Pre-tinted gold artwork on the forest bar (design system 2.13).
+  const logoSrc = resolvedLoggedIn ? "/assets/logomark-gold-silver.png" : "/assets/wordmark-gold.png";
   const localCreditBalance = (credits.images ?? 0) + (credits.songs ?? 0);
   const creditBalance = useCreditBalance({
     enabled: signedIn,
@@ -458,13 +468,12 @@ function Navbar({
   return (
     <header className={`souv-nav ${resolvedLoggedIn ? "is-signed-in" : "is-signed-out"} ${followUserOnScroll ? "is-follow-user-on-scroll" : ""}`}>
       <Link href={resolvedLoggedIn ? "/home" : "/"} className={`souv-nav-logo ${resolvedLoggedIn ? "is-mark" : "is-wordmark"}`} aria-label="Souvenote home">
-        <img src={logoSrc} alt="Souvenote" />
+        <Image src={logoSrc} alt="Souvenote" width={resolvedLoggedIn ? 400 : 900} height={resolvedLoggedIn ? 600 : 208} sizes={resolvedLoggedIn ? "52px" : "160px"} priority />
       </Link>
 
       <nav className="souv-nav-links" aria-label="Main">
-        {navLinks.map((link, index) => (
+        {navLinks.map((link) => (
           <React.Fragment key={link.label}>
-            {index > 0 && !isLanding && <span className="souv-nav-dot" aria-hidden="true">{"\u00b7"}</span>}
             {/* The description popover opens on keyboard focus as well as hover. */}
             <div
               className="souv-nav-link-wrap"
@@ -473,10 +482,12 @@ function Navbar({
               onFocus={() => setHovered(link.label)}
               onBlur={() => setHovered(null)}
             >
-              <Link href={link.href} className={`souv-nav-link ${hovered === link.label ? "is-hover" : ""}`} aria-label={link.label}>
+              {/* No aria-label: the visible text is the name (audit A4). The space between the two
+                  stacked lines keeps it "Personalize a Template", not "Personalizea Template". */}
+              <Link href={link.href} className={`souv-nav-link ${hovered === link.label ? "is-hover" : ""}`}>
                 {link.stackedLabel ? (
                   <span className="souv-nav-label-stack">
-                    <span>{link.stackedLabel[0]}</span>
+                    <span>{link.stackedLabel[0]}</span>{" "}
                     <span>{link.stackedLabel[1]}</span>
                   </span>
                 ) : (
@@ -508,7 +519,7 @@ function Navbar({
         cardBank={resolvedCardBank}
         menuOpen={menuOpen}
         setMenuOpen={setMenuOpen}
-        compactLinks={isLanding ? navLinks : undefined}
+        compactLinks={navLinks}
         hasSession={signedIn}
       />
     </header>

@@ -1,32 +1,7 @@
-export type CreateGateRequirement = "generation";
-
-export type AccountBalance = {
-  credits: {
-    images: number;
-    songs: number;
-  };
-  cardBank: number;
-};
-
+// RETIRED (2026-11-08): nothing imports this file any more. The /create
+// click-time gate and Personalize a Template's "Before you start" check were
+// both removed (owner): no flow checks credits on the way in, and Build My Card
+// and Personalize ask for a top-up only when Create is pressed without enough
+// credits (generationCost in components/bmc/brief.ts). Kept only because files
+// aren't deleted without the owner's OK; safe to delete.
 export const MIN_GENERATION_CREDITS = 1;
-export const CARD_WITH_QR_SONG_CREDITS = 2;
-
-export type CreateFlowGate = { allowed: true } | { allowed: false };
-
-export function getTotalCredits(balance: AccountBalance) {
-  return balance.credits.images + balance.credits.songs;
-}
-
-export function getCreateFlowGate(
-  balance: AccountBalance,
-  requirement: CreateGateRequirement,
-): CreateFlowGate {
-  const totalCredits = getTotalCredits(balance);
-  const hasGenerationCredits = totalCredits >= MIN_GENERATION_CREDITS;
-
-  if (requirement === "generation" && !hasGenerationCredits) {
-    return { allowed: false };
-  }
-
-  return { allowed: true };
-}

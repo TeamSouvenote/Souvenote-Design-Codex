@@ -1,11 +1,15 @@
+import type { Metadata } from "next";
 import { MyCardsApp } from "../../components/MyCards";
-import { PageChrome } from "../../components/PageChrome";
+import { ContentPageShell } from "../../components/content/ContentPageShell";
+
+// Signed-in screen: noindex comes from create/layout.tsx. Signed-out visitors
+// see a log-in prompt here instead of their library.
+export const metadata: Metadata = { title: "Saved Cards & Songs | Souvenote" };
 
 export default function MyCardsAndSongsPage() {
   return (
-    <div className="souv-route-page">
-      <PageChrome variant="bmc" />
-      <main className="bmc-page"><MyCardsApp full /></main>
-    </div>
+    <ContentPageShell className="souv-library">
+      <MyCardsApp />
+    </ContentPageShell>
   );
 }

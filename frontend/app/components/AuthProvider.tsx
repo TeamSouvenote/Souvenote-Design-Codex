@@ -7,7 +7,10 @@ import { TERMS_VERSION } from "../lib/legalVersions";
 import {
   AUTH_SESSION_UPDATED_EVENT,
   CognitoClientError,
+  TOTP_REQUIRED_CODE,
+  cancelCognitoTotpSignIn,
   clearCognitoAuthState,
+  completeCognitoTotpSignIn,
   completeHostedUiSignIn,
   confirmCognitoPasswordReset,
   confirmCognitoSignUp,
@@ -28,6 +31,8 @@ import {
 } from "../lib/cognitoAuth";
 import type { CognitoCodeDelivery, CognitoSession, CognitoSocialProvider, LocalUser } from "../lib/cognitoAuth";
 import type { DemoUser } from "./DemoUser";
+import { CURRENCY_BY_COUNTRY, type Country } from "../lib/priceLists";
+import { SESSION_HINT_ATTR } from "./landing/signedInHold";
 
 type AuthStatus = "loading" | "authenticated" | "unauthenticated" | "error";
 
@@ -44,12 +49,17 @@ type AuthContextValue = {
   displayUser: DemoUser | null;
   error: string | null;
   login: (email: string, password: string, options?: { remember?: boolean }) => Promise<LocalUser>;
+  /** Finishes a login that stopped for an authenticator-app code (error code TOTP_REQUIRED_CODE). */
+  completeTotpLogin: (code: string) => Promise<LocalUser>;
+  /** Abandons a login that is waiting for its authenticator code. */
+  cancelTotpLogin: () => void;
   signup: (email: string, password: string, profile?: UserProfileUpdate) => Promise<SignUpResponse>;
   confirmSignup: (email: string, confirmationCode: string, password: string) => Promise<LocalUser>;
   requestPasswordReset: (email: string) => Promise<void>;
   resetPassword: (email: string, resetCode: string, newPassword: string) => Promise<LocalUser>;
   resendSignupCode: (email: string) => Promise<void>;
-  acceptTerms: (marketingOptIn: boolean) => Promise<LocalUser>;
+  /** Records Terms acceptance and the account's country (Canada or United States). */
+  acceptTerms: (country: Country) => Promise<LocalUser>;
   startSocialSignIn: (provider: CognitoSocialProvider, returnTo?: string) => Promise<void>;
   logout: (options?: { hostedUi?: boolean }) => boolean;
   refreshUser: () => Promise<LocalUser | null>;
@@ -68,7 +78,7 @@ export class PasswordChangedError extends Error {
   }
 }
 
-// Profile details entered at sign-up (birthday, country, marketing choice,
+// Profile details entered at sign-up (birthday, country,
 // terms acceptance) are kept here until the account has a session that can
 // save them. This covers accounts that need email confirmation first and
 // retries a save that failed. Only written after Cognito creates the account,
@@ -199,6 +209,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = React.useState<LocalUser | null>(null);
   const [error, setError] = React.useState<string | null>(null);
 
+  // The stored sign-in was checked and isn't valid: lift the before-paint hint
+  // so the signed-out nav buttons show (SESSION_HINT_SCRIPT, audit I5).
+  React.useEffect(() => {
+    if (status === "unauthenticated" || status === "error") document.documentElement.removeAttribute(SESSION_HINT_ATTR);
+  }, [status]);
+
   const syncLocalUser = React.useCallback(async (nextSession: CognitoSession) => {
     setSession(nextSession);
     setUser(null);
@@ -306,22 +322,55 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     };
   }, [syncLocalUser]);
 
+  // The email of a login waiting for its authenticator code (two-step sign-in).
+  const totpEmailRef = React.useRef<string | null>(null);
+
+  const finishLogin = React.useCallback(async (email: string, nextSession: CognitoSession) => {
+    const localUser = await syncLocalUser(nextSession);
+    const profiledUser = await applyPendingProfile(email);
+    if (profiledUser) setUser(profiledUser);
+    return profiledUser || localUser;
+  }, [syncLocalUser]);
+
   const login = React.useCallback(async (email: string, password: string, options: { remember?: boolean } = {}) => {
     setStatus("loading");
     setError(null);
+    totpEmailRef.current = null;
     try {
       setSessionPersistence(options.remember ?? true);
       const nextSession = await signInWithCognito(email, password);
-      const localUser = await syncLocalUser(nextSession);
-      const profiledUser = await applyPendingProfile(email);
-      if (profiledUser) setUser(profiledUser);
-      return profiledUser || localUser;
+      return await finishLogin(email, nextSession);
     } catch (unknownError) {
       setStatus("unauthenticated");
-      setError(errorMessageFromUnknown(unknownError, "Could not sign in."));
+      if (unknownError instanceof CognitoClientError && unknownError.code === TOTP_REQUIRED_CODE) {
+        // Not a failure: the Log In page now asks for the authenticator code.
+        totpEmailRef.current = email;
+      } else {
+        setError(errorMessageFromUnknown(unknownError, "Could not sign in."));
+      }
       throw unknownError;
     }
-  }, [syncLocalUser]);
+  }, [finishLogin]);
+
+  const completeTotpLogin = React.useCallback(async (code: string) => {
+    const email = totpEmailRef.current;
+    if (!email) throw new CognitoClientError("Your sign-in timed out. Enter your email and password again.", "NotAuthorizedException");
+    setStatus("loading");
+    setError(null);
+    try {
+      const nextSession = await completeCognitoTotpSignIn(code);
+      totpEmailRef.current = null;
+      return await finishLogin(email, nextSession);
+    } catch (unknownError) {
+      setStatus("unauthenticated");
+      throw unknownError;
+    }
+  }, [finishLogin]);
+
+  const cancelTotpLogin = React.useCallback(() => {
+    totpEmailRef.current = null;
+    cancelCognitoTotpSignIn();
+  }, []);
 
   const syncSignupThenSignOut = React.useCallback(async (email: string, password: string) => {
     const nextSession = await signInWithCognito(email, password);
@@ -413,9 +462,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }, [login]);
 
-  // Records Terms acceptance (and the marketing choice) for a signed-in user.
-  const acceptTerms = React.useCallback(async (marketingOptIn: boolean) => {
-    const updatedUser = await updateAuthenticatedUser({ termsAccepted: true, termsVersion: TERMS_VERSION, marketingOptIn });
+  // Records Terms acceptance and the country (prices and currency) for a signed-in user.
+  const acceptTerms = React.useCallback(async (country: Country) => {
+    const updatedUser = await updateAuthenticatedUser({ termsAccepted: true, termsVersion: TERMS_VERSION, country, currency: CURRENCY_BY_COUNTRY[country] });
     storeLocalUser(updatedUser);
     setUser(updatedUser);
     return updatedUser;
@@ -465,6 +514,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     displayUser: toDisplayUser(user, session),
     error,
     login,
+    completeTotpLogin,
+    cancelTotpLogin,
     signup,
     confirmSignup,
     requestPasswordReset,
@@ -474,7 +525,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     startSocialSignIn,
     logout,
     refreshUser,
-  }), [acceptTerms, confirmSignup, error, login, logout, refreshUser, requestPasswordReset, resendSignupCode, resetPassword, session, signup, startSocialSignIn, status, user]);
+  }), [acceptTerms, cancelTotpLogin, completeTotpLogin, confirmSignup, error, login, logout, refreshUser, requestPasswordReset, resendSignupCode, resetPassword, session, signup, startSocialSignIn, status, user]);
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }

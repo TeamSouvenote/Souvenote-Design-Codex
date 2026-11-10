@@ -1,127 +1,66 @@
 "use client";
 
 import * as React from "react";
-import { rememberDeliverySource } from "./delivery/deliverySource";
+import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Navbar } from "./Navbar";
-import { Footer } from "./Footer";
-import { BmcIcon } from "./BmcShared";
-import { CardArt } from "./CardArt";
-import { CARD_DRAFTS_UPDATED_EVENT, fetchCardDraftAssets, fetchUserCardDrafts } from "../lib/api";
+import { rememberDeliverySource } from "./delivery/deliverySource";
+import { CARD_DRAFTS_UPDATED_EVENT, deleteCardDraft, fetchCardDraftAssets, fetchUserCardDrafts } from "../lib/api";
 import type { CardDraft, CardDraftAsset } from "../lib/api";
+import { STAGES, briefFromCreative } from "./bmc/brief";
+import { nextOpenQuestion } from "./bmc/questionBank";
+import { ptBriefFromCreative, savedTemplateId } from "./personalize/ptBrief";
+import { nextOpen, stagesFor } from "./personalize/ptEngine";
+import { templateFor } from "./personalize/templates";
 import { rememberSelectedAsset } from "../lib/mockMvpFlow";
-import type { DemoUser } from "./DemoUser";
 import { useAuth } from "./AuthProvider";
-import { AuthGatePrompt } from "./AuthGatePrompt";
+import { ContentPageHead } from "./content/ContentPageShell";
+import { ConfirmDialog } from "./content/ConfirmDialog";
+import { SongPlayer } from "./landing/SongPlayer";
+import { usePrintAndSendPrice } from "./pricing/printAndSendPrice";
+import { formatMoney } from "../lib/priceLists";
+import { expiresSoon, formatLongDate, storageExpiry } from "./library/storage";
 
-type MyCardsAppProps = {
-  /** Fallback display user; the signed-in user from useAuth wins when present. */
-  user?: DemoUser;
-  full?: boolean;
-};
+// Saved Cards & Songs (/create/my-cards-and-songs, alias /my-cards) on the
+// berry & ivory system. Drafts resume at their next open question, finished
+// cards can be printed and sent again without new AI credits, and songs play
+// here when the asset has a playable address. Storage: 12 months from the
+// last saved edit (PRD §5), shown as a date on every item.
 
-type McsDraft = {
+type DraftWithAssets = { draft: CardDraft; assets: CardDraftAsset[] };
+
+type LibraryDraft = {
   id: string;
-  pal: string;
   title: string;
   flow: string;
   where: string;
   step: number;
   total: number;
-  days: number;
+  expiry: Date;
   href: string;
 };
 
-type McsCard = {
+type LibraryCard = {
   id: string;
-  selectedAssetId?: string | null;
-  assets?: CardDraftAsset[];
-  pal: string;
-  glyph: string;
-  song?: boolean;
-  message?: boolean;
-  gift?: boolean;
-  days: number;
   title: string;
-  saved: string;
-};
-
-type McsSong = {
-  id: string;
-  name: string;
-  voice: string;
-  card: string;
-  days: number;
-};
-
-type CardDraftWithAssets = {
-  draft: CardDraft;
+  imageUrl: string | null;
+  imageAssetId: string | null;
   assets: CardDraftAsset[];
+  hasSong: boolean;
+  hasMessage: boolean;
+  expiry: Date;
 };
 
-type McsExpiryProps = {
-  days: number;
+type LibrarySong = {
+  id: string;
+  cardTitle: string;
+  audioUrl: string | null;
 };
 
-type McsSectionHeadProps = {
-  title: string;
-  count?: number | null;
-  link?: string | null;
-};
-
-type McsEmptyProps = {
-  icon: React.ReactNode;
-  title: string;
-  sub: string;
-  cta?: string;
-  href?: string;
-  onClick?: () => void;
-};
-
-type McsDraftRowProps = {
-  d: McsDraft;
-  onResume?: (href: string) => void;
-};
-
-type McsCardItemProps = {
-  c: McsCard;
-  onMail: (card: McsCard) => void;
-};
-
-type McsSongRowProps = {
-  s: McsSong;
-};
-
-declare global {
-  interface Window {
-    __mcsSetMode?: (value: boolean) => void;
-  }
-}
-
-function McsClock() {
-  return <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="9" /><path d="M12 7v5l3 2" /></svg>;
-}
-
-function McsMail() {
-  return <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="5" width="18" height="14" rx="2" /><path d="M4 6l8 6 8-6" /></svg>;
-}
-
-function McsDownload() {
-  return <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"><path d="M12 3v12M7 11l5 5 5-5" /><path d="M5 20h14" /></svg>;
-}
-
-const MCS_DRAFTS: McsDraft[] = [];
-const MCS_CARDS: McsCard[] = [];
-const MCS_SONGS: McsSong[] = [];
-const MCS_BARS = [12, 18, 24, 16, 30, 22, 12, 26, 20, 28, 14, 24, 10, 22, 28, 16, 24, 12, 20, 26, 14, 22, 18, 28, 11, 20, 16, 24, 20, 12, 24, 28, 14, 20, 10, 24];
+type PendingDelete = { id: string; title: string; kind: "draft" | "card" };
 
 function asRecord(value: unknown): Record<string, unknown> {
   return value && typeof value === "object" ? value as Record<string, unknown> : {};
-}
-
-function nestedRecord(source: Record<string, unknown>, key: string): Record<string, unknown> {
-  return asRecord(source[key]);
 }
 
 function textValue(value: unknown): string {
@@ -136,494 +75,339 @@ function hasAssetType(assets: CardDraftAsset[], type: string): boolean {
   return assets.some((asset) => assetType(asset) === type);
 }
 
-function daysUntilExpiry(updatedAt: string): number {
-  const updated = new Date(updatedAt).getTime();
-  if (!Number.isFinite(updated)) return 30;
-
-  const expiry = updated + 30 * 24 * 60 * 60 * 1000;
-  const remaining = Math.ceil((expiry - Date.now()) / (24 * 60 * 60 * 1000));
-  return Math.max(1, remaining);
-}
-
-function formatSavedDate(value: string): string {
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return "recently";
-
-  return date.toLocaleDateString(undefined, {
-    month: "short",
-    day: "numeric",
-  });
+/** A web address the browser can load (mock assets without one use "mock://"). */
+function playableUrl(asset: CardDraftAsset | undefined): string | null {
+  const url = textValue(asset?.mockUrl);
+  return /^(https?:\/\/|\/)/i.test(url) ? url : null;
 }
 
 function getDraftTitle(draft: CardDraft): string {
   const brief = asRecord(draft.creative_brief);
-  const basics = nestedRecord(brief, "basics");
-  const template = nestedRecord(brief, "template");
-  const recipient = textValue(basics.recipient) || textValue(brief.recipient);
-  const occasion = textValue(draft.occasion) || textValue(basics.occasion) || textValue(template.occasion);
-  const templateName = textValue(template.name);
-  return [
-    templateName || occasion || "Custom Souvenote",
-    recipient ? `for ${recipient}` : "",
-  ].filter(Boolean).join(" ");
+  const basics = asRecord(brief.basics);
+  const template = asRecord(brief.template);
+  const community = asRecord(brief.communityCard);
+  const shared = asRecord(brief.shared);
+  const recipient = textValue(shared.recipientName) || textValue(basics.recipient) || textValue(brief.recipient);
+  const occasion = textValue(draft.occasion) || textValue(shared.occasion) || textValue(basics.occasion) || textValue(template.occasion);
+  const templateName = textValue(template.name) || textValue(community.name);
+  return [templateName || occasion || "Custom Souvenote", recipient ? `for ${recipient}` : ""].filter(Boolean).join(" ");
 }
 
 function draftFlow(draft: CardDraft): string {
-  const brief = asRecord(draft.creative_brief);
-  return textValue(brief.flow);
+  return textValue(asRecord(draft.creative_brief).flow);
 }
 
-function hasBriefSection(brief: Record<string, unknown>, key: string): boolean {
-  return Object.keys(nestedRecord(brief, key)).length > 0 || textValue(brief[key]).length > 0;
-}
-
+/** Personalize a Template resumes at its card's next open question (old pop-up drafts are migrated on open). */
 function personalizeResumeTarget(draftId: string, brief: Record<string, unknown>) {
-  const step = hasBriefSection(brief, "photo")
-    ? hasBriefSection(brief, "birthday") || hasBriefSection(brief, "recipient") || hasBriefSection(brief, "caption") || hasBriefSection(brief, "insideMessage")
-      ? "caption"
-      : "birthday"
-    : "photo";
-
+  const template = templateFor(savedTemplateId(brief));
+  const saved = ptBriefFromCreative(brief, {
+    id: template.id, name: template.name, version: template.version, occasion: template.occasion, orientation: template.defaultOrientation,
+  });
+  const stages = stagesFor(template, saved);
+  const stage = nextOpen(template, saved)?.stage || "Review";
   return {
-    href: `/create/personalize-a-template?modal=1&draftId=${encodeURIComponent(draftId)}&step=${step}`,
-    where: step === "photo" ? "photo or description" : step === "birthday" ? "birthday details" : "caption and message",
-    step: step === "photo" ? 1 : step === "birthday" ? 2 : 3,
-    total: 3,
+    href: `/create/personalize-a-template?template=${encodeURIComponent(template.id)}&draftId=${encodeURIComponent(draftId)}${saved.control.generation ? "#review" : ""}`,
+    where: stage === "Review" ? "review" : stage.toLowerCase(),
+    step: Math.max(1, stages.indexOf(stage) + 1),
+    total: stages.length,
   };
 }
 
+/** Build My Card resumes at its next open question; the stage says where it stopped. */
 function buildMyCardResumeTarget(draftId: string, brief: Record<string, unknown>) {
-  const baseHref = `/create/build-my-card?draftId=${encodeURIComponent(draftId)}`;
-
-  if (!hasBriefSection(brief, "photo")) {
-    return { href: `${baseHref}#photo`, where: "photo or description", step: 1, total: 5 };
-  }
-
-  if (!hasBriefSection(brief, "basics")) {
-    return { href: `${baseHref}#basics`, where: "the basics", step: 2, total: 5 };
-  }
-
-  if (!hasBriefSection(brief, "image")) {
-    return { href: `${baseHref}#image`, where: "image style", step: 3, total: 5 };
-  }
-
-  if (!hasBriefSection(brief, "message")) {
-    return { href: `${baseHref}#message`, where: "inside message", step: 4, total: 5 };
-  }
-
-  return { href: `${baseHref}#song`, where: "song and generation", step: 5, total: 5 };
+  const saved = briefFromCreative(brief);
+  const stage = nextOpenQuestion(saved)?.stage || "Review";
+  return {
+    href: `/create/build-my-card?draftId=${encodeURIComponent(draftId)}${saved.control.generation ? "#review" : ""}`,
+    where: stage === "Review" ? "review" : stage.toLowerCase(),
+    step: STAGES.indexOf(stage) + 1,
+    total: STAGES.length,
+  };
 }
 
-function mapDraftToMcsDraft(draft: CardDraft): McsDraft {
-  const flow = draftFlow(draft);
+function toLibraryDraft(draft: CardDraft): LibraryDraft {
+  const isTemplate = draftFlow(draft) === "personalize_template";
   const brief = asRecord(draft.creative_brief);
-  const title = getDraftTitle(draft);
-  const resume = flow === "personalize_template" ? personalizeResumeTarget(draft.id, brief) : buildMyCardResumeTarget(draft.id, brief);
-
+  const resume = isTemplate ? personalizeResumeTarget(draft.id, brief) : buildMyCardResumeTarget(draft.id, brief);
   return {
     id: draft.id,
-    pal: flow === "personalize_template" ? "gold" : "rose",
-    title,
-    flow: flow === "personalize_template" ? "Personalize a Template" : "Build My Card",
+    title: getDraftTitle(draft),
+    flow: isTemplate ? "Personalize a Template" : "Build My Card",
     where: resume.where,
     step: resume.step,
     total: resume.total,
-    days: daysUntilExpiry(draft.updated_at || draft.created_at),
+    expiry: storageExpiry(draft),
     href: resume.href,
   };
 }
 
-function mapDraftToMcsCard({ draft, assets }: CardDraftWithAssets): McsCard {
-  const flow = draftFlow(draft);
-  const title = getDraftTitle(draft);
-  const imageAsset = assets.filter((asset) => assetType(asset) === "image").at(-1);
+function toLibraryCard({ draft, assets }: DraftWithAssets): LibraryCard {
+  const image = assets.filter((asset) => assetType(asset) === "image").at(-1);
   return {
     id: draft.id,
-    selectedAssetId: imageAsset?.id || null,
+    title: getDraftTitle(draft),
+    imageUrl: playableUrl(image),
+    imageAssetId: image?.id || null,
     assets,
-    pal: flow === "personalize_template" ? "gold" : "rose",
-    glyph: title.slice(0, 1).toUpperCase() || "S",
-    song: hasAssetType(assets, "song"),
-    message: hasAssetType(assets, "message"),
-    days: daysUntilExpiry(draft.updated_at || draft.created_at),
-    title,
-    saved: formatSavedDate(draft.updated_at || draft.created_at),
+    hasSong: hasAssetType(assets, "song"),
+    hasMessage: hasAssetType(assets, "message"),
+    expiry: storageExpiry(draft),
   };
 }
 
-function mapDraftAssetsToSongs({ draft, assets }: CardDraftWithAssets): McsSong[] {
-  const title = getDraftTitle(draft);
+function toLibrarySongs({ draft, assets }: DraftWithAssets): LibrarySong[] {
+  const cardTitle = getDraftTitle(draft);
   return assets.filter((asset) => assetType(asset) === "song").map((asset, index) => ({
     id: asset.id || `${draft.id}-song-${index}`,
-    name: `${title} QR Song`,
-    voice: "Generated Souvenote QR song",
-    card: title,
-    days: daysUntilExpiry(draft.updated_at || draft.created_at),
+    cardTitle,
+    audioUrl: playableUrl(asset),
   }));
 }
 
-function McsExpiry({ days }: McsExpiryProps) {
-  const soon = days <= 7;
-  return <span className={`mcs-expiry ${soon ? "is-soon" : ""}`}><McsClock /> {days}d left</span>;
+function SavedUntil({ expiry }: { expiry: Date }) {
+  const soon = expiresSoon(expiry);
+  return (
+    <p className={`lib-expiry ${soon ? "is-soon" : ""}`}>
+      {soon ? "Expires soon: saved until " : "Saved until "}
+      <time dateTime={expiry.toISOString().slice(0, 10)}>{formatLongDate(expiry)}</time>
+    </p>
+  );
 }
 
-function McsSectionHead({ title, count, link }: McsSectionHeadProps) {
+/** Placeholder front for drafts and cards without a loadable image: the logo on forest. */
+function LogoTile() {
   return (
-    <div className="mcs-section-head">
-      <div className="mcs-section-title">{title}{count != null && <span className="mcs-section-count">{count}</span>}</div>
-      <div className="mcs-section-rule" />
-      {link && <button type="button" className="mcs-section-link">{link}</button>}
+    <span className="lib-logo-tile" aria-hidden="true">
+      <Image src="/assets/logomark-gold-silver.png" alt="" width={400} height={600} sizes="64px" />
+    </span>
+  );
+}
+
+function SectionHead({ id, title, count }: { id: string; title: string; count: number }) {
+  return (
+    <div className="lib-section-head">
+      <h2 id={id} className="lib-section-title" tabIndex={-1}>{title}</h2>
+      {count > 0 && <span className="lib-count">{count} {count === 1 ? "item" : "items"}</span>}
     </div>
   );
 }
 
-function McsEmpty({ icon, title, sub, cta, href, onClick }: McsEmptyProps) {
-  const ctaContent = cta ? <>{cta} <BmcIcon name="arrow" w={15} /></> : null;
-
+function EmptyState({ title, body, action }: { title: string; body: string; action?: React.ReactNode }) {
   return (
-    <div className="mcs-empty">
-      <span className="mcs-empty-ico">{icon}</span>
-      <div className="mcs-empty-title">{title}</div>
-      <div className="mcs-empty-sub">{sub}</div>
-      {cta && onClick ? (
-        <button type="button" className="bmc-cta" onClick={onClick}>{ctaContent}</button>
-      ) : cta ? (
-        <Link className="bmc-cta" href={href || "#"}>{ctaContent}</Link>
-      ) : null}
+    <div className="lib-empty">
+      <p className="lib-empty-title">{title}</p>
+      <p className="lib-empty-body">{body}</p>
+      {action}
     </div>
   );
 }
 
-function McsDraftRow({ d, onResume }: McsDraftRowProps) {
+function SignedOutLibrary() {
   return (
-    <div className="mcs-draft">
-      <div className="mcs-draft-thumb"><CardArt palette={d.pal} glyph="" figure corners={false} /></div>
-      <div className="mcs-draft-info">
-        <div className="mcs-draft-title">{d.title}</div>
-        <div className="mcs-draft-where">{d.flow} {"\u00b7"} picked up at <b>{d.where}</b></div>
-        <div className="mcs-draft-track">
-          <span className="mcs-draft-bar"><i style={{ width: (d.step / d.total * 100) + "%" }} /></span>
-          <span className="mcs-draft-step">Step {d.step} / {d.total}</span>
-        </div>
+    <section className="lib-empty lib-signed-out" aria-labelledby="lib-signin-title">
+      <h2 id="lib-signin-title" className="lib-empty-title">Log in to see your saved cards</h2>
+      <p className="lib-empty-body">Your drafts, finished cards and songs are kept in your account. Log in, or create a free account to get 2 free credits.</p>
+      <div className="lib-actions">
+        <Link className="l-btn l-btn-primary" href="/login?returnTo=/create/my-cards-and-songs">Log In</Link>
+        <Link className="l-btn l-btn-secondary" href="/signup?returnTo=/create/my-cards-and-songs">Sign Up</Link>
       </div>
-      <div className="mcs-draft-acts">
-        <McsExpiry days={d.days} />
-        <Link
-          className="bmc-cta"
-          href={d.href}
-          onClick={(event) => {
-            if (!onResume) return;
-            event.preventDefault();
-            onResume(d.href);
-          }}
-        >
-          <BmcIcon name="arrow" w={15} /> Resume
-        </Link>
-      </div>
-    </div>
+    </section>
   );
 }
 
-function McsCardItem({ c, onMail }: McsCardItemProps) {
-  return (
-    <div className="mcs-card">
-      <div className="mcs-card-art">
-        <div className="mcs-card-badges">
-          {c.gift ? (
-            <span className="mcs-card-songdot is-gift"><BmcIcon name="spark2" w={10} /> Gift</span>
-          ) : c.song ? (
-            <span className="mcs-card-songdot"><BmcIcon name="note" w={10} /> QR song</span>
-          ) : c.message ? (
-            <span className="mcs-card-songdot"><BmcIcon name="edit" w={10} /> Message</span>
-          ) : <span />}
-          <McsExpiry days={c.days} />
-        </div>
-        <CardArt palette={c.pal} glyph={c.glyph} glowIdx={c.id.charCodeAt(1)} />
-      </div>
-      <div className="mcs-card-body">
-        <div className="mcs-card-title">{c.title}</div>
-        <div className="mcs-card-date">Saved {c.saved}</div>
-        <div className="mcs-card-acts">
-          <button type="button" className="bmc-cta" onClick={() => onMail(c)}>
-            {c.gift ? <BmcIcon name="spark2" w={14} /> : <McsMail />}
-            {c.gift ? "Give this Souvenote" : "Mail this card"}
-          </button>
-          {!c.gift && <button type="button" className="mcs-iconbtn" title="Download"><McsDownload /></button>}
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function McsSongRow({ s }: McsSongRowProps) {
-  const [playing, setPlaying] = React.useState(false);
-
-  return (
-    <div className={`mcs-song ${playing ? "is-playing" : ""}`}>
-      <button type="button" className="mcs-song-fab" onClick={() => setPlaying((current) => !current)} aria-label={playing ? "Pause" : "Play"}>
-        <BmcIcon name={playing ? "pause" : "play"} w={19} />
-      </button>
-      <div className="mcs-song-info">
-        <div className="mcs-song-name">{s.name}</div>
-        <div className="mcs-song-sub">{s.voice} {"\u00b7"} {s.card === "Unattached" ? "Not on a card yet" : `On "${s.card}"`}</div>
-        <div className="mcs-song-wave">
-          {MCS_BARS.map((height, index) => <i key={index} style={{ height: height + "px", animationDelay: (index * 0.03) + "s", opacity: playing ? 1 : 0.5 }} />)}
-        </div>
-      </div>
-      <div className="mcs-song-side">
-        <McsExpiry days={s.days} />
-        <button type="button" className="mcs-iconbtn" title="Download"><McsDownload /></button>
-      </div>
-    </div>
-  );
-}
-
-function MyCardsApp({ user, full = true }: MyCardsAppProps) {
+function MyCardsApp() {
   const router = useRouter();
   const auth = useAuth();
-  const [mode, setMode] = React.useState(full);
-  const [authPromptOpen, setAuthPromptOpen] = React.useState(false);
-  const [backendDrafts, setBackendDrafts] = React.useState<CardDraftWithAssets[]>([]);
-  const [draftsStatus, setDraftsStatus] = React.useState<"loading" | "ready" | "error">("loading");
-  const [draftsError, setDraftsError] = React.useState<string | null>(null);
+  const price = usePrintAndSendPrice();
+  const [items, setItems] = React.useState<DraftWithAssets[]>([]);
+  const [status, setStatus] = React.useState<"loading" | "ready" | "error">("loading");
+  const [pendingDelete, setPendingDelete] = React.useState<PendingDelete | null>(null);
+  const [deleteError, setDeleteError] = React.useState<string | null>(null);
+  const [notice, setNotice] = React.useState<string | null>(null);
   const isAuthenticated = auth.status === "authenticated";
-  const localUserId = auth.user?.id;
+  const userId = auth.user?.id;
+
+  const load = React.useCallback(async () => {
+    if (!isAuthenticated || !userId) return;
+    try {
+      const drafts = await fetchUserCardDrafts(userId);
+      const withAssets = await Promise.all(drafts.map(async (draft) => ({ draft, assets: await fetchCardDraftAssets(draft.id) })));
+      setItems(withAssets);
+      setStatus("ready");
+    } catch {
+      setItems([]);
+      setStatus("error");
+    }
+  }, [isAuthenticated, userId]);
 
   React.useEffect(() => {
-    window.__mcsSetMode = (value) => setMode(value);
-  }, []);
-
-  const loadDraftsAndAssets = React.useCallback(async () => {
-    if (!isAuthenticated || !localUserId) return [];
-    const draftsFromBackend = await fetchUserCardDrafts(localUserId);
-    const draftsWithAssets = await Promise.all(
-      draftsFromBackend.map(async (draft) => ({
-        draft,
-        assets: await fetchCardDraftAssets(draft.id),
-      })),
-    );
-
-    return draftsWithAssets;
-  }, [isAuthenticated, localUserId]);
-
-  React.useEffect(() => {
-    if (!isAuthenticated || !localUserId) {
-      setBackendDrafts([]);
-      setDraftsStatus(auth.status === "loading" ? "loading" : "ready");
+    if (!isAuthenticated) {
+      setItems([]);
+      setStatus(auth.status === "loading" ? "loading" : "ready");
       return;
     }
+    setStatus("loading");
+    void load();
+    window.addEventListener(CARD_DRAFTS_UPDATED_EVENT, load);
+    return () => window.removeEventListener(CARD_DRAFTS_UPDATED_EVENT, load);
+  }, [auth.status, isAuthenticated, load]);
 
-    let active = true;
-    setDraftsStatus("loading");
+  const drafts = items.filter(({ assets }) => !hasAssetType(assets, "image")).map(({ draft }) => toLibraryDraft(draft));
+  const cards = items.filter(({ assets }) => hasAssetType(assets, "image")).map(toLibraryCard);
+  const songs = items.flatMap(toLibrarySongs);
+  const priceText = formatMoney(price.price, price.currency);
 
-    loadDraftsAndAssets()
-      .then((draftsWithAssets) => {
-        if (!active) return;
-        setBackendDrafts(draftsWithAssets);
-        setDraftsStatus("ready");
-        setDraftsError(null);
-      })
-      .catch((error: unknown) => {
-        if (!active) return;
-        setBackendDrafts([]);
-        setDraftsStatus("error");
-        setDraftsError(error instanceof Error ? error.message : "Saved cards could not be loaded from the backend.");
-      });
-
-    return () => {
-      active = false;
-    };
-  }, [auth.status, isAuthenticated, loadDraftsAndAssets, localUserId]);
-
-  React.useEffect(() => {
-    if (!isAuthenticated) return;
-
-    const sync = () => {
-      loadDraftsAndAssets()
-        .then((draftsWithAssets) => {
-          setBackendDrafts(draftsWithAssets);
-          setDraftsStatus("ready");
-          setDraftsError(null);
-        })
-        .catch((error: unknown) => {
-          setBackendDrafts([]);
-          setDraftsStatus("error");
-          setDraftsError(error instanceof Error ? error.message : "Saved cards could not be loaded from the backend.");
-        });
-    };
-
-    window.addEventListener(CARD_DRAFTS_UPDATED_EVENT, sync);
-    return () => window.removeEventListener(CARD_DRAFTS_UPDATED_EVENT, sync);
-  }, [isAuthenticated, loadDraftsAndAssets]);
-
-  const draftRows = mode
-    ? backendDrafts.filter(({ assets }) => !hasAssetType(assets, "image")).map(({ draft }) => mapDraftToMcsDraft(draft))
-    : [];
-  const cards = mode
-    ? backendDrafts.filter(({ assets }) => hasAssetType(assets, "image")).map(mapDraftToMcsCard)
-    : [];
-  const songs = mode ? backendDrafts.flatMap(mapDraftAssetsToSongs) : [];
-  const hasAnyBackendDrafts = backendDrafts.length > 0;
-
-  function startGeneration(href: string) {
-    router.push(href);
-  }
-
-  function mailCard(card: McsCard) {
-    if (card.selectedAssetId) {
-      rememberSelectedAsset(card.id, card.selectedAssetId, card.assets || []);
-    }
+  function printAndSend(card: LibraryCard) {
+    if (card.imageAssetId) rememberSelectedAsset(card.id, card.imageAssetId, card.assets);
     rememberDeliverySource("saved");
     router.push("/delivery");
   }
 
-  if (!isAuthenticated) {
-    return (
-      <>
-        <Navbar loggedIn={false} user={user} credits={{ images: 0, songs: 0 }} cardBank={0} />
-
-        <div className="bmc-shell" data-screen-label="05a Saved Cards & Songs">
-          <div className="bmc-head" style={{ margin: "0 0 40px", maxWidth: 820 }}>
-            <div className="bmc-eyebrow" style={{ whiteSpace: "nowrap" }}>
-              <span>Saved Cards &amp; Songs</span>
-            </div>
-            <h1 className="bmc-title">
-              Everything you&apos;ve{" "}
-              <span className="souv-hero-italic text-metallic-rose-gold">made</span>
-            </h1>
-            <p className="bmc-lede">
-              Sign up or log in to purchase cards and credits, then every draft, card, song, and token you make will live here.
-            </p>
-          </div>
-
-          <div className="mcs-section" data-screen-label="Section - Account required">
-            <McsSectionHead title="Your library" />
-            <div className="mcs-empty mcs-auth-lock">
-              <span className="mcs-empty-ico"><BmcIcon name="lock" w={30} /></span>
-              <div className="mcs-empty-title">Sign up or log in to unlock Saved Cards &amp; Songs</div>
-              <div className="mcs-empty-sub">Purchase cards and credits, save drafts, and keep your generated songs attached to your account.</div>
-              <div className="mcs-auth-actions">
-                <Link className="bmc-cta" href="/signup?returnTo=/create/my-cards-and-songs">Sign up</Link>
-                <Link className="bmc-cta-secondary" href="/login?returnTo=/create/my-cards-and-songs">Log in</Link>
-                <button type="button" className="bmc-cta-secondary" onClick={() => setAuthPromptOpen(true)}>What unlocks?</button>
-              </div>
-            </div>
-          </div>
-
-          <div className="mcs-section" data-screen-label="Section - Cards">
-            <McsSectionHead title="Saved cards" />
-            <McsEmpty
-              icon={<BmcIcon name="image" w={30} />}
-              title="Cards save after sign-up"
-              sub="Once you purchase cards or credits and generate a design, finished cards appear here ready to mail."
-            />
-          </div>
-
-          <div className="mcs-section" data-screen-label="Section - Songs">
-            <McsSectionHead title="Songs" />
-            <McsEmpty
-              icon={<BmcIcon name="note" w={30} />}
-              title="Songs attach to your account"
-              sub="QR-code songs are private to your account until you choose to mail or share a card."
-            />
-          </div>
-
-          <AuthGatePrompt
-            open={authPromptOpen}
-            onClose={() => setAuthPromptOpen(false)}
-            returnTo="/create/my-cards-and-songs"
-            title="Save every card and token in one place"
-            body="Create an account or log in to purchase card packs and credits, resume drafts, keep generated songs, and send finished cards when you're ready."
-            primaryLabel="Sign up"
-          />
-        </div>
-
-        <Footer />
-      </>
-    );
+  async function confirmDelete() {
+    if (!pendingDelete) return;
+    setDeleteError(null);
+    try {
+      await deleteCardDraft(pendingDelete.id);
+      const { title, kind } = pendingDelete;
+      setPendingDelete(null);
+      setNotice(`"${title}" was deleted.`);
+      // Focus goes back to the section the item was in.
+      window.requestAnimationFrame(() => document.getElementById(kind === "draft" ? "lib-drafts-title" : "lib-cards-title")?.focus());
+    } catch (error) {
+      setDeleteError(error instanceof Error ? error.message : "We couldn't delete it. Please try again.");
+    }
   }
 
   return (
-    <>
-      <Navbar loggedIn={isAuthenticated} user={user} credits={{ images: 0, songs: 0 }} cardBank={0} />
+    <div className="cf-wrap lib-wrap" data-screen-label="Saved Cards & Songs">
+      <ContentPageHead
+        title={<>Everything you&apos;ve <span className="l-script">made</span></>}
+        lede="Drafts and finished cards are saved for 12 months from your last edit. Pick up a draft, print and send a card, or play its song."
+      />
 
-      <div className="bmc-shell" data-screen-label="05a Saved Cards & Songs">
-        <div className="bmc-head" style={{ margin: "0 0 40px", maxWidth: 820 }}>
-          <div className="bmc-eyebrow" style={{ whiteSpace: "nowrap" }}>
-            <span>Saved Cards &amp; Songs</span>
-          </div>
-          <h1 className="bmc-title">
-            Everything you&apos;ve{" "}
-            <span className="souv-hero-italic text-metallic-rose-gold">made</span>
-          </h1>
-          <p className="bmc-lede">
-            {isAuthenticated
-              ? "Drafts, finished cards, and songs all live here for 30 days. Pick up where you left off, mail a card whenever you're ready, or play a song anytime before it clears."
-              : "Sign up or log in to purchase cards and credits, then every draft, card, song, and token you make will live here."}
-          </p>
-        </div>
-
-        <div className="mcs-section" data-screen-label="Section · In progress">
-          <McsSectionHead title="In progress" count={draftRows.length || null} />
-          {draftsStatus === "loading" ? (
-            <McsEmpty
-              icon={<BmcIcon name="edit" w={30} />}
-              title="Loading your drafts"
-              sub="Checking the local backend for cards you have created."
-            />
-          ) : draftsStatus === "error" ? (
-            <McsEmpty
-              icon={<BmcIcon name="edit" w={30} />}
-              title="Saved cards unavailable"
-              sub={`Start the local backend to load your saved drafts. ${draftsError || ""}`.trim()}
-              cta="Create your first card"
-              href="/create"
-            />
-          ) : draftRows.length ? (
-            <div className="mcs-drafts">{draftRows.map((draft) => <McsDraftRow key={draft.id} d={draft} onResume={startGeneration} />)}</div>
-          ) : (
-            <McsEmpty
-              icon={<BmcIcon name="edit" w={30} />}
-              title="Nothing in progress"
-              sub="Start a card and we'll save your spot here. Come back within 30 days to finish and send."
-              cta="Create your first card"
-              href="/create"
-            />
+      {!isAuthenticated && auth.status !== "loading" ? <SignedOutLibrary /> : (
+        <>
+          <p className="l-sr-only" role="status">{notice}</p>
+          {status === "error" && (
+            <p className="cf-alert lib-alert" role="alert">
+              We couldn&apos;t load your saved cards. Check your connection and{" "}
+              <button type="button" className="cf-text-link" onClick={() => { setStatus("loading"); void load(); }}>try again</button>.
+            </p>
           )}
-        </div>
 
-        <div className="mcs-section" data-screen-label="Section · Cards">
-          <McsSectionHead title="Saved cards" count={cards.length || null} link={cards.length ? "Sort by newest" : null} />
-          {cards.length ? (
-            <div className="mcs-cards-grid">{cards.map((card) => <McsCardItem key={card.id} c={card} onMail={mailCard} />)}</div>
-          ) : (
-            <McsEmpty
-              icon={<BmcIcon name="image" w={30} />}
-              title="No saved cards yet"
-              sub={hasAnyBackendDrafts ? "Generated cards will appear here after the backend returns an image asset for a draft." : "Every card you create lands here, ready to mail as a physical keepsake or remix again."}
-              cta={hasAnyBackendDrafts ? undefined : "Create your first card"}
-              href="/create"
-            />
-          )}
-        </div>
+          <section className="lib-section" aria-labelledby="lib-drafts-title" aria-busy={status === "loading"}>
+            <SectionHead id="lib-drafts-title" title="In progress" count={drafts.length} />
+            {status === "loading" ? <p className="lib-loading">Loading your drafts…</p> : drafts.length ? (
+              <ul className="lib-drafts">
+                {drafts.map((draft) => (
+                  <li key={draft.id} className="lib-draft">
+                    <LogoTile />
+                    <div className="lib-draft-text">
+                      <h3 className="lib-item-title">{draft.title}</h3>
+                      <p className="lib-item-meta">{draft.flow} · stopped at {draft.where}</p>
+                      <div className="lib-progress" role="img" aria-label={`Step ${draft.step} of ${draft.total}`}>
+                        <span className="lib-progress-bar"><i style={{ width: `${(draft.step / draft.total) * 100}%` }} /></span>
+                        <span className="lib-progress-label" aria-hidden="true">Step {draft.step} of {draft.total}</span>
+                      </div>
+                      <SavedUntil expiry={draft.expiry} />
+                    </div>
+                    <div className="lib-item-actions">
+                      <Link className="l-btn l-btn-primary" href={draft.href}>Resume<span className="l-sr-only"> {draft.title}</span></Link>
+                      <button type="button" className="lib-delete" onClick={() => { setDeleteError(null); setPendingDelete({ id: draft.id, title: draft.title, kind: "draft" }); }}>
+                        Delete<span className="l-sr-only"> {draft.title}</span>
+                      </button>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <EmptyState
+                title="Nothing in progress"
+                body="Start a card and we'll save your spot here as you go."
+                action={<Link className="l-btn l-btn-primary" href="/create">Create a Card</Link>}
+              />
+            )}
+          </section>
 
-        <div className="mcs-section" data-screen-label="Section · Songs">
-          <McsSectionHead title="Songs" count={songs.length || null} />
-          {songs.length ? (
-            <div className="mcs-songs">{songs.map((song) => <McsSongRow key={song.id} s={song} />)}</div>
-          ) : (
-            <McsEmpty
-              icon={<BmcIcon name="note" w={30} />}
-              title="No songs yet"
-              sub="Every Souvenote card can carry an optional QR-code song. Add one and it'll wait for you right here."
-            />
-          )}
-        </div>
-      </div>
+          <section className="lib-section" aria-labelledby="lib-cards-title">
+            <SectionHead id="lib-cards-title" title="Finished cards" count={cards.length} />
+            {status === "loading" ? <p className="lib-loading">Loading your cards…</p> : cards.length ? (
+              <ul className="lib-cards">
+                {cards.map((card) => (
+                  <li key={card.id} className="lib-card">
+                    <div className="lib-card-art">
+                      {card.imageUrl
+                        ? <Image src={card.imageUrl} alt={`Front of ${card.title}`} fill sizes="(min-width: 1024px) 260px, (min-width: 600px) 40vw, 80vw" unoptimized />
+                        : <LogoTile />}
+                    </div>
+                    <div className="lib-card-body">
+                      <h3 className="lib-item-title">{card.title}</h3>
+                      <p className="lib-item-meta">
+                        {[card.hasMessage ? "Inside message" : "", card.hasSong ? "QR song" : ""].filter(Boolean).join(" · ") || "Card front"}
+                      </p>
+                      <SavedUntil expiry={card.expiry} />
+                      <div className="lib-item-actions">
+                        <button type="button" className="l-btn l-btn-primary" onClick={() => printAndSend(card)}>
+                          Print and send, {priceText}<span className="l-sr-only"> {card.title}</span>
+                        </button>
+                        <button type="button" className="lib-delete" onClick={() => { setDeleteError(null); setPendingDelete({ id: card.id, title: card.title, kind: "card" }); }}>
+                          Delete<span className="l-sr-only"> {card.title}</span>
+                        </button>
+                      </div>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <EmptyState
+                title="No finished cards yet"
+                body="Cards you create land here, ready to print and send whenever you like."
+                action={<Link className="l-btn l-btn-primary" href="/create">Create a Card</Link>}
+              />
+            )}
+            {cards.length > 0 && (
+              <p className="lib-note">Sending a saved card again uses the same artwork and song, so it needs no new AI credits. You can change the recipient and edit the inside message for free.</p>
+            )}
+          </section>
 
-      <Footer />
-    </>
+          <section className="lib-section" aria-labelledby="lib-songs-title">
+            <SectionHead id="lib-songs-title" title="Songs" count={songs.length} />
+            {status === "loading" ? <p className="lib-loading">Loading your songs…</p> : songs.length ? (
+              <ul className="lib-songs">
+                {songs.map((song) => (
+                  <li key={song.id} className="lib-song">
+                    {song.audioUrl
+                      ? <SongPlayer label="QR song" title={song.cardTitle} audioSrc={song.audioUrl} />
+                      : (
+                        <div className="lib-song-static">
+                          <p className="lib-item-title">{song.cardTitle}</p>
+                          <p className="lib-item-meta">QR song · ready to print on the card</p>
+                        </div>
+                      )}
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <EmptyState title="No songs yet" body="Add an optional song to a card and it will wait for you here." />
+            )}
+            <p className="lib-note">A song on a mailed card keeps playing from its QR code, even after the card leaves Saved Cards &amp; Songs.</p>
+          </section>
+        </>
+      )}
+
+      {pendingDelete && (
+        <ConfirmDialog
+          title={<>Delete <span className="l-script">&ldquo;{pendingDelete.title}&rdquo;</span>?</>}
+          body={<p>It will be removed from Saved Cards &amp; Songs. Cards you&apos;ve already ordered aren&apos;t affected, and a mailed card&apos;s song keeps playing from its QR code.</p>}
+          confirmLabel="Delete"
+          busyLabel="Deleting…"
+          error={deleteError}
+          onConfirm={confirmDelete}
+          onClose={() => setPendingDelete(null)}
+        />
+      )}
+    </div>
   );
 }
 
-export { MyCardsApp, MCS_DRAFTS, MCS_CARDS, MCS_SONGS };
+export { MyCardsApp };

@@ -33,6 +33,7 @@
       <a href="#footer">Footer</a>
       <a href="#engravings">Engravings</a>
       <a href="#logo">Logo</a>
+      <a href="#questionnaire">Questionnaire</a>
     </nav>
   </aside>
 
@@ -313,6 +314,57 @@
         <div class="sg-logo sv-surface-forest"><img class="mark" src="../assets/logomark-gold-silver.png" alt="Souvenote S mark in gold with a platinum note"><span class="sg-do">Do · mark on forest</span></div>
         <div class="sg-logo is-bad"><img src="../assets/wordmark-gold.png" alt="Gold wordmark on ivory, which is too faint"><span class="sg-do">Don't · gold on ivory (1.73:1)</span></div>
         <div class="sg-logo is-bad"><img src="../assets/wordmark-gold.png" alt="Stretched wordmark" style="max-width:60%;transform:scaleX(1.45)"><span class="sg-do">Don't · stretch or distort</span></div>
+      </div>
+    </section>
+
+    <!-- ============ QUESTIONNAIRE ============ -->
+    <section class="sg-sec" id="questionnaire" aria-labelledby="q-t">
+      <h2 id="q-t">The <span class="sv-script">questionnaire</span></h2>
+      <p class="sg-lede">Build My Card asks one question at a time. Forest means act here; gold marks anything AI made. See docs/02-components.md, section 2.17.</p>
+      <div class="sg-q" style="margin-top:32px">
+        <div class="sg-q-card">
+          <p class="sg-q-eyebrow">02 · Basics</p>
+          <h3 class="sg-q-title">Pick the card&rsquo;s <span class="sv-script">shape</span></h3>
+          <p class="sg-q-prompt">Should Linda&rsquo;s birthday card stand tall or lie wide?</p>
+          <div class="sg-q-options" role="radiogroup" aria-label="Card shape (example)">
+            <button type="button" class="sg-q-opt is-selected" role="radio" aria-checked="true">Portrait · 5 × 7</button>
+            <button type="button" class="sg-q-opt" role="radio" aria-checked="false">Landscape · 7 × 5</button>
+          </div>
+          <div class="sg-q-options" role="group" aria-label="Music style (example)">
+            <button type="button" class="sg-q-opt" aria-pressed="false"><span class="sg-q-ai">Suggested</span> Pop</button>
+            <button type="button" class="sg-q-opt" aria-pressed="false">Acoustic</button>
+          </div>
+          <div class="sg-q-bar"><button type="button" class="sv-btn sv-btn-secondary sv-btn-sm">Back</button><button type="button" class="sv-btn sv-btn-primary sv-btn-sm">Continue</button></div>
+        </div>
+        <div class="sg-q-versions">
+          <div class="sg-q-version is-chosen"><strong>Your message</strong><span class="sg-q-chosen">Currently selected to print</span><p>Mom, every garden I see makes me think of you.</p></div>
+          <div class="sg-q-version is-ai"><strong>AI version</strong><button type="button" class="sv-btn sv-btn-secondary sv-btn-sm">Print this one instead</button><p>Happy birthday, Linda! Here&rsquo;s to more gardening and fewer chores.</p></div>
+        </div>
+        <figure class="sg-q-qr"><figcaption>Scan me</figcaption><div class="sg-q-qr-code" aria-hidden="true"><span class="sg-q-qr-tile"><img src="../assets/logomark-gold-silver.png" alt=""></span></div><span>To Play Song</span><span class="sg-note">The app draws the real code (error correction H) around the logo tile.</span></figure>
+      </div>
+    </section>
+    <section class="sg-sec" id="personalize" aria-labelledby="pt-t">
+      <h2 id="pt-t">Personalize a <span class="sv-script">template</span></h2>
+      <p class="sg-lede">The gallery and its suggestion box. Tiles use the logo placeholder; only templates with a card file open. See docs/02-components.md, section 2.20.</p>
+      <div class="sg-pt" style="margin-top:32px">
+        <ul class="sg-pt-tiles" aria-label="Template tiles (example)">
+          <li><button type="button" class="sg-pt-tile" aria-label="Personalize Horoscope (example)"><span class="sg-pt-art"><img src="../assets/logomark-gold-silver.png" alt=""></span><b>Horoscope</b><span class="sg-pt-go">Personalize &rarr;</span></button></li>
+          <li class="sg-pt-tile is-soon"><span class="sg-pt-art"><img src="../assets/logomark-gold-silver.png" alt=""></span><b>Book / Movie Cover</b><span class="sg-pt-soon">Coming soon</span></li>
+        </ul>
+        <div class="sg-pt-suggest">
+          <p><b>Looking for something else?</b> Suggest your idea for our team to build and we&rsquo;ll let you know when it&rsquo;s done.</p>
+          <div class="sg-pt-fields"><input aria-label="Your idea (example)" placeholder="Your idea, e.g. a retirement card like a boarding pass"><input aria-label="Your email (example)" placeholder="Your email" type="email"><button type="button" class="sv-btn sv-btn-primary sv-btn-sm">Send idea</button></div>
+          <span class="sg-note">We only use your email to tell you about this idea.</span>
+        </div>
+        <div class="sg-q-card">
+          <p class="sg-q-eyebrow">Horoscope · Design</p>
+          <h3 class="sg-q-title">Choose the <span class="sv-script">scene</span></h3>
+          <div class="sg-q-options" role="radiogroup" aria-label="AI suggestions (example)">
+            <button type="button" class="sg-q-opt" role="radio" aria-checked="false"><span class="sg-q-ai">Suggested</span> Maya alongside two fish</button>
+            <button type="button" class="sg-q-opt" role="radio" aria-checked="false">Describe my own idea</button>
+          </div>
+          <span class="sg-note">Gold marks AI suggestions; "Suggest more" allows the first set plus five more.</span>
+        </div>
       </div>
     </section>
   </main>

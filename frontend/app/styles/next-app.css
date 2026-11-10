@@ -76,57 +76,21 @@ body::before { position: fixed; z-index: -1; }
 }
 
 a.souv-cta-flow,
-a.souv-btn-colorful,
-a.souv-btn-log,
 a.auth-submit,
 a.auth-submit-secondary,
-a.opt-pack-cta,
 a.souv-cardbank-sendlink,
-a.souv-iconbtn,
-a.opt-back {
+a.souv-iconbtn {
   text-decoration: none;
-}
-
-/* Landing source of truth. */
-.souv-hero {
-  padding-top: var(--souv-page-top-space);
 }
 
 /* Design rule: first visible interior content starts at the same visual depth
    as the landing hero content. Landing keeps the follow-on-scroll nav;
    interior pages keep their static nav placement. */
-.opt-head,
-.pt-shell,
-.bmc-shell,
-.bmc-shell-review,
-.pg-hero,
-.opt-pricing-page .opt-pricing:first-of-type {
+.pt-shell {
   padding-top: var(--souv-page-visual-start);
 }
 
-.opt-page,
-.pt-page,
-.pg-page,
-.bmc-page {
+.pt-page {
   padding-top: 0;
 }
 
-.bmc-headcard {
-  top: var(--souv-page-visual-start);
-}
-
-.bmc-shell .pg-hero {
-  padding-top: 0;
-}
-
-.pg-faq-wrap {
-  padding-top: var(--souv-page-visual-start);
-}
-
-.pg-faq-wrap .pg-hero {
-  padding-top: 0;
-}
-
-.pg-faq-wrap .souv-faq {
-  padding-top: 8px;
-}

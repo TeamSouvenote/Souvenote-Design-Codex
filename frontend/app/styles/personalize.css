@@ -1,0 +1,391 @@
+/* ==========================================================================
+   personalize.css: Personalize a Template on the berry & ivory system.
+   Scoped under `.souv-pt` (set with `.souv-landing .souv-bmcq`, so the
+   questionnaire reuses Build My Card's bmcq-* styles). Forest = act here,
+   berry = emphasis, gold = AI-made only (fills, never text on ivory).
+   Mobile first: phone (<600px), tablet (600-1023px), desktop (>=1024px).
+   ========================================================================== */
+
+/* ---- Gallery: the page scrolls normally (Build My Card's one-screen grid is for the questions) ---- */
+.souv-pt .bmcq-main:has(.pt-gallery) { display: block; height: auto; }
+.souv-pt .pt-gallery { display: grid; gap: 28px; color: var(--l-text); }
+
+.souv-pt .pt-head { display: flex; align-items: center; justify-content: space-between; gap: 32px; }
+.souv-pt .pt-head-copy { max-width: 620px; }
+.souv-pt .pt-title {
+  margin: 0; font: 300 clamp(2.2rem, 1.6rem + 2.8vw, 3.6rem)/1.08 var(--l-font); letter-spacing: -0.01em; color: var(--l-heading);
+}
+.souv-pt .pt-title .l-script { color: var(--l-script-color); }
+.souv-pt .pt-lede { margin: 14px 0 0; font-size: 18px; line-height: 1.6; color: var(--l-text-2); max-width: 46ch; }
+
+/* The spinning comic card from the old header, kept as the page's one illustration. */
+.souv-pt .pt-headcard { flex: 0 0 auto; width: 150px; aspect-ratio: 5 / 7; perspective: 900px; }
+.souv-pt .pt-headcard-spin { position: relative; width: 100%; height: 100%; transform-style: preserve-3d; animation: pt-spin 14s var(--l-ease) infinite; }
+.souv-pt .pt-headcard-face {
+  position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; border-radius: 12px; backface-visibility: hidden;
+  box-shadow: 0 16px 30px rgba(74, 59, 57, 0.2);
+}
+.souv-pt .pt-headcard-face.is-back { transform: rotateY(180deg); }
+@keyframes pt-spin { 0%, 40% { transform: rotateY(-14deg); } 50%, 90% { transform: rotateY(166deg); } 100% { transform: rotateY(346deg); } }
+@media (max-width: 599px) { .souv-pt .pt-headcard { display: none; } }
+
+/* ---- Toolbar: the search leads, with a quiet link to the idea form at the end of the page ---- */
+.souv-pt .pt-toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 20px; }
+.souv-pt .pt-toolbar .pt-search { flex: 1 1 420px; max-width: 720px; }
+.souv-pt .pt-idea-jump {
+  display: inline-flex; flex-wrap: wrap; gap: 0 6px; align-items: center; min-height: 44px; padding: 0; border: 0; background: none;
+  font: 400 15px/1.3 var(--l-font); color: var(--l-text-2); cursor: pointer; text-align: left;
+}
+.souv-pt .pt-idea-jump span { font-weight: 700; color: var(--l-script-color); text-decoration: underline; text-underline-offset: 4px; }
+.souv-pt .pt-idea-jump:hover span { text-decoration-thickness: 2px; }
+.souv-pt .pt-idea-jump:focus-visible { outline: 2px solid var(--l-focus); outline-offset: 3px; border-radius: 6px; }
+.souv-pt .pt-search {
+  display: flex; align-items: center; gap: 10px; min-height: 52px; padding: 0 18px;
+  border: 1.5px solid var(--l-line-strong); border-radius: 999px; background: var(--l-paper); color: var(--l-text-2);
+  transition: border-color .25s var(--l-ease);
+}
+.souv-pt .pt-search:focus-within { border-color: var(--l-btn-bg); outline: 2px solid var(--l-focus); outline-offset: 2px; }
+.souv-pt .pt-search-input { flex: 1; min-width: 0; min-height: 48px; border: 0; background: transparent; font: 400 17px/1.3 var(--l-font); color: var(--l-text); }
+.souv-pt .pt-search-input:focus { outline: none; }
+.souv-pt .pt-search-input::placeholder { color: var(--l-text-2); }
+
+/* "Looking for something else?" band at the end of the gallery: a paper tile with a terracotta top stripe. */
+.souv-pt .pt-idea {
+  display: grid; gap: 16px; margin: 8px 0 40px; padding: 24px; scroll-margin: 24px;
+  border: 1px solid var(--l-paper-line); border-top: 4px solid var(--l-stripe); border-radius: 18px; background: var(--l-paper);
+}
+.souv-pt .pt-idea-copy { display: grid; gap: 6px; align-content: center; }
+.souv-pt .pt-idea-copy .pt-row-title { margin: 0; }
+.souv-pt .pt-idea-done { display: grid; gap: 6px; align-content: center; }
+.souv-pt .pt-idea-lede { margin: 0; font-size: 16px; line-height: 1.5; color: var(--l-text); max-width: 46ch; }
+.souv-pt .pt-idea-lede b { color: var(--l-heading); }
+.souv-pt .pt-idea-lede svg { vertical-align: -3px; color: var(--l-btn-bg); }
+.souv-pt .pt-idea.is-sent { align-items: center; }
+.souv-pt .pt-idea-form { display: grid; gap: 6px; }
+.souv-pt .pt-idea-fields { display: grid; gap: 8px; }
+.souv-pt .pt-idea-field { display: block; min-width: 0; }
+.souv-pt .pt-idea .bmcq-input { width: 100%; min-height: 44px; padding: 10px 14px; font-size: 16px; }
+.souv-pt .pt-idea textarea.bmcq-input { resize: none; field-sizing: content; max-height: 120px; }
+.souv-pt .pt-idea-privacy { margin: 0; font-size: 13px; color: var(--l-text-2); }
+.souv-pt .pt-idea-privacy a { color: var(--l-script-color); font-weight: 700; text-underline-offset: 3px; }
+.souv-pt .pt-idea .bmcq-error { margin: 0; }
+
+/* Staggered (owner, 2026-11-08): the idea gets its own full row; email and Send share the row beneath it. */
+@media (min-width: 600px) {
+  .souv-pt .pt-idea-fields { grid-template-columns: minmax(0, 1fr) auto; align-items: start; }
+  .souv-pt .pt-idea-fields > .pt-idea-field:first-child { grid-column: 1 / -1; }
+}
+@media (min-width: 900px) {
+  /* Wide screens: the invitation on the left, the form on the right. */
+  .souv-pt .pt-idea { grid-template-columns: minmax(0, 1fr) minmax(0, 1.35fr); gap: 32px; padding: 28px 32px; align-items: center; }
+}
+
+/* ---- Scroll rows: arrows either side, no visible scrollbar (owner, 2026-11-08) -------- */
+/* Used by the occasion chips and every card row (PtScrollRow). Hovering an arrow glides the row. */
+.souv-pt .pt-scroll { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 10px; min-width: 0; }
+.souv-pt .pt-scroll-track {
+  min-width: 0; margin: 0; overflow-x: auto; overscroll-behavior-x: contain;
+  scrollbar-width: none; -ms-overflow-style: none;
+}
+.souv-pt .pt-scroll-track::-webkit-scrollbar { display: none; }
+.souv-pt .pt-arrow {
+  display: grid; place-items: center; width: 44px; height: 44px; border: 0; border-radius: 50%;
+  background: var(--l-arrow-bg); color: var(--l-arrow-ink); cursor: pointer; box-shadow: 0 6px 14px var(--l-shadow-soft);
+  transition: background .25s var(--l-ease), opacity .25s var(--l-ease), transform .25s var(--l-ease);
+}
+.souv-pt .pt-arrow:hover:not(:disabled, [aria-disabled="true"]) { background: var(--l-btn-bg-hover); transform: scale(1.06); }
+.souv-pt .pt-arrow:focus-visible { outline: 2px solid var(--l-focus); outline-offset: 3px; }
+/* Nothing more that way: the arrow fades out but keeps its place, so the row doesn't jump. */
+.souv-pt .pt-arrow:is(:disabled, [aria-disabled="true"]) { opacity: 0; pointer-events: none; }
+/* At the edge but focused from the keyboard: stay visible, dimmed, so focus is never on an invisible button. */
+.souv-pt .pt-arrow[aria-disabled="true"]:focus-visible { opacity: 0.4; }
+/* Everything fits: no arrows at all. */
+.souv-pt .pt-scroll.is-static { grid-template-columns: minmax(0, 1fr); }
+.souv-pt .pt-scroll.is-static > .pt-arrow { display: none; }
+/* Phones: swipe instead; the arrows would take too much of the row. */
+@media (max-width: 599px) {
+  .souv-pt .pt-scroll { grid-template-columns: minmax(0, 1fr); }
+  .souv-pt .pt-scroll > .pt-arrow { display: none; }
+}
+
+/* ---- Occasion chips: one line --------------------------------------------------- */
+.souv-pt .pt-chips { display: flex; flex-wrap: nowrap; gap: 8px; padding: 4px 2px; }
+.souv-pt .pt-chips > .bmcq-chip { flex: none; white-space: nowrap; }
+.souv-pt .pt-chips .bmcq-chip { min-height: 44px; padding: 8px 16px; font-size: 15px; }
+
+/* ---- Rows and tiles -------------------------------------------------------------- */
+.souv-pt .pt-row, .souv-pt .pt-results { display: grid; gap: 14px; min-width: 0; }
+.souv-pt .pt-row-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px 14px; }
+.souv-pt .pt-row-title { margin: 0; font: 700 clamp(1.15rem, 1rem + 0.5vw, 1.4rem)/1.25 var(--l-font); color: var(--l-heading); }
+.souv-pt .pt-row-title .l-script { color: var(--l-script-color); font-weight: 400; }
+.souv-pt .pt-row-count { font: 700 12px/1.3 var(--l-font); letter-spacing: .16em; text-transform: uppercase; color: var(--l-label); }
+
+.souv-pt .pt-rail {
+  display: grid; grid-auto-flow: column; grid-auto-columns: clamp(140px, 42vw, 190px); gap: 16px;
+  padding: 6px 2px 14px; list-style: none;
+}
+.souv-pt .pt-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 18px; margin: 0; padding: 0; list-style: none; }
+
+.souv-pt .pt-tile { display: block; min-width: 0; }
+.souv-pt .pt-tile-open, .souv-pt .pt-tile.is-soon {
+  display: grid; gap: 8px; width: 100%; padding: 10px 10px 14px; border: 1px solid var(--l-paper-line); border-radius: 16px;
+  background: var(--l-paper); color: var(--l-text); text-align: left; font: inherit;
+}
+.souv-pt .pt-tile-open { cursor: pointer; box-shadow: 0 6px 16px var(--l-shadow-soft); transition: transform .3s var(--l-ease), box-shadow .3s var(--l-ease), border-color .3s var(--l-ease); }
+.souv-pt .pt-tile-open:hover { transform: translateY(-3px); border-color: var(--l-hover); box-shadow: var(--l-shadow); }
+.souv-pt .pt-tile-open:focus-visible { outline: 2px solid var(--l-focus); outline-offset: 3px; }
+.souv-pt .pt-tile-art { display: block; }
+.souv-pt .pt-tile-art .bmcq-card-placeholder { width: 100%; }
+.souv-pt .pt-tile-art .bmcq-card-placeholder img { width: 42%; height: auto; }
+.souv-pt .pt-tile-name { font: 700 15px/1.3 var(--l-font); color: var(--l-heading); min-height: 2.6em; }
+.souv-pt .pt-tile-go { display: inline-flex; align-items: center; gap: 6px; min-height: 32px; font: 700 14px/1 var(--l-font); color: var(--l-btn-bg); }
+.souv-pt .pt-tile.is-soon { background: transparent; box-shadow: none; }
+.souv-pt .pt-tile.is-soon .pt-tile-art { opacity: .72; }
+.souv-pt .pt-tile-soon {
+  justify-self: start; padding: 4px 10px; border-radius: 999px; border: 1px solid var(--l-line-strong);
+  font: 700 11px/1.3 var(--l-font); letter-spacing: .14em; text-transform: uppercase; color: var(--l-text-2);
+}
+
+.souv-pt .pt-empty { display: grid; gap: 12px; justify-items: start; padding: 24px; border: 1px dashed var(--l-line-strong); border-radius: 18px; }
+.souv-pt .pt-empty p { margin: 0; font-size: 17px; }
+.souv-pt .pt-signup-band {
+  display: grid; gap: 10px; justify-items: start; padding: 26px 24px; border-radius: 20px; background: var(--l-raised);
+}
+.souv-pt .pt-signup-band p { margin: 0; font-size: 17px; max-width: 52ch; }
+
+/* ---- Questionnaire: the template's name sits where Build My Card's title does ---- */
+.souv-pt .pt-flow-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 10px; margin: 0 0 14px; }
+.souv-pt .pt-flow-head .bmcq-eyebrow { margin: 0; flex-basis: 100%; }
+.souv-pt .pt-flow-name { margin: 0; font: 300 clamp(1.6rem, 1.3rem + 1.2vw, 2.1rem)/1.1 var(--l-font); color: var(--l-heading); }
+.souv-pt .pt-flow-head .bmcq-link { min-height: 44px; }
+@media (min-width: 1024px) {
+  .souv-pt .bmcq-shell > .pt-flow-head { grid-column: 1; grid-row: 1; align-self: end; margin: 0; }
+}
+
+.souv-pt .bmcq-fields.is-pair { display: grid; gap: 14px; }
+@media (min-width: 600px) { .souv-pt .bmcq-fields.is-pair { grid-template-columns: 1fr 1fr; } }
+
+/* Date: month, day, year in one row on tablets and up. */
+.souv-pt .pt-date { display: grid; gap: 12px; margin: 0; padding: 0; border: 0; min-width: 0; }
+@media (min-width: 600px) { .souv-pt .pt-date { grid-template-columns: 1.5fr 0.8fr 1fr; max-width: 560px; } }
+.souv-pt .pt-date select.bmcq-input { min-height: 48px; }
+.souv-pt .pt-date-note { margin: 0; display: inline-flex; align-items: center; gap: 6px; font-weight: 700; color: var(--l-script-color); }
+
+/* AI suggestions are gold. */
+.souv-pt .pt-suggest .bmcq-badge, .souv-pt .pt-story .bmcq-badge { background: var(--l-ai); color: var(--l-ai-ink); }
+
+/* On This Day: story candidates with their sources. */
+.souv-pt .pt-stories { display: grid; gap: 10px; }
+.souv-pt .pt-story { display: grid; gap: 6px; padding: 4px; border: 1.5px solid var(--l-line-strong); border-radius: 16px; background: var(--l-bg); transition: border-color .25s var(--l-ease); }
+.souv-pt .pt-story.is-selected { border-color: var(--l-btn-bg); box-shadow: inset 0 0 0 1px var(--l-btn-bg); }
+.souv-pt .pt-story-pick {
+  position: relative; display: block; width: 100%; min-height: 44px; padding: 12px 48px 8px 14px; border: 0; border-radius: 12px;
+  background: transparent; font: inherit; color: var(--l-text); text-align: left; cursor: pointer;
+}
+.souv-pt .pt-story-pick:focus-visible { outline: 2px solid var(--l-focus); outline-offset: 2px; }
+.souv-pt .pt-story-pick .bmcq-option-tick { top: 12px; background: var(--l-btn-bg); color: var(--l-btn-ink); }
+.souv-pt .pt-story-text { display: grid; gap: 4px; }
+.souv-pt .pt-story-title { font-weight: 700; color: var(--l-heading); }
+.souv-pt .pt-story-sub { font-size: 15px; color: var(--l-text-2); }
+.souv-pt .pt-story-source {
+  justify-self: start; display: inline-flex; align-items: center; min-height: 44px; padding: 0 14px;
+  font-size: 14px; font-weight: 700; color: var(--l-script-color); text-underline-offset: 3px;
+}
+.souv-pt .pt-check { display: inline-flex; align-items: center; gap: 10px; min-height: 44px; font-size: 16px; cursor: pointer; }
+.souv-pt .pt-check input { width: 20px; height: 20px; accent-color: var(--l-btn-bg); }
+
+/* Comic storyboard: four numbered panels, two by two from tablet up. */
+.souv-pt .pt-board { display: grid; gap: 14px; margin: 0; padding: 0; list-style: none; }
+@media (min-width: 600px) { .souv-pt .pt-board { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); } }
+.souv-pt .pt-board-panel { display: grid; gap: 8px; padding: 14px; border: 1px solid var(--l-paper-line); border-radius: 16px; background: var(--l-bg); min-width: 0; }
+.souv-pt .pt-board-num { margin: 0; font: 700 12px/1.3 var(--l-font); letter-spacing: .16em; text-transform: uppercase; color: var(--l-label); }
+
+.souv-pt .pt-front-notes { margin: 0; padding-left: 20px; display: grid; gap: 4px; font-size: 15px; }
+
+/* "Your card so far": the template's placeholder card and name. */
+.souv-pt .pt-summary-card { display: flex; align-items: center; gap: 12px; margin-bottom: 8px; }
+.souv-pt .pt-summary-card .bmcq-card-placeholder { width: 64px; flex: none; }
+.souv-pt .pt-summary-card .bmcq-card-placeholder.is-landscape { width: 90px; }
+.souv-pt .pt-summary-name { margin: 0; font-weight: 700; color: var(--l-heading); }
+
+@media (prefers-reduced-motion: reduce) {
+  .souv-pt .pt-headcard-spin { animation: none; }
+  .souv-pt .pt-tile-open, .souv-pt .pt-arrow, .souv-pt .pt-story { transition: none; }
+  .souv-pt .pt-tile-open:hover { transform: none; }
+}
+@media (forced-colors: active) {
+  .souv-pt .pt-story.is-selected, .souv-pt .pt-chips .bmcq-chip.is-selected { outline: 3px solid Highlight; }
+}
+
+/* ==========================================================================
+   Colour pass (owner, 2026-11-08): the lesser-used design-system colours,
+   each within its rule (gold = AI-made, terracotta = decoration and never
+   text, deep espresso = text on terracotta, oat = secondary text on forest).
+   ========================================================================== */
+
+/* 1. Stage colours for Personalize's own stage names (Photo, Song and Review already match Build My Card's). */
+.souv-pt [data-stage="details"], .souv-pt [data-stage="words"] { --bmcq-stage: var(--l-script-color); --bmcq-stage-tint: rgba(158, 61, 88, 0.08); }
+.souv-pt [data-stage="design"] { --bmcq-stage: var(--l-ai); --bmcq-stage-tint: rgba(216, 182, 90, 0.16); }
+.souv-pt .bmcq-rail-step.is-current:is([data-stage="details"], [data-stage="words"]) .bmcq-rail-dot { color: var(--l-btn-ink); }
+
+/* 3. Template tiles in the landing gallery's five tones, the name in script on the front. */
+.souv-pt .pt-tone-card {
+  position: relative; display: grid; place-items: center; width: 100%; aspect-ratio: 5 / 7; padding: 14px; border-radius: 10px;
+  box-shadow: inset 0 0 0 1px var(--l-paper-line), 0 6px 14px rgba(74, 59, 57, 0.14);
+}
+.souv-pt .pt-tone-card::before { content: ""; position: absolute; inset: 8px; border: 1px solid currentColor; border-radius: 6px; opacity: 0.32; pointer-events: none; }
+.souv-pt .pt-tone-card-name { font: 400 clamp(1.15rem, 1rem + 0.6vw, 1.45rem)/1.12 var(--l-script); text-align: center; text-wrap: balance; }
+.souv-pt .is-tone-1 { background: var(--l-tone-1); color: var(--l-tone-1-ink); }
+.souv-pt .is-tone-2 { background: var(--l-tone-2); color: var(--l-tone-2-ink); }
+.souv-pt .is-tone-3 { background: var(--l-tone-3); color: var(--l-tone-3-ink); }
+.souv-pt .is-tone-4 { background: var(--l-tone-4); color: var(--l-tone-4-ink); }
+.souv-pt .is-tone-5 { background: var(--l-tone-5); color: var(--l-tone-5-ink); }
+
+/* 11. The template's tone beside its name in the questions header (and on Review). */
+.souv-pt .pt-flow-swatch {
+  display: inline-block; width: 12px; height: 17px; margin-right: 9px; border-radius: 3px; vertical-align: 0;
+  box-shadow: inset 0 0 0 1px var(--l-paper-line);
+}
+
+/* 6. Coming soon: a warm raised-ivory tile with a terracotta stripe and cocoa text, rather than greyed out. */
+.souv-pt .pt-tile.is-soon { background: var(--l-raised); border: 1px solid transparent; border-top: 3px solid var(--l-stripe); }
+.souv-pt .pt-tile.is-soon .pt-tile-art { opacity: 0.82; }
+.souv-pt .pt-tile.is-soon .pt-tile-name { color: var(--l-text-2); }
+.souv-pt .pt-tile.is-soon .pt-tile-soon { background: var(--l-paper); border-color: var(--l-line); color: var(--l-text-2); }
+
+/* 7. Row headings: a short terracotta stripe paces the long gallery. */
+.souv-pt .pt-row-head .pt-row-title::before {
+  content: ""; display: inline-block; width: 22px; height: 4px; margin-right: 10px; border-radius: 2px; background: var(--l-stripe); vertical-align: 0.3em;
+}
+
+/* 8. Occasion chips carry the same tone dots as Build My Card's chips ("All" has none). */
+.souv-pt .pt-chips .bmcq-chip { display: inline-flex; align-items: center; gap: 8px; }
+.souv-pt .pt-chips .bmcq-chip + .bmcq-chip::before { content: ""; flex: none; width: 9px; height: 9px; border-radius: 50%; background: var(--pt-dot, var(--l-stripe)); }
+.souv-pt .pt-chips .bmcq-chip:nth-child(7n + 2) { --pt-dot: var(--l-stripe); }
+.souv-pt .pt-chips .bmcq-chip:nth-child(7n + 3) { --pt-dot: var(--l-script-color); }
+.souv-pt .pt-chips .bmcq-chip:nth-child(7n + 4) { --pt-dot: var(--l-ai); }
+.souv-pt .pt-chips .bmcq-chip:nth-child(7n + 5) { --pt-dot: var(--l-btn-bg); }
+.souv-pt .pt-chips .bmcq-chip:nth-child(7n + 6) { --pt-dot: var(--l-text-2); }
+.souv-pt .pt-chips .bmcq-chip:nth-child(7n + 7) { --pt-dot: var(--l-ai); }
+.souv-pt .pt-chips .bmcq-chip:nth-child(7n + 1) { --pt-dot: var(--l-script-color); }
+.souv-pt .pt-chips .bmcq-chip.is-selected::before { box-shadow: 0 0 0 2px var(--l-btn-ink); }
+
+/* 5. Sign-up band: a forest band with oat text, like the landing page's comparison band. */
+.souv-pt .pt-signup-band { background: var(--l-dark-bg); color: var(--l-dark-ink); }
+.souv-pt .pt-signup-band .pt-row-title { color: var(--l-dark-ink); }
+.souv-pt .pt-signup-band .pt-row-title .l-script { color: var(--l-dark-accent); }
+.souv-pt .pt-signup-band p { color: var(--l-dark-ink-2); }
+.souv-pt .pt-signup-band .bmcq-btn.is-primary { background: var(--l-dark-btn-bg); border-color: var(--l-dark-btn-bg); color: var(--l-dark-btn-ink); }
+.souv-pt .pt-signup-band .bmcq-btn.is-primary:hover { background: var(--l-dark-btn-bg-hover); }
+.souv-pt .pt-signup-band .bmcq-btn:focus-visible { outline-color: var(--l-dark-accent); }
+
+/* 9. The star sign: a terracotta chip with deep-espresso text (the one pairing allowed on terracotta). */
+.souv-pt .pt-date-note { color: inherit; }
+.souv-pt .pt-sign-chip {
+  display: inline-flex; align-items: center; gap: 6px; padding: 5px 12px; border-radius: 999px;
+  background: var(--l-stripe); color: var(--l-terracotta-ink); font-weight: 700;
+}
+
+/* On This Day stories: the chosen story on raised ivory with a berry edge; sources in cocoa. */
+.souv-pt .pt-story.is-selected { background: var(--l-raised); border-color: var(--l-script-color); box-shadow: inset 0 0 0 1px var(--l-script-color); }
+.souv-pt .pt-story-source { color: var(--l-text-2); }
+
+/* 2. AI suggestions sit in the gold AI box (bmcq-ai-block); its cards get room to breathe. */
+.souv-pt .bmcq-ai-block.pt-suggest .bmcq-options.is-cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 10px; }
+.souv-pt .bmcq-ai-block.pt-suggest .bmcq-options.is-cards .bmcq-option { min-width: 0; padding-top: 18px; }
+
+/* Four option cards (for example "How should we use a photo?") sit two by two, not three and one. */
+@media (min-width: 600px) {
+  .souv-bmcq .bmcq-card .bmcq-options.is-cards:has(> :nth-child(4):last-child) { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+}
+
+/* 10. Song: the QR preview sits beside the choices on desktop, like Build My Card's song step. */
+@media (min-width: 1024px) {
+  .souv-pt .bmcq-card.is-song-mode .bmcq-controls {
+    display: grid; grid-template-columns: minmax(0, 1fr) auto; grid-template-rows: auto minmax(0, 1fr) auto; column-gap: 24px; align-content: start;
+  }
+  .souv-pt .bmcq-card.is-song-mode .bmcq-controls > .bmcq-options { grid-column: 1; grid-row: 1 / span 2; grid-template-columns: minmax(0, 1fr) !important; align-self: start; }
+  .souv-pt .bmcq-card.is-song-mode .bmcq-controls > .bmcq-qr-wrap { grid-column: 2; grid-row: 1 / span 2; align-self: start; max-width: 240px; }
+  .souv-pt .bmcq-card.is-song-mode .bmcq-controls > .bmcq-actions { grid-column: 1 / -1; grid-row: 3; align-self: end; }
+}
+
+/* ---- Prompt 1B (2026-11-09) ---------------------------------------------------------------- */
+@media (min-width: 1024px) {
+  /* The template name and "Choose a different template" stay on one line beside the rail
+     (longer names like On This Day wrapped, adding 38px to every step). */
+  .souv-pt .bmcq-shell > .pt-flow-head .pt-flow-name { font-size: 1.75rem; }
+  /* On This Day's lead stories sit two across, with tighter cards, so the step is closer to one screen. */
+  /* Three across, so the first three stories are one row; "Show N more stories" adds a row (D4). */
+  .souv-pt .pt-stories { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+  .souv-pt .pt-story-pick { padding: 10px 34px 8px 12px; }
+  .souv-pt .pt-story-title { line-height: 1.3; }
+  .souv-pt .pt-story { gap: 2px; }
+  .souv-pt .pt-story-sub { font-size: 14px; line-height: 1.35; }
+}
+
+/* Comic Card storyboard (owner, 2026-11-09, audit §8 D3). Boxes grow with their words instead of
+   scrolling inside; on desktop all four panels show at once with labels kept for screen readers
+   (the panel number and a placeholder name each box, as for Custom fields, 2.19); phones show one
+   panel per screen (StoryboardQuestion). */
+.souv-pt .pt-board textarea { field-sizing: content; resize: none; }
+.souv-pt .pt-board-panel > .bmcq-field:first-of-type textarea { min-height: 4lh; }
+@media (min-width: 1024px) {
+  /* One row per panel: the number, what happens (widest), then the two bubbles. */
+  .souv-pt .pt-board { grid-template-columns: minmax(0, 1fr); gap: 4px; }
+  .souv-pt .pt-board-panel { grid-template-columns: 18px minmax(0, 1.25fr) minmax(0, 1fr) minmax(0, 1fr); align-items: start; gap: 8px; padding: 6px 8px; }
+  .souv-pt .pt-board-num { padding-top: 10px; font-size: 16px; letter-spacing: 0; text-align: center; }
+  .souv-pt .pt-board-word { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); clip-path: inset(50%); white-space: nowrap; }
+  .souv-pt .pt-board .bmcq-label { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); clip-path: inset(50%); white-space: nowrap; }
+  .souv-pt .pt-board .bmcq-field { gap: 2px; }
+  .souv-pt .pt-board .bmcq-input { min-height: 40px; padding: 6px 10px; font-size: 14px; }
+  .souv-pt .pt-board textarea { line-height: 1.35; }
+  .souv-pt .pt-board-panel > .bmcq-field:first-of-type textarea { min-height: calc(2lh + 16px); }
+  .souv-pt .pt-board-panel > .bmcq-field:not(:first-of-type) textarea { min-height: calc(2lh + 16px); }
+  /* Each bubble’s word count sits inside its box (back underneath when there’s an error). */
+  .souv-pt .pt-board-panel > .bmcq-field:not(:first-of-type) { position: relative; }
+  .souv-pt .pt-board-panel > .bmcq-field:not(:first-of-type) > .bmcq-hint { position: absolute; right: 8px; bottom: 4px; margin: 0; font-size: 11px; line-height: 1.2; pointer-events: none; }
+  .souv-pt .pt-board-panel > .bmcq-field:not(:first-of-type):has(> .bmcq-error) > .bmcq-hint { position: static; }
+  .souv-pt .pt-board-panel > .bmcq-field:not(:first-of-type) textarea { padding-bottom: 18px; }
+}
+/* Rewrite storyboard in the action bar (tablet and desktop): the button and its count side by side. */
+.souv-pt .bmcq-actions-note .pt-board-rewrite { margin: 0; flex-wrap: nowrap; gap: 10px; }
+.souv-pt .bmcq-actions-note .pt-board-rewrite .bmcq-hint { margin: 0; font-size: 13px; line-height: 1.3; max-width: 24ch; }
+/* Action bar labels stay on one line (2.17) where there is room beside a secondary action. */
+@media (min-width: 600px) { .souv-pt .bmcq-actions .bmcq-btn { white-space: nowrap; } }
+.souv-pt .pt-board textarea.bmcq-input { resize: none; }
+/* On This Day: "Show N more stories" under the first three (owner, 2026-11-09, audit §8 D4). */
+.souv-pt .pt-stories-more { justify-self: start; min-height: 44px; }
+.souv-pt .pt-stories-foot { display: grid; gap: 8px; }
+.souv-pt .pt-stories-foot .bmcq-hint { margin: 0; }
+@media (min-width: 1024px) {
+  .souv-pt .pt-stories-foot { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 4px 16px; }
+  .souv-pt .pt-stories-foot .bmcq-hint { flex: 1 1 260px; font-size: 14px; line-height: 1.35; }
+  .souv-pt .pt-stories-foot .pt-check { flex: none; font-size: 15px; }
+}
+/* AI suggestion cards on desktop (On This Day headlines and the other suggestion steps): tighter, so
+   three suggestions plus "Write my own" fit one screen (owner, 2026-11-09, audit §8 D4). */
+@media (min-width: 1024px) {
+  .souv-pt .bmcq-ai-block.pt-suggest { padding-block: 8px; }
+  .souv-pt .bmcq-ai-block.pt-suggest .bmcq-options.is-cards { gap: 8px; }
+  .souv-pt .bmcq-ai-block.pt-suggest .bmcq-options.is-cards .bmcq-option { min-height: 0; padding: 12px 40px 8px 12px; }
+  .souv-pt .bmcq-ai-block.pt-suggest .bmcq-option-label { font-size: 15px; line-height: 1.25; }
+}
+/* Ready to create: "Check the spelling" sits right under the card's notes. */
+@media (min-width: 1024px) { .souv-pt .pt-front-notes + .bmcq-front-words { margin-top: -8px; } }
+
+/* Personalize Review on phones (owner, 2026-11-09, audit §8 D7): the template header is one line and the
+   Review top is tighter, so the first card's decisions sit on the first screen, as in Build My Card. */
+@media (max-width: 599px) {
+  .souv-pt .pt-flow-head { flex-wrap: nowrap; align-items: center; gap: 8px; margin-bottom: 8px; }
+  .souv-pt .pt-flow-name { min-width: 0; font-size: 1.3rem; }
+  .souv-pt .pt-flow-head .bmcq-link { flex: none; font-size: 14px; }
+  .souv-pt .bmcq-review-head { padding: 10px 14px; margin-bottom: 12px; }
+  .souv-pt .bmcq-review-head .bmcq-lede { margin-top: 6px; font-size: 15px; line-height: 1.4; }
+  .souv-pt .bmcq-panel.is-front { padding: 14px 16px; gap: 6px; }
+  .souv-pt .bmcq-panel.is-front .bmcq-front { width: min(100%, 190px); }
+  .souv-pt .bmcq-panel.is-front .bmcq-front.is-landscape { width: min(100%, 260px); }
+}
+
+/* Prompt 2 flows A-F10 (owner, 2026-11-09): tiles lift 1px on hover (Foundations 1.4). */
+.souv-pt .pt-tile-open:hover { transform: translateY(-1px); }
+@media (prefers-reduced-motion: reduce) { .souv-pt .pt-tile-open:hover { transform: none; } }

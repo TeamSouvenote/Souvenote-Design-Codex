@@ -114,9 +114,7 @@
 .souv-create .cr-card:focus-visible { translate: 0 -6px; }
 .souv-create .cr-card:focus-visible .cr-card-left { rotate: y -5deg; }
 .souv-create .cr-card:focus-visible .cr-card-right { rotate: y 5deg; }
-.souv-create .cr-card:focus-visible .cr-card-go,
-.souv-create .cr-card.is-checking .cr-card-go { color: var(--sv-ivory-50); background: var(--sv-berry-500); border-color: var(--sv-berry-500); }
-.souv-create .cr-card.is-checking { cursor: progress; }
+.souv-create .cr-card:focus-visible .cr-card-go { color: var(--sv-ivory-50); background: var(--sv-berry-500); border-color: var(--sv-berry-500); }
 
 .souv-create .cr-badge {
   top: 2.8cqi; left: 2.8cqi;
@@ -142,21 +140,11 @@
   line-height: 1.24;
 }
 .souv-create .cr-card.is-secondary .cr-card-sub { font-size: clamp(16px, 5.1cqi, 22px); }
-.souv-create .cr-card-go {
+.souv-create .cr-card-go,
+.souv-create .sv-ocard-song {
   flex: none;
   width: clamp(28px, 6.8cqi, 38px); height: clamp(28px, 6.8cqi, 38px);
 }
-
-/* Checking credits: a small ring in place of the arrow. */
-.souv-create .cr-spinner {
-  display: block;
-  width: 16px; height: 16px;
-  border: 2px solid currentColor;
-  border-top-color: transparent;
-  border-radius: 50%;
-  animation: cr-spin .8s linear infinite;
-}
-@keyframes cr-spin { to { transform: rotate(360deg); } }
 
 /* ---------- Closed card (5:7 front), secondary options below 1024px ---------- */
 .souv-create .cr-closed {
@@ -201,16 +189,6 @@
   .souv-create .cr-closed:hover { translate: 0 -4px; }
   .souv-create .cr-closed:hover .cr-card-go { color: var(--card-left); background: var(--card-left-ink); border-color: var(--card-left-ink); }
 }
-
-/* "We couldn't check your credits. Please try again." */
-.souv-create .cr-error {
-  max-width: 44ch;
-  margin: 0 auto;
-  color: var(--sv-berry-500);
-  font-weight: 700;
-  text-align: center;
-}
-.souv-create .cr-error:not(:empty) { margin-top: 14px; }
 
 /* ---------- Back to home ---------- */
 .souv-create .cr-back-row {
@@ -343,7 +321,6 @@
   .souv-create .cr-primary { grid-column: 2; grid-row: 1 / 3; margin: 0; padding: 10px 0 24px; }
   .souv-create .cr-primary li { width: min(88%, calc((100dvh - var(--cr-top) - 72px) * 10 / 7)); }
   .souv-create .cr-dots { grid-column: 2; grid-row: 3; margin-top: -20px; }
-  .souv-create .cr-error,
   .souv-create .cr-back-row { grid-column: 1 / -1; }
 }
 
@@ -359,7 +336,6 @@
   .souv-create :is(.cr-card, .cr-closed):is(:hover, :focus-visible) { translate: none; }
   .souv-create .cr-card:focus-visible .cr-card-left,
   .souv-create .cr-card:focus-visible .cr-card-right { rotate: none; }
-  .souv-create .cr-spinner { animation: none; border-top-color: currentColor; border-style: dotted; }
 }
 @media (forced-colors: active) {
   .souv-create .cr-card-left,

@@ -4,6 +4,7 @@ import { Footer } from "../components/Footer";
 import { Engraving } from "../components/landing/Engraving";
 import { COMMUNITY_CARDS_HREF, FOOTER_LEDE } from "../components/landing/content";
 import { PricingBackLink, PricingCardPacks, PricingCreditPacks } from "../components/pricing/PricingClient";
+import { PriceCountrySwitch } from "../components/pricing/PriceCountrySwitch";
 import { PRICING_DESCRIPTION, PRICING_TITLE, pricingStructuredData } from "../components/pricing/pricingContent";
 import { brandFontVariables } from "../lib/brandFonts";
 import { SITE_URL, openGraphFor } from "../lib/site";
@@ -34,18 +35,18 @@ export default function PricingPage() {
             <Engraving name="envelope" className="l-eng pr-eng pr-eng-left" />
             <Engraving name="stamp" className="l-eng pr-eng pr-eng-right" />
             <header className="pr-head">
-              <p className="pr-eyebrow">Pricing · Card packs</p>
               <h1 id="pr-title" className="pr-title">
                 Physical cards, <span className="l-script">printed and posted</span>
               </h1>
               <p className="pr-lede">
-                Every card includes shipping + <span className="pr-lede-mark">10 AI credits</span>. Buy just one or stock
+                Every card includes postage to Canada or the US + <span className="pr-lede-mark">10 AI credits</span>. Buy just one or stock
                 up on more to save.
               </p>
+              <PriceCountrySwitch className="pr-country" />
             </header>
             <PricingCardPacks />
             <p className="pr-note">
-              Each card has a 15-month send window and is saved in Saved Cards &amp; Songs, so you can send it when
+              Each card has a 12-month send window and is saved in Saved Cards &amp; Songs, so you can send it when
               the time is right.
             </p>
           </div>
@@ -60,7 +61,6 @@ export default function PricingPage() {
           </a>
           <div className="l-wrap">
             <header className="pr-head">
-              <p className="pr-eyebrow">Pricing · AI credits</p>
               <h2 id="pr-credits-title" className="l-h2">
                 Top up <span className="l-script">credits</span>
               </h2>

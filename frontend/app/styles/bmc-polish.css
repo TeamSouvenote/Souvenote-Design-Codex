@@ -1,0 +1,652 @@
+/* ==========================================================================
+   bmc-polish.css: Build My Card colour, Custom options, Review layout and
+   step-one spacing (owner requests 2026-11-07, round 3). Loaded after
+   bmc-questionnaire.css. Colour keeps the design-system meanings: forest =
+   act here (and Custom), berry = emphasis, gold = AI-made, terracotta =
+   decoration.
+   ========================================================================== */
+
+/* ---- Stage colours: each stage has its own accent (decoration only) ----------- */
+.souv-bmcq [data-stage="photo"] { --bmcq-stage: var(--l-stripe); --bmcq-stage-tint: rgba(201, 138, 118, 0.14); }
+.souv-bmcq [data-stage="basics"] { --bmcq-stage: var(--l-script-color); --bmcq-stage-tint: rgba(158, 61, 88, 0.08); }
+.souv-bmcq [data-stage="image"] { --bmcq-stage: var(--l-ai); --bmcq-stage-tint: rgba(216, 182, 90, 0.16); }
+.souv-bmcq [data-stage="message"] { --bmcq-stage: var(--l-script-color); --bmcq-stage-tint: rgba(158, 61, 88, 0.08); }
+.souv-bmcq [data-stage="song"] { --bmcq-stage: var(--l-ai); --bmcq-stage-tint: rgba(216, 182, 90, 0.16); }
+.souv-bmcq [data-stage="review"] { --bmcq-stage: var(--l-btn-bg); --bmcq-stage-tint: rgba(47, 62, 59, 0.08); }
+
+.souv-bmcq .bmcq-card[data-stage] {
+  border-top-color: var(--bmcq-stage);
+  background: linear-gradient(180deg, var(--bmcq-stage-tint), var(--l-paper) 160px);
+}
+.souv-bmcq .bmcq-rail-step.is-current[data-stage] > span { border-color: var(--bmcq-stage); box-shadow: inset 0 -3px 0 var(--bmcq-stage); }
+.souv-bmcq .bmcq-rail-step.is-current[data-stage] .bmcq-rail-dot { background: var(--bmcq-stage); color: var(--l-terracotta-ink); }
+.souv-bmcq .bmcq-rail-step.is-current[data-stage="basics"] .bmcq-rail-dot,
+.souv-bmcq .bmcq-rail-step.is-current[data-stage="message"] .bmcq-rail-dot,
+.souv-bmcq .bmcq-rail-step.is-current[data-stage="review"] .bmcq-rail-dot { color: var(--l-btn-ink); }
+.souv-bmcq .bmcq-summary-group[data-stage] { padding-left: 10px; border-left: 3px solid var(--bmcq-stage); }
+.souv-bmcq .bmcq-summary-group[data-stage] .bmcq-summary-stage { color: var(--l-text); }
+
+/* Occasion, vibe and accessory chips carry a small brand-tone dot, rotating through the palette. */
+.souv-bmcq .bmcq-card.is-occasion .bmcq-option:not(.is-custom)::before,
+.souv-bmcq .bmcq-card.is-vibes .bmcq-chip:not(.is-custom)::before,
+.souv-bmcq .bmcq-card.is-wearables .bmcq-chip:not(.is-custom)::before {
+  content: ""; flex: none; width: 10px; height: 10px; border-radius: 50%; background: var(--bmcq-dot, var(--l-stripe));
+}
+/* Design-system colours only (terracotta, berry, oat, forest, cocoa, espresso). No gold here: gold means AI-made (v1.5).
+   Seven slots, so the colours never line up into stripes in the 2-, 4-, 5- or 6-column grids. */
+.souv-bmcq .bmcq-options > :nth-child(7n + 1) { --bmcq-dot: var(--l-stripe); }
+.souv-bmcq .bmcq-options > :nth-child(7n + 2) { --bmcq-dot: var(--l-script-color); }
+.souv-bmcq .bmcq-options > :nth-child(7n + 3) { --bmcq-dot: var(--l-dark-ink-2); } /* oat */
+.souv-bmcq .bmcq-options > :nth-child(7n + 4) { --bmcq-dot: var(--l-btn-bg); }
+.souv-bmcq .bmcq-options > :nth-child(7n + 5) { --bmcq-dot: var(--l-text-2); }
+.souv-bmcq .bmcq-options > :nth-child(7n + 6) { --bmcq-dot: var(--l-text); } /* espresso */
+/* Oat is light on paper: a hairline ring keeps that dot visible (the selected state keeps its own ivory ring). */
+.souv-bmcq :is(.bmcq-card.is-occasion, .bmcq-card.is-vibes, .bmcq-card.is-wearables) .bmcq-options > :nth-child(7n + 3):not(.is-selected):not(.is-custom)::before { box-shadow: inset 0 0 0 1px var(--l-line-strong); }
+.souv-bmcq .bmcq-options > :nth-child(7n + 7) { --bmcq-dot: var(--l-script-color); }
+.souv-bmcq .bmcq-option.is-selected::before, .souv-bmcq .bmcq-chip.is-selected::before { box-shadow: 0 0 0 2px var(--l-btn-ink); }
+.souv-bmcq .bmcq-option.is-custom .bmcq-swatch { display: none; }
+
+/* ---- People: their name and how to say it side by side ---------------------------- */
+.souv-bmcq .bmcq-grid-people { display: grid; gap: 14px; }
+@media (min-width: 600px) { .souv-bmcq .bmcq-grid-people { grid-template-columns: 1fr 1fr; } }
+
+/* ---- Inside message: the writer box takes the open space --------------------------- */
+.souv-bmcq .bmcq-writer-switch { flex: none; }
+.souv-bmcq .bmcq-message-box { display: grid; gap: 8px; }
+.souv-bmcq .bmcq-message-box.is-ai {
+  padding: 12px 14px; border-radius: 16px; border: 1.5px solid var(--l-ai);
+  background: linear-gradient(180deg, rgba(216, 182, 90, 0.14), rgba(216, 182, 90, 0.04));
+}
+.souv-bmcq .bmcq-message-box-title { display: flex; align-items: center; gap: 6px; margin: 0; font-weight: 700; }
+@media (min-width: 1024px) {
+  .souv-bmcq .bmcq-card.is-message .bmcq-message-box { flex: 1 1 auto; min-height: 0; grid-template-rows: auto minmax(0, 1fr); }
+  .souv-bmcq .bmcq-card.is-message .bmcq-message-box:not(.is-ai) { grid-template-rows: minmax(0, 1fr); }
+  .souv-bmcq .bmcq-card.is-message .bmcq-message-box .bmcq-field { grid-template-rows: minmax(0, 1fr) auto; min-height: 0; }
+  .souv-bmcq .bmcq-card.is-message .bmcq-message-box textarea { height: 100%; min-height: 110px; resize: none; }
+}
+
+/* ---- Step one: the drop zone fills the card instead of hugging the top ------------- */
+.souv-bmcq .bmcq-card.is-photo .bmcq-drop { padding: 36px 20px; gap: 12px; }
+@media (min-width: 1024px) {
+  .souv-bmcq .bmcq-card.is-photo .bmcq-controls { gap: 18px; }
+  .souv-bmcq .bmcq-card.is-photo .bmcq-drop {
+    flex: 1 1 auto; min-height: 150px; display: grid; grid-template-columns: none; justify-items: center; align-content: center;
+    text-align: center; padding: 24px; gap: 12px;
+  }
+  .souv-bmcq .bmcq-card.is-photo .bmcq-drop > svg { grid-row: auto; }
+  .souv-bmcq .bmcq-card.is-photo .bmcq-drop .bmcq-hint { grid-column: auto; max-width: 52ch; }
+  .souv-bmcq .bmcq-card.is-photo .bmcq-field .bmcq-input.is-multiline { min-height: 160px; }
+}
+
+/* ---- Review: the full card in view, even action rows, one CTA ---------------------- */
+.souv-bmcq .bmcq-panel { display: flex; flex-direction: column; }
+.souv-bmcq .bmcq-panel-body { display: flex; flex-direction: column; gap: 10px; }
+.souv-bmcq .bmcq-panel.is-front { border-top: 4px solid var(--l-stripe); }
+.souv-bmcq .bmcq-panel.is-message { border-top: 4px solid var(--l-script-color); }
+.souv-bmcq .bmcq-panel.is-song { border-top: 4px solid var(--l-ai); }
+.souv-bmcq .bmcq-panel-note { margin: 0; font-size: 15px; color: var(--l-text-2); }
+.souv-bmcq .bmcq-front-stage { display: grid; place-items: center; }
+.souv-bmcq .bmcq-song-review { justify-items: center; }
+@media (min-width: 1024px) {
+  .souv-bmcq .bmcq-review-grid:not(:has(> :nth-child(3))) { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .souv-bmcq .bmcq-panel-body { flex: 1 1 auto; min-height: 0; }
+  .souv-bmcq .bmcq-panel .bmcq-version-head { flex-wrap: wrap; row-gap: 6px; }
+  .souv-bmcq .bmcq-panel.is-front .bmcq-front-stage { flex: 1 1 auto; min-height: 0; }
+  .souv-bmcq .bmcq-panel.is-front .bmcq-front { width: auto; aspect-ratio: 5 / 7; }
+  .souv-bmcq .bmcq-panel.is-front .bmcq-front.is-landscape { aspect-ratio: 7 / 5; }
+  .souv-bmcq .bmcq-panel .bmcq-versions.has-two { grid-template-columns: 1fr; }
+  .souv-bmcq .bmcq-song-review { grid-template-columns: 1fr; }
+  .souv-bmcq .bmcq-song-review > .bmcq-review-lyrics { display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: 8px 14px; }
+  .souv-bmcq .bmcq-song-review > .bmcq-qr, .souv-bmcq .bmcq-song-review .bmcq-song-genre, .souv-bmcq .bmcq-song-review > .bmcq-hint,
+  .souv-bmcq .bmcq-song-review .bmcq-review-lyrics { grid-column: auto; grid-row: auto; }
+}
+@media (max-width: 599px) {
+  .souv-bmcq .bmcq-front { width: min(100%, 300px); height: auto; aspect-ratio: 5 / 7; }
+}
+
+/* Occasions: a six-column grid on desktop so all of them fit. */
+@media (min-width: 1024px) {
+  .souv-bmcq .bmcq-card.is-occasion .bmcq-options.is-chips { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 6px; }
+  .souv-bmcq .bmcq-card.is-occasion .bmcq-option { min-height: 38px; padding: 4px 8px; font-size: 13.5px; line-height: 1.15; gap: 6px; }
+  .souv-bmcq .bmcq-card.is-occasion .bmcq-option-tick { display: none; }
+  .souv-bmcq .bmcq-group-custom { order: 0; }
+}
+
+/* Accents: compact group tabs and chips on desktop so the Custom field fits too. */
+@media (min-width: 1024px) {
+  .souv-bmcq .bmcq-card.is-accents .bmcq-groups { gap: 6px; }
+  .souv-bmcq .bmcq-card.is-accents .bmcq-group-head,
+  .souv-bmcq .bmcq-card.is-accents .bmcq-chip { min-height: 36px; padding: 4px 12px; font-size: 14px; }
+  .souv-bmcq .bmcq-card.is-accents .bmcq-input { min-height: 46px; }
+}
+
+/* ==========================================================================
+   QA pass (owner, 2026-11-07): everything lines up, and no box scrolls on its
+   own. Normal answers still fit one desktop screen; unusually long content
+   makes the page longer instead of adding a scrollbar inside a box.
+   ========================================================================== */
+@media (min-width: 1024px) {
+  .souv-bmcq .bmcq-main { height: auto; min-height: 100dvh; }
+  .souv-bmcq .bmcq-controls { overflow: visible; scrollbar-gutter: auto; }
+  .souv-bmcq .bmcq-summary { height: auto; overflow: visible; }
+  .souv-bmcq .bmcq-panel, .souv-bmcq .bmcq-panel-body, .souv-bmcq .bmcq-panel.is-front .bmcq-panel-body { overflow: visible; }
+  .souv-bmcq .bmcq-review-lyrics .bmcq-lyrics.is-compact { max-height: none; }
+}
+
+/* "Your card so far": an accordion. The current stage is open; the others fold to one line. */
+.souv-bmcq .bmcq-summary-fold {
+  display: flex; align-items: center; gap: 8px; width: 100%; min-height: 40px; padding: 0; border: 0; background: none;
+  font: inherit; letter-spacing: inherit; text-transform: inherit; color: inherit; text-align: left; cursor: pointer;
+}
+.souv-bmcq .bmcq-summary-fold-name { flex: none; }
+.souv-bmcq .bmcq-summary-fold-text {
+  flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  font: 400 14px/1.3 var(--l-font); letter-spacing: 0; text-transform: none; color: var(--l-text-2);
+}
+.souv-bmcq .bmcq-summary-fold svg { flex: none; margin-left: auto; color: var(--l-btn-bg); }
+.souv-bmcq .bmcq-summary-fold:hover .bmcq-summary-fold-text { color: var(--l-text); }
+.souv-bmcq .bmcq-summary-fold:focus-visible { outline: 2px solid var(--l-focus); outline-offset: 2px; border-radius: 6px; }
+.souv-bmcq .bmcq-summary-group.is-folded { gap: 0; }
+@media (min-width: 1024px) {
+  .souv-bmcq .bmcq-summary .bmcq-summary-row { align-items: center; }
+  .souv-bmcq .bmcq-summary .bmcq-summary-row dd { text-overflow: ellipsis; font-size: 14px; }
+}
+
+/* Names: both fields start on the same line; the pronunciation hint sits under its own field. */
+.souv-bmcq .bmcq-grid-people { align-items: start; }
+
+/* Song: Back and Continue sit at the bottom of the card like every other step. */
+@media (min-width: 1024px) {
+  .souv-bmcq .bmcq-card.is-song-mode .bmcq-song-mode { flex: 1 1 auto; grid-template-rows: auto minmax(0, 1fr); }
+  .souv-bmcq .bmcq-card.is-song-mode .bmcq-song-mode > .bmcq-actions { align-self: end; }
+}
+
+/* Tiles: titles line up across a row. Badges sit on the top edge; shape drawings share one height. */
+.souv-bmcq .bmcq-options.is-cards .bmcq-option, .souv-bmcq .bmcq-options.is-tiles .bmcq-option { position: relative; }
+.souv-bmcq .bmcq-options.is-cards .bmcq-option .bmcq-badge:not(.is-inline) { position: absolute; top: -10px; left: 14px; margin: 0; }
+
+/* Chip lists: an even grid instead of ragged rows. */
+@media (min-width: 1024px) {
+  .souv-bmcq .bmcq-card:is(.is-vibes, .is-wearables, .is-border, .is-border-colour, .is-decorate-what) .bmcq-options {
+    display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 8px;
+  }
+  .souv-bmcq .bmcq-card:is(.is-vibes, .is-wearables, .is-border, .is-border-colour, .is-decorate-what) .bmcq-options > * { justify-content: flex-start; min-width: 0; }
+  .souv-bmcq .bmcq-card.is-decorate-what .bmcq-options { grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); }
+}
+
+/* Accents: the chosen group's items sit in their own tinted panel, so tabs and items read differently. */
+.souv-bmcq .bmcq-card.is-accents .bmcq-group.is-open .bmcq-group-body {
+  padding: 10px 12px; border-radius: 14px; border: 1px solid var(--l-line);
+}
+
+/* Lyrics: a section never splits across the two columns. */
+.souv-bmcq .bmcq-lyrics-block { display: block; break-inside: avoid; margin-bottom: 1em; }
+.souv-bmcq .bmcq-lyrics-block:last-child { margin-bottom: 0; }
+
+/* Main photo: big enough to tell the photos apart. */
+@media (min-width: 1024px) {
+  .souv-bmcq .bmcq-card.is-primary .bmcq-thumb { width: 150px; height: 150px; }
+}
+
+/* Inside message: "This one will print" sits on the box. */
+.souv-bmcq .bmcq-message-box-head { display: flex; align-items: center; justify-content: space-between; gap: 8px 12px; flex-wrap: wrap; }
+.souv-bmcq .bmcq-message-box > .bmcq-will-print { justify-self: start; }
+@media (min-width: 1024px) {
+  .souv-bmcq .bmcq-card.is-message .bmcq-message-box:not(.is-ai):has(> .bmcq-will-print) { grid-template-rows: auto minmax(0, 1fr); }
+}
+
+/* Review: the version that won't print shows two lines; the song panel's code is a little smaller. */
+@media (min-width: 1024px) {
+  .souv-bmcq .bmcq-panel .bmcq-version.is-other .bmcq-version-text {
+    display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+  }
+  .souv-bmcq .bmcq-song-review .bmcq-qr svg { width: 112px; height: 112px; }
+}
+/* The folded lines never widen the panel. */
+.souv-bmcq .bmcq-summary-body { grid-template-columns: minmax(0, 1fr); }
+.souv-bmcq .bmcq-summary-group, .souv-bmcq .bmcq-summary-group dl, .souv-bmcq .bmcq-summary-stage { min-width: 0; }
+.souv-bmcq .bmcq-summary { min-width: 0; }
+@media (min-width: 1024px) {
+  .souv-bmcq .bmcq-summary .bmcq-summary-row { grid-template-columns: 76px minmax(0, 1fr) auto; column-gap: 10px; }
+  .souv-bmcq .bmcq-summary .bmcq-summary-row dt { font-size: 13px; }
+  .souv-bmcq .bmcq-summary .bmcq-summary-row dd {
+    white-space: normal; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; line-height: 1.35;
+  }
+}
+@media (min-width: 1024px) {
+  .souv-bmcq .bmcq-card:is(.is-border, .is-border-colour) .bmcq-options > * { min-height: 38px; padding-block: 4px; }
+  .souv-bmcq .bmcq-card:is(.is-border, .is-border-colour) .bmcq-options { gap: 7px; }
+}
+@media (min-width: 1024px) {
+  .souv-bmcq .bmcq-mini-card { width: 80px; }
+  .souv-bmcq .bmcq-mini-card.is-landscape { width: 112px; }
+}
+/* Review: the whole 5×7 front, sized to the screen so the page stays one screen tall. */
+@media (min-width: 1024px) {
+  .souv-bmcq .bmcq-panel.is-front .bmcq-front { max-width: 100%; }
+}
+@media (min-width: 1024px) {
+  .souv-bmcq .bmcq-panel.is-song .bmcq-song-review { gap: 6px; }
+  .souv-bmcq .bmcq-panel.is-song .bmcq-song-review > .bmcq-hint { margin: 0; font-size: 14px; line-height: 1.4; }
+}
+@media (min-width: 1024px) and (max-width: 1279px) {
+  .souv-bmcq .bmcq-card:is(.is-vibes, .is-wearables, .is-border, .is-border-colour) .bmcq-options { grid-template-columns: repeat(auto-fill, minmax(124px, 1fr)); gap: 6px; }
+  .souv-bmcq .bmcq-card:is(.is-vibes, .is-wearables, .is-border, .is-border-colour) .bmcq-options > * { min-height: 38px; padding: 4px 10px; font-size: 14px; }
+}
+@media (min-width: 1024px) and (max-width: 1279px) {
+  .souv-bmcq .bmcq-mini-card { width: 60px; }
+  .souv-bmcq .bmcq-mini-card.is-landscape { width: 84px; }
+  .souv-bmcq .bmcq-mini-caption { font-size: 9px; padding: 2px 4px; bottom: 6px; left: 4px; right: 4px; }
+  .souv-bmcq .bmcq-summary-fold { min-height: 32px; }
+  .souv-bmcq .bmcq-summary-body { gap: 6px; }
+}
+@media (min-width: 1024px) {
+  .souv-bmcq .bmcq-summary-fold { min-height: 28px; }
+  .souv-bmcq .bmcq-summary .bmcq-summary-row { min-height: 28px; padding: 0; }
+  .souv-bmcq .bmcq-summary-body { gap: 6px; padding-bottom: 14px; }
+  .souv-bmcq .bmcq-summary-group.is-open { gap: 2px; }
+}
+@media (min-width: 1280px) {
+  .souv-bmcq .bmcq-card.is-vibes .bmcq-options { grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 7px; }
+  .souv-bmcq .bmcq-card.is-vibes .bmcq-options > * { min-height: 40px; padding: 4px 10px; font-size: 14.5px; }
+}
+
+/* Phones: the six-step rail fits the width without sideways scrolling. Only the
+   current step shows its name; done steps show a tick, upcoming ones a number. */
+@media (max-width: 599px) {
+  .souv-bmcq .bmcq-rail ol { overflow-x: visible; justify-content: space-between; gap: 4px; }
+  .souv-bmcq .bmcq-rail-step.is-done .bmcq-rail-label { display: none; }
+  .souv-bmcq .bmcq-rail-step.is-done > button, .souv-bmcq .bmcq-rail-step.is-upcoming > span { padding: 0 5px; }
+  .souv-bmcq .bmcq-rail-step.is-current > span { padding-right: 10px; letter-spacing: .1em; }
+}
+@media (max-width: 1023px) {
+  .fd-overlay .bmcq-sheet .bmcq-mini-card, .souv-bmcq .bmcq-sheet .bmcq-mini-card { width: 84px; }
+  .fd-overlay .bmcq-sheet .bmcq-summary-body, .fd-overlay .bmcq-sheet-body { gap: 8px; }
+}
+
+/* The phone sheet renders outside .souv-bmcq, so it gets the accordion styles here. */
+.fd-overlay .bmcq-sheet .bmcq-summary-group { display: grid; gap: 2px; min-width: 0; }
+.fd-overlay .bmcq-sheet .bmcq-summary-group[data-stage] { padding-left: 10px; border-left: 3px solid var(--bmcq-stage, var(--l-stripe)); }
+.fd-overlay .bmcq-sheet [data-stage="photo"] { --bmcq-stage: var(--l-stripe); }
+.fd-overlay .bmcq-sheet [data-stage="basics"], .fd-overlay .bmcq-sheet [data-stage="message"] { --bmcq-stage: var(--l-script-color); }
+.fd-overlay .bmcq-sheet [data-stage="image"], .fd-overlay .bmcq-sheet [data-stage="song"] { --bmcq-stage: var(--l-ai); }
+.fd-overlay .bmcq-sheet .bmcq-summary-stage { margin: 0; min-width: 0; font: 700 12px/1.3 var(--l-font); letter-spacing: .16em; text-transform: uppercase; color: var(--l-label); }
+.fd-overlay .bmcq-sheet .bmcq-summary-fold {
+  display: flex; align-items: center; gap: 8px; width: 100%; min-height: 44px; padding: 0; border: 0; background: none;
+  font: inherit; letter-spacing: inherit; text-transform: inherit; color: inherit; text-align: left; cursor: pointer;
+}
+.fd-overlay .bmcq-sheet .bmcq-summary-fold-name { flex: none; }
+.fd-overlay .bmcq-sheet .bmcq-summary-fold-text {
+  flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  font: 400 14px/1.3 var(--l-font); letter-spacing: 0; text-transform: none; color: var(--l-paper-ink-2, #655250);
+}
+.fd-overlay .bmcq-sheet .bmcq-summary-fold svg { flex: none; margin-left: auto; color: var(--l-btn-bg); }
+.fd-overlay .bmcq-sheet .bmcq-summary-fold:focus-visible { outline: 2px solid var(--l-focus); outline-offset: 2px; border-radius: 6px; }
+.fd-overlay .bmcq-sheet dl { margin: 0; display: grid; min-width: 0; }
+.fd-overlay .bmcq-sheet .bmcq-summary-row {
+  display: grid; grid-template-columns: 86px minmax(0, 1fr) auto; gap: 4px 10px; align-items: center; padding: 2px 0;
+  border-bottom: 1px solid var(--l-line);
+}
+.fd-overlay .bmcq-sheet .bmcq-summary-row dt { font-size: 14px; font-weight: 700; }
+.fd-overlay .bmcq-sheet .bmcq-summary-row dd {
+  margin: 0; font-size: 15px; line-height: 1.35; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+}
+.fd-overlay .bmcq-sheet-body { grid-template-columns: minmax(0, 1fr); }
+.fd-overlay .bmcq-sheet .bmcq-summary-row { min-height: 38px; }
+.fd-overlay .bmcq-sheet-body { gap: 8px; margin-top: 10px; }
+.fd-overlay .bmcq-sheet .bmcq-mini-card { width: 70px; }
+.fd-overlay .bmcq-sheet .bmcq-mini-card.is-landscape { width: 98px; }
+.fd-overlay .bmcq-sheet .bmcq-mini-caption { font-size: 10px; padding: 2px 4px; bottom: 6px; left: 4px; right: 4px; }
+.fd-overlay .fd-dialog.bmcq-sheet { max-height: calc(100dvh - 32px); }
+
+/* ==========================================================================
+   Round 4 (owner, 2026-11-08)
+   ========================================================================== */
+
+/* Custom and "Describe in my own words" are terracotta (replaces the green). */
+.souv-bmcq .bmcq-option.is-custom, .souv-bmcq .bmcq-chip.is-custom {
+  background: rgba(201, 138, 118, 0.18); border-color: var(--l-stripe); color: var(--l-terracotta-ink); font-weight: 700;
+}
+.souv-bmcq .bmcq-option.is-custom:hover, .souv-bmcq .bmcq-chip.is-custom:hover {
+  background: rgba(201, 138, 118, 0.3); border-color: var(--l-stripe); color: var(--l-terracotta-ink);
+}
+.souv-bmcq .bmcq-option.is-custom.is-selected, .souv-bmcq .bmcq-chip.is-custom.is-selected {
+  background: var(--l-stripe); border-color: var(--l-stripe); color: var(--l-terracotta-ink);
+}
+/* The accent items panel moves to a neutral tone so it doesn't read as Custom. */
+.souv-bmcq .bmcq-card.is-accents .bmcq-group.is-open .bmcq-group-body { background: var(--l-raised); }
+
+/* Decorate: nine options in a 3 x 3 grid; "Describe in my own words" is last (bottom right). */
+@media (min-width: 600px) {
+  .souv-bmcq .bmcq-card.is-decorate-what .bmcq-options { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+  .souv-bmcq .bmcq-card.is-decorate-what .bmcq-options > * { justify-content: flex-start; min-width: 0; }
+}
+
+/* A greeting-card-shaped placeholder with the current logo on forest. */
+.souv-bmcq .bmcq-card-placeholder {
+  display: grid; place-items: center; border-radius: 10px; background: var(--l-card-back);
+  box-shadow: inset 0 0 0 1px rgba(216, 182, 90, 0.4), 0 6px 14px rgba(74, 59, 57, 0.16);
+}
+.souv-bmcq .bmcq-card-placeholder.is-portrait { aspect-ratio: 5 / 7; }
+.souv-bmcq .bmcq-card-placeholder.is-landscape { aspect-ratio: 7 / 5; }
+.souv-bmcq .bmcq-card-placeholder img { object-fit: contain; }
+
+/* Card shape: two large tiles, each big enough for a real card example. */
+.souv-bmcq .bmcq-card.is-orientation .bmcq-options.is-tiles { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; max-width: 640px; }
+.souv-bmcq .bmcq-card.is-orientation .bmcq-option { padding: 16px; justify-content: center; }
+.souv-bmcq .bmcq-card.is-orientation .bmcq-shape-option { justify-items: center; text-align: center; width: 100%; gap: 4px; }
+.souv-bmcq .bmcq-shape-frame { display: grid; place-items: center; width: 100%; height: 220px; margin-bottom: 8px; }
+@media (max-width: 599px) {
+  .souv-bmcq .bmcq-shape-frame { height: 150px; }
+}
+
+/* Blueprint: each option ends with a 5 x 7 example card (logo placeholder for now). */
+.souv-bmcq .bmcq-card.is-mode .bmcq-options.is-cards { align-items: stretch; }
+.souv-bmcq .bmcq-blueprint-option { display: flex; flex-direction: column; gap: 4px; height: 100%; width: 100%; }
+.souv-bmcq .bmcq-blueprint-example { display: grid; place-items: center; margin-top: auto; padding-top: 12px; }
+
+/* AI writer: keeps its name, shows the tries left, and glows while its box is open. */
+.souv-bmcq .bmcq-writer-left { margin-left: 2px; font-size: 13px; font-weight: 400; opacity: 0.9; }
+.souv-bmcq .bmcq-writer-switch.is-on { box-shadow: 0 0 0 3px rgba(216, 182, 90, 0.45); }
+
+/* ---- Review: small corner heading, buttons under each card, no bottom bar -------- */
+.souv-bmcq .bmcq-review-col { display: flex; flex-direction: column; gap: 10px; min-width: 0; min-height: 0; }
+.souv-bmcq .bmcq-review-col > .bmcq-panel { flex: 1 1 auto; min-height: 0; }
+.souv-bmcq .bmcq-panel-head h2 { margin: 0; font: 700 12px/1.3 var(--l-font); letter-spacing: 0.16em; text-transform: uppercase; color: var(--l-label); }
+.souv-bmcq .bmcq-panel-head .bmcq-status { font-size: 11px; padding: 2px 8px; }
+.souv-bmcq .bmcq-review-actions { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); gap: 8px; }
+.souv-bmcq .bmcq-stack-btn {
+  display: grid; grid-template-columns: auto auto; justify-content: center; align-content: center; align-items: center; column-gap: 5px;
+  min-height: 48px; padding: 5px 8px; border-radius: 14px; border: 1.5px solid var(--l-line-strong); background: var(--l-paper);
+  color: var(--l-text); font: 700 14px/1.15 var(--l-font); cursor: pointer; transition: background-color .15s ease, border-color .15s ease;
+}
+.souv-bmcq .bmcq-stack-btn svg { grid-column: 1; grid-row: 1; }
+.souv-bmcq .bmcq-stack-top { grid-column: 2; grid-row: 1; }
+.souv-bmcq .bmcq-stack-btn:not(:has(svg)) .bmcq-stack-top { grid-column: 1 / -1; }
+.souv-bmcq .bmcq-stack-bottom { grid-column: 1 / -1; grid-row: 2; font-size: 12px; font-weight: 400; text-align: center; }
+.souv-bmcq .bmcq-stack-btn:hover:not(:disabled, [aria-disabled="true"]) { border-color: var(--l-btn-bg); }
+.souv-bmcq .bmcq-stack-btn.is-primary { background: var(--l-btn-bg); border-color: var(--l-btn-bg); color: var(--l-btn-ink); }
+.souv-bmcq .bmcq-stack-btn.is-primary:hover:not(:disabled, [aria-disabled="true"]) { background: var(--l-btn-bg-hover); }
+.souv-bmcq .bmcq-stack-btn.is-ai { background: var(--l-ai); border-color: var(--l-ai); color: var(--l-ai-ink); }
+.souv-bmcq .bmcq-stack-btn.is-done { background: rgba(47, 62, 59, 0.1); border-color: var(--l-btn-bg); color: var(--l-btn-bg); }
+.souv-bmcq .bmcq-stack-btn:disabled { opacity: 0.45; cursor: not-allowed; }
+.souv-bmcq .bmcq-stack-btn:focus-visible { outline: 2px solid var(--l-focus); outline-offset: 3px; }
+.souv-bmcq .bmcq-review-count { font: 700 12px/1.3 var(--l-font); letter-spacing: 0.14em; text-transform: uppercase; color: var(--l-text-2); }
+.souv-bmcq .bmcq-review-go { white-space: nowrap; }
+.souv-bmcq .bmcq-song-review { display: flex; align-items: center; gap: 12px; text-align: left; }
+.souv-bmcq .bmcq-song-meta { display: grid; gap: 4px; min-width: 0; }
+.souv-bmcq .bmcq-song-meta p { margin: 0; }
+.souv-bmcq .bmcq-review-lyrics .bmcq-lyrics.is-compact { columns: 1; margin: 0; font-size: 13px; line-height: 1.45; white-space: pre-wrap; }
+@media (min-width: 1024px) {
+  .souv-bmcq .bmcq-main:has(.bmcq-review) { grid-template-rows: auto minmax(0, 1fr); }
+  .souv-bmcq .bmcq-review-head { display: flex; align-items: center; gap: 12px; }
+  .souv-bmcq .bmcq-review-head .bmcq-eyebrow { margin: 0; }
+  .souv-bmcq .bmcq-review-head .bmcq-title { margin: 0; font-size: 1.35rem; line-height: 1.2; }
+  .souv-bmcq .bmcq-review-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .souv-bmcq .bmcq-panel { padding: 12px 14px; gap: 8px; }
+  .souv-bmcq .bmcq-panel.is-front .bmcq-front { height: clamp(220px, calc(100dvh - 385px), 560px); }
+  .souv-bmcq .bmcq-panel.is-front .bmcq-front.is-landscape { height: auto; width: min(100%, calc((100dvh - 385px) * 1.4)); }
+  .souv-bmcq .bmcq-panel.is-song .bmcq-song-review .bmcq-qr svg { width: 84px; height: 84px; }
+  .souv-bmcq .bmcq-panel.is-song .bmcq-song-review .bmcq-qr { flex: none; padding: 6px 8px; }
+}
+@media (max-width: 599px) {
+  .souv-bmcq .bmcq-review-head { display: grid; gap: 6px; }
+  .souv-bmcq .bmcq-song-review { flex-direction: column; text-align: center; }
+}
+.souv-bmcq .bmcq-panel.is-song .bmcq-song-meta { display: grid; grid-template-columns: minmax(0, 1fr); gap: 4px; flex: 1 1 auto; }
+.souv-bmcq .bmcq-panel.is-song .bmcq-song-meta .bmcq-song-genre { display: flex; align-items: center; gap: 6px; font: 700 14px/1.3 var(--l-font); grid-column: auto; grid-row: auto; }
+.souv-bmcq .bmcq-panel.is-song .bmcq-song-meta .bmcq-hint { font-size: 13px; line-height: 1.4; grid-column: auto; grid-row: auto; }
+.souv-bmcq .bmcq-review-lyrics { display: grid; gap: 6px; }
+.souv-bmcq .bmcq-review-lyrics > .bmcq-hint { margin: 0; font-size: 12.5px; line-height: 1.4; }
+.souv-bmcq .bmcq-review-lyrics .bmcq-lyrics-block { margin-bottom: 0.45em; }
+/* Fixed placeholder sizes (percentage heights collapse inside auto-sized boxes). */
+.souv-bmcq .bmcq-card-placeholder img { height: auto; width: 46%; max-width: none; }
+.souv-bmcq .bmcq-card-placeholder.is-landscape img { width: 26%; height: auto; }
+.souv-bmcq .bmcq-shape-frame .bmcq-card-placeholder.is-portrait { width: 157px; height: 220px; }
+.souv-bmcq .bmcq-shape-frame .bmcq-card-placeholder.is-landscape { width: 280px; height: 200px; max-width: 100%; }
+.souv-bmcq .bmcq-blueprint-example .bmcq-card-placeholder { width: 121px; height: 170px; }
+@media (max-width: 599px) {
+  .souv-bmcq .bmcq-shape-frame .bmcq-card-placeholder.is-portrait { width: 100px; height: 140px; }
+  .souv-bmcq .bmcq-shape-frame .bmcq-card-placeholder.is-landscape { width: 140px; height: 100px; }
+  .souv-bmcq .bmcq-blueprint-example .bmcq-card-placeholder { width: 86px; height: 120px; }
+}
+/* Tiles that show a card picture: selection is a forest outline, so the forest card stays visible. */
+.souv-bmcq .bmcq-card:is(.is-orientation, .is-mode) .bmcq-option.is-selected {
+  background: var(--l-paper); color: var(--l-text); border-color: var(--l-btn-bg); box-shadow: inset 0 0 0 2px var(--l-btn-bg);
+}
+.souv-bmcq .bmcq-card:is(.is-orientation, .is-mode) .bmcq-option.is-selected .bmcq-option-sub { color: var(--l-text-2); }
+.souv-bmcq .bmcq-card:is(.is-orientation, .is-mode) .bmcq-option.is-selected .bmcq-option-tick { background: var(--l-btn-bg); color: var(--l-btn-ink); }
+.souv-bmcq .bmcq-review-actions { align-items: stretch; flex: none; }
+.souv-bmcq .bmcq-panel .bmcq-stale { margin: 0; padding: 6px 10px; font-size: 13px; line-height: 1.4; }
+@media (min-width: 1024px) {
+  .souv-bmcq .bmcq-panel.is-front:has(.bmcq-stale) .bmcq-front { height: clamp(200px, calc(100dvh - 450px), 520px); }
+}
+@media (min-width: 1024px) and (max-width: 1279px) {
+  .souv-bmcq .bmcq-stack-btn { font-size: 13px; padding: 4px 6px; column-gap: 4px; }
+  .souv-bmcq .bmcq-stack-bottom { font-size: 11.5px; }
+}
+.souv-bmcq .bmcq-review-actions { min-height: 48px; }
+.souv-bmcq .bmcq-review-lyrics .bmcq-lyrics.is-compact { overflow: visible; overflow-wrap: anywhere; max-width: 100%; }
+
+/* Phones: shape tiles stack so both cards show at a useful size; main-photo thumbnails sit three across. */
+@media (max-width: 599px) {
+  .souv-bmcq .bmcq-card.is-orientation .bmcq-options.is-tiles { grid-template-columns: minmax(0, 1fr); }
+  .souv-bmcq .bmcq-card.is-orientation .bmcq-option { padding: 12px; }
+  .souv-bmcq .bmcq-card.is-primary .bmcq-thumbs { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+  .souv-bmcq .bmcq-card.is-primary .bmcq-thumb { width: 100%; height: auto; aspect-ratio: 1; }
+}
+@media (max-width: 599px) {
+  .souv-bmcq .bmcq-card:is(.is-decorate-what, .is-occasion, .is-vibes, .is-wearables, .is-border, .is-border-colour, .is-stickers, .is-pattern, .is-sparkle) .bmcq-options {
+    display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px;
+  }
+  .souv-bmcq .bmcq-card:is(.is-decorate-what, .is-occasion, .is-vibes, .is-wearables, .is-border, .is-border-colour, .is-stickers, .is-pattern, .is-sparkle) .bmcq-options > * {
+    justify-content: flex-start; min-width: 0; text-align: left;
+  }
+  .souv-bmcq .bmcq-card.is-decorate-what .bmcq-options > :last-child { grid-column: 1 / -1; }
+}
+@media (max-width: 599px) {
+  .souv-bmcq .bmcq-card:is(.is-decorate-what, .is-occasion, .is-vibes, .is-wearables, .is-border, .is-border-colour, .is-stickers, .is-pattern, .is-sparkle) .bmcq-options > * {
+    border-radius: 14px; min-height: 48px; padding: 8px 12px; font-size: 15px; line-height: 1.25;
+  }
+}
+@media (max-width: 599px) {
+  .souv-bmcq .bmcq-card.is-wearer .bmcq-options { display: grid; grid-template-columns: minmax(0, 1fr); gap: 8px; }
+  .souv-bmcq .bmcq-card.is-wearer .bmcq-options > * { justify-content: flex-start; border-radius: 14px; }
+}
+@media (max-width: 599px) {
+  .souv-bmcq .bmcq-panel.is-front .bmcq-front { width: min(100%, 230px); height: auto; aspect-ratio: 5 / 7; margin-inline: auto; }
+  .souv-bmcq .bmcq-panel.is-front .bmcq-front.is-landscape { width: min(100%, 300px); aspect-ratio: 7 / 5; }
+}
+.souv-bmcq .bmcq-lyrics { max-height: none; overflow: visible; }
+/* Phones: in the "at a glance" table each label sits above its answer, with Change on the right. */
+@media (max-width: 599px) {
+  .souv-bmcq .bmcq-card .bmcq-summary-row { grid-template-columns: minmax(0, 1fr) auto; column-gap: 12px; row-gap: 2px; align-items: center; }
+  .souv-bmcq .bmcq-card .bmcq-summary-row dt { grid-column: 1; grid-row: 1; font-size: 13px; }
+  .souv-bmcq .bmcq-card .bmcq-summary-row dd { grid-column: 1; grid-row: 2; }
+  .souv-bmcq .bmcq-card .bmcq-summary-row > button { grid-column: 2; grid-row: 1 / span 2; }
+}
+/* Tablets and up: the three blueprints sit side by side. */
+@media (min-width: 600px) {
+  .souv-bmcq .bmcq-card.is-mode .bmcq-options.is-cards { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+}
+@media (min-width: 600px) and (max-width: 1023px) {
+  .souv-bmcq .bmcq-blueprint-example .bmcq-card-placeholder { width: 100px; height: 140px; }
+}
+@media (min-width: 600px) {
+  .souv-bmcq .bmcq-card:not(.is-song-mode) .bmcq-options.is-cards:has(> :nth-child(3):last-child) { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+}
+.souv-bmcq .bmcq-lyrics.is-compact { max-height: none; }
+@media (min-width: 1024px) { .souv-bmcq .bmcq-summary .bmcq-summary-group.is-dense .bmcq-summary-row dd { -webkit-line-clamp: 1; } }
+@media (min-width: 1024px) {
+  /* "At a glance" table: labels on one line, slimmer rows. */
+  .souv-bmcq .bmcq-card .bmcq-summary-row { grid-template-columns: 150px minmax(0, 1fr) auto; padding: 3px 0; }
+  .souv-bmcq .bmcq-card .bmcq-summary-row .bmcq-link, .souv-bmcq .bmcq-summary .bmcq-summary-row .bmcq-link { min-height: 28px; }
+  .souv-bmcq .bmcq-card .bmcq-summary-row dd { line-height: 1.4; }
+}
+@media (min-width: 1280px) {
+  .souv-bmcq .bmcq-mini-card { width: 70px; }
+  .souv-bmcq .bmcq-mini-card.is-landscape { width: 98px; }
+  .souv-bmcq .bmcq-summary-body { gap: 4px; }
+}
+
+/* ==========================================================================
+   Colour pass (design system v1.5, 2026-11-08)
+   - Done steps are forest outlines, so berry stays for emphasis and errors.
+   - Terracotta marks what the sender made (photos, their own message);
+     gold keeps meaning AI-made.
+   - The review header is a forest band: the "nearly done" moment. On forest,
+     text is ivory, muted text is oat and accents are gold (never berry).
+   ========================================================================== */
+
+/* Step rail: done = forest ring and tick on paper (current keeps its stage fill). */
+.souv-bmcq .bmcq-rail-step.is-done .bmcq-rail-dot {
+  background: var(--l-paper); color: var(--l-btn-bg); box-shadow: inset 0 0 0 2px var(--l-btn-bg);
+}
+.souv-bmcq .bmcq-rail-step.is-done > button:hover .bmcq-rail-dot { color: var(--l-hover); box-shadow: inset 0 0 0 2px var(--l-hover); }
+
+/* Yours = terracotta. Borders and tints are decoration; text on them stays espresso. */
+.souv-bmcq .bmcq-thumb { border-color: rgba(201, 138, 118, 0.55); }
+.souv-bmcq .bmcq-thumb.is-selected { border-color: var(--l-btn-bg); }
+.souv-bmcq .bmcq-message-box:not(.is-ai) {
+  padding: 12px 14px; border-radius: 16px; border: 1.5px solid var(--l-stripe);
+  background: linear-gradient(180deg, rgba(201, 138, 118, 0.14), rgba(201, 138, 118, 0.04));
+}
+.souv-bmcq .bmcq-version:not(.is-ai) {
+  border-color: var(--l-stripe);
+  background: linear-gradient(180deg, rgba(201, 138, 118, 0.14), rgba(201, 138, 118, 0.04));
+}
+.souv-bmcq .bmcq-version.is-chosen { border-color: var(--l-btn-bg); }
+
+/* Review header: forest band. */
+.souv-bmcq .bmcq-review-head {
+  padding: 14px 18px; border-radius: 16px; background: var(--l-dark-bg); color: var(--l-dark-ink);
+}
+.souv-bmcq .bmcq-review-head .bmcq-eyebrow { color: var(--l-dark-accent); }
+.souv-bmcq .bmcq-review-head .bmcq-title { color: var(--l-dark-ink); }
+.souv-bmcq .bmcq-review-head .l-script { color: var(--l-dark-accent); }
+.souv-bmcq .bmcq-review-head .bmcq-lede, .souv-bmcq .bmcq-review-head .bmcq-review-count { color: var(--l-dark-ink-2); }
+.souv-bmcq .bmcq-review-head .bmcq-btn.is-primary { background: var(--l-dark-btn-bg); color: var(--l-dark-bg); }
+.souv-bmcq .bmcq-review-head .bmcq-btn.is-primary:hover:not(:disabled, [aria-disabled="true"]) { background: var(--l-dark-btn-bg-hover); }
+.souv-bmcq .bmcq-review-head :is(.bmcq-btn, .bmcq-title):focus-visible { outline-color: var(--l-dark-accent); }
+/* Desktop is one screen: a slim pill band like the nav (adds ~8px), the button inset 4px. */
+@media (min-width: 1024px) { .souv-bmcq .bmcq-review-head { padding: 4px 4px 4px 18px; border-radius: 999px; } }
+@media (forced-colors: active) { .souv-bmcq .bmcq-review-head { border: 1px solid CanvasText; } }
+
+/* AI writer sign-off (2026-11-08): one labelled select since 2026-11-09 (audit §8 D1), on the
+   "What should change?" row once a draft exists, or on its own row before the first draft. */
+.souv-bmcq .bmcq-signoff { display: inline-flex; align-items: center; gap: 8px; margin: 0; }
+.souv-bmcq .bmcq-signoff-label { font-size: 14px; font-weight: 700; color: var(--l-text-2); white-space: nowrap; }
+.souv-bmcq .bmcq-signoff .bmcq-input.is-select { width: auto; min-width: 0; min-height: 44px; padding-block: 8px; }
+.souv-bmcq .bmcq-signoff-row { display: flex; }
+.souv-bmcq .bmcq-direction > .bmcq-signoff { flex: 0 0 auto; }
+/* Redraft note, "What should change?" (2026-11-08). */
+.souv-bmcq .bmcq-direction { display: grid; gap: 6px; }
+.souv-bmcq .bmcq-direction .bmcq-hint { margin: 0; }
+
+/* ---- Prompt 1B (2026-11-09) ---------------------------------------------------------------- */
+/* Busy buttons stay focusable (aria-disabled, design system 2.28): dimmed, progress cursor, no hover lift. */
+.souv-bmcq :is(.bmcq-btn, .bmcq-stack-btn)[aria-disabled="true"] { opacity: .7; cursor: progress; transform: none; box-shadow: none; }
+.souv-bmcq .bmcq-drop .bmcq-btn[aria-disabled="true"] { opacity: .5; cursor: not-allowed; }
+.souv-bmcq .pt-check input[aria-disabled="true"] { cursor: progress; }
+/* Photo step with photos added: the drop zone shrinks to one row, so the step stays one screen tall. */
+@media (min-width: 1024px) {
+  .souv-bmcq .bmcq-card.is-photo .bmcq-controls:has(.bmcq-thumbs) .bmcq-drop {
+    flex: none; min-height: 0; grid-template-columns: auto auto auto; justify-content: center; align-items: center;
+    padding: 14px 20px; gap: 6px 14px;
+  }
+  .souv-bmcq .bmcq-card.is-photo .bmcq-controls:has(.bmcq-thumbs) .bmcq-drop .bmcq-hint { grid-column: 1 / -1; }
+}
+/* "Your card so far" at 1024–1279px: each answer sits under its label, so it isn't cut to a few letters. */
+@media (min-width: 1024px) and (max-width: 1279px) {
+  .souv-bmcq .bmcq-summary .bmcq-summary-row { grid-template-columns: minmax(0, 1fr) auto; row-gap: 0; }
+  .souv-bmcq .bmcq-summary .bmcq-summary-row dt { grid-column: 1; grid-row: 1; line-height: 1.3; }
+  .souv-bmcq .bmcq-summary .bmcq-summary-row dd { grid-column: 1; grid-row: 2; }
+  .souv-bmcq .bmcq-summary .bmcq-summary-row > .bmcq-link { grid-column: 2; grid-row: 1 / span 2; }
+}
+/* "What should change?" on desktop: the quick picks and the few words share one row. */
+@media (min-width: 1024px) {
+  .souv-bmcq .bmcq-direction { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; }
+  /* The hint and the sign-off select share the first line; the picks and the few words the second. */
+  .souv-bmcq .bmcq-direction > .bmcq-hint { flex: 1 1 260px; min-width: 0; font-size: 14px; line-height: 1.35; }
+  .souv-bmcq .bmcq-direction > .bmcq-signoff { order: 1; }
+  .souv-bmcq .bmcq-direction > .bmcq-options { order: 2; }
+  .souv-bmcq .bmcq-direction > .bmcq-field { order: 3; }
+  .souv-bmcq .bmcq-direction > .bmcq-options { flex: 0 1 auto; }
+  .souv-bmcq .bmcq-direction > .bmcq-field { flex: 1 1 150px; min-width: 0; }
+  .souv-bmcq .bmcq-direction .bmcq-input { min-height: 44px; padding-block: 8px; }
+}
+
+/* Lyrics step (owner, 2026-11-09, audit §8 D2): the rewrites-left hint sits in the header, and from
+   1280px the lyrics run in three columns, so the step fits one screen. Sections never split (break-inside). */
+.souv-bmcq .bmcq-card.is-lyrics .bmcq-version-head { flex-wrap: nowrap; align-items: center; }
+.souv-bmcq .bmcq-card.is-lyrics .bmcq-version-head h3 { flex: none; }
+.souv-bmcq .bmcq-card.is-lyrics .bmcq-version-tools { flex: 1 1 auto; flex-wrap: nowrap; justify-content: flex-end; min-width: 0; }
+.souv-bmcq .bmcq-version-tools .bmcq-lyrics-left { flex: 0 1 auto; min-width: 0; text-align: right; line-height: 1.35; }
+.souv-bmcq .bmcq-card.is-lyrics .bmcq-version-tools > :not(.bmcq-lyrics-left) { flex: none; }
+@media (max-width: 599px) {
+  .souv-bmcq .bmcq-card.is-lyrics .bmcq-version-head { flex-wrap: wrap; }
+  .souv-bmcq .bmcq-card.is-lyrics .bmcq-version-tools { flex-wrap: wrap; justify-content: flex-start; }
+  .souv-bmcq .bmcq-version-tools .bmcq-lyrics-left { flex-basis: 100%; text-align: left; }
+}
+@media (min-width: 1280px) {
+  .souv-bmcq .bmcq-card.is-lyrics .bmcq-lyrics { columns: 3; column-gap: 24px; line-height: 1.4; }
+  .souv-bmcq .bmcq-card.is-lyrics .bmcq-lyrics-block { margin-bottom: 0.6em; }
+}
+/* Message step, AI writer on desktop (audit §8 D1): a smaller minimum box and a tighter counter, so
+   the step fits one screen; long drafts still make the page longer (2.19), never a scrolling box. */
+@media (min-width: 1024px) {
+  .souv-bmcq .bmcq-card.is-message .bmcq-message-box.is-ai { gap: 4px; }
+  .souv-bmcq .bmcq-card.is-message .bmcq-message-box.is-ai textarea { height: auto; min-height: 96px; }
+  /* The character counter sits in the box’s bottom-right corner instead of on its own line. */
+  .souv-bmcq .bmcq-card.is-message .bmcq-message-box.is-ai .bmcq-field { position: relative; }
+  .souv-bmcq .bmcq-card.is-message .bmcq-message-box.is-ai .bmcq-field > .bmcq-hint { position: absolute; right: 14px; bottom: 10px; margin: 0; font-size: 13px; line-height: 1.2; pointer-events: none; }
+  .souv-bmcq .bmcq-card.is-message .bmcq-message-box.is-ai .bmcq-field:has(> .bmcq-error) > .bmcq-hint { position: static; }
+  .souv-bmcq .bmcq-card.is-message .bmcq-message-box.is-ai textarea { padding-bottom: 28px; }
+}
+.souv-bmcq .bmcq-message-box.is-ai textarea { field-sizing: content; }
+/* Lyrics step with the out-of-date notice (audit §8 D2): on desktop the notice is one compact line, and the
+   "What should change?" instruction steps aside while it shows (the notice says what to do; the picks keep
+   their accessible name, which points at the hidden line). */
+@media (min-width: 1024px) {
+  .souv-bmcq .bmcq-card.is-lyrics .bmcq-stale { margin: 0; padding: 6px 12px; font-size: 14px; line-height: 1.35; }
+  .souv-bmcq .bmcq-card.is-lyrics .bmcq-version:has(> .bmcq-stale) .bmcq-direction > .bmcq-hint { display: none; }
+}
+/* "Check the spelling (N)": every word printed on the front, closed by default (owner, 2026-11-09, audit §8 D5). */
+.souv-bmcq .bmcq-front-words { margin: 0; font-size: 14px; color: var(--l-text); }
+.souv-bmcq .bmcq-front-words > summary {
+  display: inline-flex; align-items: center; gap: 6px; min-height: 44px; cursor: pointer;
+  font-weight: 700; color: var(--l-btn-bg); text-decoration: underline; text-underline-offset: 4px;
+}
+.souv-bmcq .bmcq-front-words > summary:hover { color: var(--l-hover); }
+.souv-bmcq .bmcq-front-words > summary:focus-visible { outline: 2px solid var(--l-focus); outline-offset: 2px; border-radius: 6px; }
+.souv-bmcq .bmcq-front-words ul { display: grid; gap: 4px; margin: 0 0 6px; padding-left: 1.1em; overflow-wrap: anywhere; }
+/* Review front with Personalize's notes and "Check the spelling" (D5): the picture gives up the room they
+   need, as it does for the out-of-date notice, so the decision buttons stay on one screen. */
+@media (min-width: 1024px) {
+  .souv-bmcq .bmcq-panel.is-front:has(.bmcq-front-words) .bmcq-front { height: clamp(200px, calc(100dvh - 420px), 520px); }
+  .souv-bmcq .bmcq-panel.is-front:has(.bmcq-front-words) .bmcq-front.is-landscape { height: auto; width: min(100%, calc((100dvh - 420px) * 1.4)); }
+}
+/* Accents with Custom open at 1024–1279px (audit §8 D11): tighter gaps and a 44px field, so it fits one screen. */
+@media (min-width: 1024px) and (max-width: 1279px) {
+  .souv-bmcq .bmcq-card.is-accents .bmcq-controls { gap: 8px; }
+  .souv-bmcq .bmcq-card.is-accents .bmcq-input { min-height: 44px; padding-block: 8px; }
+}
+
+/* ==========================================================================
+   Prompt 2, flows (owner, 2026-11-09; PROMPT-2B-REPORT-2026-11-09.md)
+   ========================================================================== */
+/* A-F1: "Your card so far" is an h2 around its toggle, so the stage h3s don't skip a level. */
+.souv-bmcq .bmcq-summary-heading { margin: 0; font: inherit; }
+/* A-F3: the AI writer's "on" state is a glow; high contrast removes it, so outline it like the chips. */
+@media (forced-colors: active) {
+  .souv-bmcq .bmcq-writer-switch.is-on { outline: 3px solid Highlight; outline-offset: 2px; }
+}
+/* A-F5: 44px hit areas without changing the layout (the one-screen heights stay as tuned):
+   the summary's stage rows and Change links, and standalone link buttons under the options. */
+.souv-bmcq .bmcq-summary-fold, .souv-bmcq .bmcq-summary-row .bmcq-link, .souv-bmcq .bmcq-link.is-hit { position: relative; }
+.souv-bmcq .bmcq-summary-fold::after, .souv-bmcq .bmcq-summary-row .bmcq-link::after, .souv-bmcq .bmcq-link.is-hit::after {
+  content: ""; position: absolute; left: -4px; right: -4px; top: 50%; height: 44px; min-height: 100%; transform: translateY(-50%);
+}
+/* A-F10: hover is berry on ivory (Foundations 1.2). */
+.souv-bmcq .bmcq-stack-btn:is(.is-secondary, .is-done):hover:not(:disabled, [aria-disabled="true"]) { border-color: var(--l-hover); color: var(--l-hover); }
+.souv-bmcq .bmcq-summary-fold:hover .bmcq-summary-fold-text, .souv-bmcq .bmcq-summary-fold:hover .bmcq-summary-fold-name { color: var(--l-hover); }

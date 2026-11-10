@@ -1,0 +1,347 @@
+/* ==========================================================================
+   Community Cards (/community-cards): components/community/*. Root: .souv-cc
+   on the ContentPageShell (.souv-content .souv-flow .souv-landing).
+   The scroll rows use the Personalize PtScrollRow component; its class names
+   (.pt-scroll, .pt-arrow) are styled here for this page, matching personalize.css.
+   No gold: Community Cards aren't AI-made.
+   ========================================================================== */
+.souv-cc .cc-wrap { max-width: 1200px; }
+/* Three facts: an even grid, one column on phones, three across from 600px (audit I13). */
+.souv-cc .cc-facts { display: grid; grid-template-columns: minmax(0, 1fr); gap: 8px 10px; max-width: 760px; margin: -12px auto 28px; padding: 0; list-style: none; }
+@media (min-width: 600px) { .souv-cc .cc-facts { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+.souv-cc .cc-facts li { display: flex; align-items: center; justify-content: center; min-height: 40px; padding: 6px 14px; border-radius: 14px; background: var(--l-raised); font-size: 15px; line-height: 1.3; text-align: center; color: var(--l-text); }
+
+.souv-cc .cc-toolbar { max-width: 520px; margin: 0 auto 14px; }
+.souv-cc .cc-search { width: 100%; }
+
+/* Scroll rows (PtScrollRow) */
+.souv-cc .pt-scroll { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 10px; min-width: 0; }
+.souv-cc .pt-scroll-track { min-width: 0; margin: 0; overflow-x: auto; overscroll-behavior-x: contain; scrollbar-width: none; -ms-overflow-style: none; }
+.souv-cc .pt-scroll-track::-webkit-scrollbar { display: none; }
+.souv-cc .pt-arrow {
+  display: grid; place-items: center; width: 44px; height: 44px; border: 0; border-radius: 50%;
+  background: var(--l-arrow-bg); color: var(--l-arrow-ink); cursor: pointer; box-shadow: 0 6px 14px var(--l-shadow-soft);
+  transition: background .25s var(--l-ease), opacity .25s var(--l-ease), transform .25s var(--l-ease);
+}
+.souv-cc .pt-arrow:hover:not(:disabled, [aria-disabled="true"]) { background: var(--l-btn-bg-hover); transform: scale(1.06); }
+.souv-cc .pt-arrow:focus-visible { outline: 2px solid var(--l-focus); outline-offset: 3px; }
+.souv-cc .pt-arrow:is(:disabled, [aria-disabled="true"]) { opacity: 0; pointer-events: none; }
+/* At the edge but focused from the keyboard: stay visible, dimmed, so focus is never on an invisible button. */
+.souv-cc .pt-arrow[aria-disabled="true"]:focus-visible { opacity: 0.4; }
+.souv-cc .pt-scroll.is-static { grid-template-columns: minmax(0, 1fr); }
+.souv-cc .pt-scroll.is-static > .pt-arrow { display: none; }
+@media (max-width: 599px) {
+  .souv-cc .pt-scroll { grid-template-columns: minmax(0, 1fr); }
+  .souv-cc .pt-scroll > .pt-arrow { display: none; }
+}
+
+/* Occasion chips */
+.souv-cc .cc-chips { display: flex; flex-wrap: nowrap; gap: 8px; padding: 4px 2px; }
+.souv-cc .cc-chip {
+  flex: none; display: inline-flex; align-items: center; min-height: 44px; padding: 8px 16px; border-radius: 999px;
+  border: 1px solid var(--l-line-strong); background: var(--l-paper); color: var(--l-text);
+  font: inherit; font-size: 15px; white-space: nowrap; cursor: pointer;
+}
+.souv-cc .cc-chip:hover { border-color: var(--l-hover); background: var(--l-hover-tint); }
+/* Selected is forest with ivory text, as in Build My Card and Personalize (audit I2, 2026-11-08). */
+.souv-cc .cc-chip.is-selected { border-color: var(--l-btn-bg); background: var(--l-btn-bg); color: var(--l-btn-ink); }
+/* Occasion chips carry the shared tone dots ("All" has none): design-system colours only, never gold,
+   in the same seven-slot rotation as Personalize, so neighbours never match. */
+.souv-cc .cc-chip:not(:first-child) { gap: 8px; }
+.souv-cc .cc-chip:not(:first-child)::before { content: ""; flex: none; width: 10px; height: 10px; border-radius: 50%; background: var(--cc-dot, var(--l-stripe)); }
+.souv-cc .cc-chip:nth-child(7n + 2) { --cc-dot: var(--l-stripe); }
+.souv-cc .cc-chip:nth-child(7n + 3) { --cc-dot: var(--l-script-color); }
+.souv-cc .cc-chip:nth-child(7n + 4) { --cc-dot: var(--l-dark-ink-2); }
+.souv-cc .cc-chip:nth-child(7n + 4):not(.is-selected)::before { box-shadow: inset 0 0 0 1px var(--l-line-strong); }
+.souv-cc .cc-chip:nth-child(7n + 5) { --cc-dot: var(--l-btn-bg); }
+.souv-cc .cc-chip:nth-child(7n + 6) { --cc-dot: var(--l-text-2); }
+.souv-cc .cc-chip:nth-child(7n + 7) { --cc-dot: var(--l-text); }
+.souv-cc .cc-chip:nth-child(7n + 8) { --cc-dot: var(--l-script-color); }
+.souv-cc .cc-chip.is-selected::before { box-shadow: 0 0 0 2px var(--l-btn-ink); }
+@media (forced-colors: active) { .souv-cc .cc-chip.is-selected { outline: 3px solid Highlight; } }
+.souv-cc .cc-chip:focus-visible { outline: 2px solid var(--l-focus); outline-offset: 2px; }
+
+/* Rows and grids */
+.souv-cc .cc-section { margin-top: 32px; }
+.souv-cc .cc-row-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px 14px; margin-bottom: 12px; }
+.souv-cc .cc-row-title { font-size: 13px; font-weight: 700; letter-spacing: 0.2em; text-transform: uppercase; color: var(--l-label); }
+.souv-cc .cc-row-count { color: var(--l-text-2); font-size: 15px; }
+.souv-cc .cc-rail { display: flex; gap: 16px; padding: 6px 2px 14px; list-style: none; }
+.souv-cc .cc-rail > .cc-tile { flex: none; width: 200px; }
+.souv-cc .cc-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; margin: 0; padding: 0; list-style: none; }
+@media (min-width: 720px) { .souv-cc .cc-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+@media (min-width: 1024px) { .souv-cc .cc-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
+.souv-cc .cc-empty { color: var(--l-text-2); }
+.souv-cc .cc-empty a { color: var(--l-text); text-underline-offset: 4px; }
+
+/* Tile: the front (logo placeholder for now), name, occasion in mixed grids, Send this card, Share link.
+   Every tile is the same shape (owner, 2026-11-09 clean-up): one 5x7 frame for all cards, with a
+   landscape front shown as a 7x5 card centred in it; names hold two lines, so buttons line up across rows. */
+/* position: relative keeps each tile's screen-reader text (position: absolute) inside the tile, and so
+   inside its scroll row; without it the text sat past the screen edge (audit C13). */
+.souv-cc .cc-tile {
+  position: relative;
+  display: flex; flex-direction: column; gap: 10px; padding: 10px 10px 12px;
+  border-radius: var(--l-radius); background: var(--l-paper); box-shadow: var(--l-shadow);
+}
+.souv-cc .cc-tile-art { position: relative; display: grid; place-items: center; width: 100%; aspect-ratio: 5 / 7; border-radius: 10px; overflow: hidden; background: var(--l-card-back); }
+.souv-cc .cc-tile-art.is-landscape { background: var(--l-raised); }
+.souv-cc .cc-tile-face { position: relative; display: block; width: 100%; height: 100%; }
+.souv-cc .cc-tile-art.is-landscape .cc-tile-face { width: calc(100% - 16px); height: auto; aspect-ratio: 7 / 5; border-radius: 8px; overflow: hidden; box-shadow: var(--l-shadow); }
+.souv-cc .cc-tile-art img { object-fit: cover; }
+.souv-cc .cc-tile-text { display: grid; gap: 2px; padding: 0 2px; }
+.souv-cc .cc-tile-name {
+  display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; line-clamp: 2; overflow: hidden;
+  min-height: 2.6em; font-size: 16px; font-weight: 700; line-height: 1.3; color: var(--l-paper-ink);
+}
+.souv-cc .cc-tile-occasion { font-size: 14px; color: var(--l-paper-ink-2); }
+.souv-cc .cc-tile-send { justify-content: center; width: 100%; min-height: 44px; padding: 0 12px; font-size: 15px; }
+
+/* Signed-out band */
+.souv-cc .cc-signup {
+  margin-top: 36px; padding: 28px 22px; text-align: center; border-radius: var(--l-radius);
+  background: var(--l-paper); box-shadow: var(--l-shadow); border-top: 4px solid var(--l-stripe);
+}
+.souv-cc .cc-signup-title { font-size: 28px; font-weight: 300; color: var(--l-paper-ink); }
+.souv-cc .cc-signup p { max-width: 52ch; margin: 8px auto 18px; color: var(--l-paper-ink-2); }
+.souv-cc .cc-signup-actions { display: flex; flex-wrap: wrap; justify-content: center; gap: 12px; }
+
+/* Send this card pop-up (rendered into <body>) */
+.fd-overlay .cc-send-layout { display: grid; gap: 18px; }
+@media (min-width: 720px) { .fd-overlay .cc-send-layout { grid-template-columns: 200px minmax(0, 1fr); align-items: start; gap: 26px; } }
+.fd-overlay .cc-send-art { position: relative; width: 160px; aspect-ratio: 5 / 7; border-radius: 10px; overflow: hidden; background: var(--l-card-back); box-shadow: var(--l-shadow); }
+.fd-overlay .cc-send-art.is-landscape { aspect-ratio: 7 / 5; width: 200px; }
+@media (min-width: 720px) { .fd-overlay .cc-send-art { width: 200px; } }
+/* "Send {card name}" (owner, 2026-11-09): 2rem, so even the longest name stays on one line
+   at 1024px and up and the pop-up fits 1280x720 (653px; 708 at the default size). */
+@media (min-width: 720px) { .fd-overlay .cc-send-body > .fd-title { font-size: 2rem; } }
+.fd-overlay .cc-send-art img { object-fit: cover; }
+.fd-overlay .cc-send-form { display: grid; gap: 12px; margin-top: 14px; }
+.fd-overlay .cc-send-message { min-height: 140px; resize: vertical; line-height: 1.5; padding-top: 12px; }
+.fd-overlay .cc-send-count { margin-top: -6px; font-size: 15px; color: var(--l-paper-ink-2); }
+.fd-overlay .cc-send-count.is-over { color: var(--l-stripe-2); font-weight: 700; }
+.fd-overlay .cc-send-blank { display: flex; align-items: center; gap: 10px; min-height: 44px; font-size: 16px; cursor: pointer; }
+.fd-overlay .cc-send-blank input { width: 22px; height: 22px; accent-color: var(--l-btn-bg); }
+.fd-overlay .cc-send-note { font-size: 15px; color: var(--l-paper-ink-2); }
+/* Phones (audit I4, 2026-11-08): a small card picture beside the eyebrow, title and
+   lede, and the message form full width below, so the pop-up fits one screen. */
+@media (max-width: 719px) {
+  .fd-overlay .cc-send-layout { grid-template-columns: 72px minmax(0, 1fr); column-gap: 14px; row-gap: 0; align-items: start; }
+  .fd-overlay .cc-send-body { display: contents; }
+  .fd-overlay .cc-send-art, .fd-overlay .cc-send-art.is-landscape { grid-column: 1; grid-row: 1 / span 3; width: 72px; align-self: start; }
+  .fd-overlay .cc-send-body > :not(.cc-send-form) { grid-column: 2; }
+  .fd-overlay .cc-send-body > .fd-title { font-size: 1.5rem; }
+  .fd-overlay .cc-send-body > .cc-send-form { grid-column: 1 / -1; }
+  .fd-overlay .cc-send-message { min-height: 120px; }
+  /* Cancel and "Send this card" share one row (owner, 2026-11-09), so cards with long
+     names fit too: 747px for the longest at 375x812 (it was 836). */
+  .fd-overlay .cc-send .fd-actions { display: grid; grid-template-columns: 1fr 1fr; }
+  .fd-overlay .cc-send .fd-actions .l-btn { padding: 0 12px; }
+}
+@media (prefers-reduced-motion: reduce) { .souv-cc .pt-arrow { transition: none; } }
+
+/* ==========================================================================
+   Share a card you made, Share, guidelines (owner, 2026-11-09):
+   components/community/CommunitySubmit.tsx and CommunityShare.tsx.
+   Forest marks "share" (the submit and share pop-ups); no gold, nothing here is AI.
+   ========================================================================== */
+
+/* "Have a card the public would love?" band at the top, under the three facts */
+.souv-cc .cc-publish {
+  display: grid; gap: 18px; margin: 0 auto 28px; padding: 22px 22px 24px;
+  border-radius: var(--l-radius); background: var(--l-paper); color: var(--l-paper-ink);
+  box-shadow: var(--l-shadow); border-left: 6px solid var(--l-dark-bg);
+}
+@media (min-width: 860px) {
+  .souv-cc .cc-publish { grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 32px; padding: 26px 32px; }
+}
+.souv-cc .cc-publish-title { margin: 0; font-size: clamp(1.4rem, 1.2rem + 0.9vw, 1.9rem); font-weight: 300; line-height: 1.2; color: var(--l-paper-ink); }
+.souv-cc .cc-publish-lede { max-width: 62ch; margin: 8px 0 0; font-size: 16px; line-height: 1.5; color: var(--l-paper-ink-2); }
+.souv-cc .cc-publish-review { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; margin: 12px 0 0; font-size: 15px; color: var(--l-paper-ink-2); }
+.souv-cc .cc-publish-badge {
+  display: inline-flex; align-items: center; min-height: 26px; padding: 2px 10px; border-radius: 999px;
+  background: var(--l-dark-bg); color: var(--l-dark-ink); font-size: 12px; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase;
+}
+.souv-cc .cc-publish-review .cf-text-link { font-size: 15px; }
+.souv-cc .cc-publish-actions { display: flex; flex-wrap: wrap; gap: 10px; }
+.souv-cc .cc-publish-actions .l-btn { min-height: 48px; padding: 0 22px; font-size: 16px; }
+@media (min-width: 860px) { .souv-cc .cc-publish-actions { flex-direction: column; align-items: stretch; } }
+@media (max-width: 519px) { .souv-cc .cc-publish-actions .l-btn { flex: 1 1 100%; } }
+
+/* Your shared cards (signed in, once there is at least one) */
+.souv-cc .cc-mine { margin-top: 0; margin-bottom: 8px; }
+.souv-cc .cc-mine-list { display: grid; gap: 10px; margin: 0; padding: 0; list-style: none; }
+@media (min-width: 720px) { .souv-cc .cc-mine-list { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+.souv-cc .cc-mine-item { display: grid; grid-template-columns: 56px minmax(0, 1fr) auto; align-items: center; gap: 14px; padding: 10px 14px 10px 10px; border-radius: var(--l-radius); background: var(--l-paper); box-shadow: var(--l-shadow); }
+.souv-cc .cc-mine-art { position: relative; width: 56px; aspect-ratio: 5 / 7; border-radius: 8px; overflow: hidden; background: var(--l-card-back); }
+.souv-cc .cc-mine-art img { object-fit: cover; }
+.souv-cc .cc-mine-text { display: grid; gap: 2px; min-width: 0; }
+.souv-cc .cc-mine-note { font-size: 14px; color: var(--l-paper-ink-2); }
+.souv-cc .cc-mine-status { padding: 4px 10px; border-radius: 999px; font-size: 13px; font-weight: 700; white-space: nowrap; background: var(--l-raised); color: var(--l-paper-ink); }
+.souv-cc .cc-mine-status.is-approved { background: var(--l-dark-bg); color: var(--l-dark-ink); }
+.souv-cc .cc-mine-status.is-changes_requested { background: var(--l-stripe); color: var(--l-terracotta-ink); }
+.souv-cc .cc-mine-status.is-declined { background: transparent; color: var(--l-stripe-2); box-shadow: inset 0 0 0 1.5px var(--l-stripe-2); }
+
+/* Tile: Send this card, with a full-width outlined "Share link" button under it (owner, 2026-11-09) */
+.souv-cc .cc-tile-actions { display: grid; gap: 8px; margin-top: auto; }
+.souv-cc .cc-tile-share {
+  gap: 8px; width: 100%; min-height: 44px; padding: 0 12px; font-size: 15px;
+  border-color: var(--l-line-strong); color: var(--l-paper-ink);
+  transition: border-color .25s var(--l-ease), color .25s var(--l-ease), background .25s var(--l-ease);
+}
+.souv-cc .cc-tile-share:hover { border-color: var(--l-hover); color: var(--l-hover); background: var(--l-hover-tint); }
+.souv-cc .cc-tile-share:focus-visible { outline: 2px solid var(--l-focus); outline-offset: 2px; }
+
+/* Share pop-up */
+.fd-overlay .cc-share-head { display: grid; grid-template-columns: 72px minmax(0, 1fr); align-items: center; gap: 16px; }
+.fd-overlay .cc-share-art { position: relative; width: 72px; aspect-ratio: 5 / 7; border-radius: 8px; overflow: hidden; background: var(--l-card-back); box-shadow: var(--l-shadow); }
+.fd-overlay .cc-share-art.is-landscape { aspect-ratio: 7 / 5; }
+.fd-overlay .cc-share-art img { object-fit: cover; }
+.fd-overlay .cc-share-head .fd-title { font-size: clamp(1.5rem, 1.3rem + 0.8vw, 2rem); }
+.fd-overlay .cc-share-native { gap: 10px; width: 100%; min-height: 52px; margin-top: 20px; font-size: 16px; }
+.fd-overlay .cc-share-networks { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; margin: 18px 0 0; padding: 0; list-style: none; }
+@media (min-width: 560px) { .fd-overlay .cc-share-networks { grid-template-columns: repeat(5, minmax(0, 1fr)); } }
+.fd-overlay .cc-share-network {
+  display: flex; align-items: center; justify-content: center; min-height: 48px; padding: 0 10px; border-radius: 999px;
+  border: 1.5px solid var(--l-line-strong); color: var(--l-paper-ink); font-size: 15px; font-weight: 700; text-decoration: none;
+}
+.fd-overlay .cc-share-network:hover { border-color: var(--l-hover); color: var(--l-hover); }
+.fd-overlay .cc-share-network:focus-visible { outline: 2px solid var(--l-focus); outline-offset: 2px; }
+.fd-overlay .cc-share-copy { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 10px; margin-top: 16px; }
+.fd-overlay .cc-share-copy .l-btn { min-height: 48px; padding: 0 20px; font-size: 15px; }
+.fd-overlay .cc-share-copy .cf-input { min-width: 0; font-size: 15px; }
+.fd-overlay .cc-share-status { min-height: 1.4em; margin-top: 8px; font-size: 15px; color: var(--l-paper-ink-2); }
+
+/* Guidelines (pop-up, and inside the submit form): one disclosure per group, one open at a time,
+   so the pop-up fits one screen (audit C5). Each summary is a 48px row with a +/− mark. */
+.fd-overlay .cc-guide { display: grid; gap: 8px; margin-top: 16px; }
+.fd-overlay .cc-guide-group { border-radius: 14px; background: var(--l-raised); border-top: 4px solid var(--l-line-strong); }
+.fd-overlay .cc-guide-group > ul, .fd-overlay .cc-guide-group > .cc-guide-contact { margin-inline: 16px; }
+.fd-overlay .cc-guide-group > :last-child { margin-bottom: 14px; }
+.fd-overlay .cc-guide-summary {
+  display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 48px; padding: 4px 16px;
+  list-style: none; cursor: pointer; border-radius: 10px;
+}
+.fd-overlay .cc-guide-summary::-webkit-details-marker { display: none; }
+.fd-overlay .cc-guide-summary::after { content: "+"; flex: none; font-size: 22px; line-height: 1; color: var(--l-paper-ink); }
+.fd-overlay .cc-guide-group[open] > .cc-guide-summary::after { content: "−"; }
+.fd-overlay .cc-guide-summary:hover .cc-guide-title { color: var(--l-hover); }
+.fd-overlay .cc-guide-summary:focus-visible { outline: 2px solid var(--l-focus); outline-offset: 2px; }
+.fd-overlay .cc-guide-summary .cc-guide-title { margin: 0; }
+.fd-overlay .cc-guide-group.is-yes { border-top-color: var(--l-dark-bg); }
+.fd-overlay .cc-guide-group.is-no { border-top-color: var(--l-stripe-2); }
+.fd-overlay .cc-guide-group.is-grey { border-top-color: var(--l-stripe); }
+.fd-overlay .cc-guide-group.is-review { border-top-color: var(--l-paper-ink-2); }
+.fd-overlay .cc-guide-title { margin: 0 0 8px; font-size: 13px; font-weight: 700; letter-spacing: 0.16em; text-transform: uppercase; color: var(--l-label); }
+.fd-overlay .cc-guide ul { display: grid; gap: 6px; margin: 0; padding-left: 20px; font-size: 15px; line-height: 1.45; color: var(--l-paper-ink); }
+.fd-overlay .cc-guide-contact { margin: 10px 0 0; font-size: 15px; color: var(--l-paper-ink-2); }
+.fd-overlay .cc-guide-contact a, .fd-overlay .cc-guide-dialog .fd-fineprint a, .fd-overlay .cc-submit-agree a { color: var(--l-paper-ink); font-weight: 700; text-underline-offset: 3px; }
+
+/* Submit pop-up */
+.fd-overlay .cc-submit-loading { margin-top: 18px; color: var(--l-paper-ink-2); }
+.fd-overlay .cc-submit-empty { margin-top: 18px; }
+.fd-overlay .cc-submit-empty > p:first-child { color: var(--l-paper-ink); }
+.fd-overlay .cc-submit-hint { margin: 6px 0 0; font-size: 14px; color: var(--l-paper-ink-2); }
+.fd-overlay .cc-submit-form { display: grid; gap: 18px; margin-top: 18px; }
+.fd-overlay .cc-submit-pick, .fd-overlay .cc-submit-agree { margin: 0; padding: 0; border: 0; min-width: 0; }
+.fd-overlay .cc-submit-cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(112px, 1fr)); gap: 10px; margin: 8px 0 0; padding: 0; list-style: none; }
+.fd-overlay .cc-submit-card {
+  position: relative; display: grid; gap: 6px; padding: 8px; border-radius: 12px; cursor: pointer;
+  border: 2px solid var(--l-line); background: var(--l-paper);
+}
+.fd-overlay .cc-submit-card:hover { border-color: var(--l-hover); }
+.fd-overlay .cc-submit-card.is-selected { border-color: var(--l-btn-bg); box-shadow: 0 0 0 2px var(--l-btn-bg); }
+.fd-overlay .cc-submit-card input { position: absolute; top: 14px; left: 14px; z-index: 1; width: 20px; height: 20px; accent-color: var(--l-btn-bg); }
+.fd-overlay .cc-submit-card:has(input:focus-visible) { outline: 2px solid var(--l-focus); outline-offset: 2px; }
+.fd-overlay .cc-submit-card-art { position: relative; display: block; aspect-ratio: 5 / 7; border-radius: 8px; overflow: hidden; background: var(--l-card-back); }
+.fd-overlay .cc-submit-card-art img { object-fit: cover; }
+.fd-overlay .cc-submit-card-name { font-size: 14px; font-weight: 700; line-height: 1.3; color: var(--l-paper-ink); }
+.fd-overlay .cc-submit-fields { display: grid; gap: 4px 18px; }
+@media (min-width: 720px) {
+  .fd-overlay .cc-submit-fields { grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr); align-items: start; }
+  .fd-overlay .cc-submit-fields > #cc-submit-name-count { grid-column: 1; grid-row: 2; }
+  .fd-overlay .cc-submit-fields > .cf-field:last-child { grid-column: 2; grid-row: 1; }
+}
+.fd-overlay .cc-submit-rules { padding: 14px 16px; border-radius: 14px; background: var(--l-raised); }
+.fd-overlay .cc-submit-rules-title { margin: 0 0 6px; font-size: 13px; font-weight: 700; letter-spacing: 0.16em; text-transform: uppercase; color: var(--l-label); }
+.fd-overlay .cc-submit-rules > ul { display: grid; gap: 4px; margin: 0; padding-left: 20px; font-size: 15px; color: var(--l-paper-ink); }
+.fd-overlay .cc-submit-more { margin-top: 10px; }
+.fd-overlay .cc-submit-more summary { display: inline-flex; align-items: center; min-height: 44px; font-weight: 700; color: var(--l-paper-ink); cursor: pointer; text-decoration: underline; text-underline-offset: 4px; }
+.fd-overlay .cc-submit-more summary:focus-visible { outline: 2px solid var(--l-focus); outline-offset: 2px; border-radius: 6px; }
+.fd-overlay .cc-submit-more .cc-guide { margin-top: 6px; }
+.fd-overlay .cc-submit-more .cc-guide-group { background: var(--l-paper); }
+.fd-overlay .cc-submit-agree { display: grid; gap: 4px; }
+.fd-overlay .cc-submit-agree .cc-send-blank { align-items: flex-start; font-size: 15px; line-height: 1.45; }
+.fd-overlay .cc-submit-agree .cc-send-blank input { flex: none; margin-top: 1px; }
+.fd-overlay .cc-submit .fd-actions, .fd-overlay .cc-submit-empty .fd-actions { margin-top: 4px; }
+@media (prefers-reduced-motion: reduce) { .souv-cc .cc-tile-share { transition: none; } }
+
+/* ==========================================================================
+   Community Cards audit fixes (2026-11-09): notice, guest pop-up, "Your shared
+   cards" names, and each card's own page (/community-cards/{id}).
+   ========================================================================== */
+
+/* An unknown ?card= link (audit C9): one quiet line under the lede; empty, it takes no room. */
+.souv-cc .cc-notice { max-width: 760px; margin: -6px auto 18px; padding: 10px 16px; border-radius: 14px; background: var(--l-raised); color: var(--l-text); font-size: 15px; text-align: center; }
+.souv-cc .cc-notice:empty { margin: 0; padding: 0; }
+
+/* "Your shared cards": one-line names (the tiles' two-line clamp isn't wanted here). */
+.souv-cc .cc-mine-name { font-size: 16px; font-weight: 700; line-height: 1.3; color: var(--l-paper-ink); }
+
+/* Guest pop-up (audit C8): the card beside its eyebrow, title and lede; Share link, Log In, Sign Up. */
+.fd-overlay .cc-signin-layout { display: grid; grid-template-columns: 120px minmax(0, 1fr); gap: 20px; align-items: start; }
+.fd-overlay .cc-signin-layout .cc-send-art { width: 120px; }
+.fd-overlay .cc-signin-layout .cc-send-art.is-landscape { width: 120px; }
+.fd-overlay .cc-signin-share { gap: 8px; }
+@media (max-width: 559px) {
+  .fd-overlay .cc-signin-layout { grid-template-columns: 72px minmax(0, 1fr); gap: 14px; }
+  .fd-overlay .cc-signin-layout .cc-send-art, .fd-overlay .cc-signin-layout .cc-send-art.is-landscape { width: 72px; }
+  .fd-overlay .cc-signin .fd-title { font-size: 1.5rem; }
+  .fd-overlay .cc-signin-actions { display: grid; grid-template-columns: 1fr 1fr; }
+  .fd-overlay .cc-signin-actions .l-btn { padding: 0 12px; }
+  .fd-overlay .cc-signin-actions .cc-signin-share { grid-column: 1 / -1; }
+}
+
+/* A card's own page (audit C11): the front beside its name, then Send this card and Share link. */
+.souv-cc .cc-card-page { max-width: 960px; }
+.souv-cc .cc-card-feature {
+  display: grid; gap: 24px; align-items: center; padding: 22px; margin: 8px auto 0;
+  border-radius: var(--l-radius); background: var(--l-paper); color: var(--l-paper-ink); box-shadow: var(--l-shadow);
+}
+@media (min-width: 720px) { .souv-cc .cc-card-feature { grid-template-columns: 320px minmax(0, 1fr); gap: 36px; padding: 32px; } }
+.souv-cc .cc-card-art { position: relative; display: grid; place-items: center; width: min(320px, 70vw); margin-inline: auto; aspect-ratio: 5 / 7; border-radius: 12px; overflow: hidden; background: var(--l-card-back); box-shadow: var(--l-shadow); }
+.souv-cc .cc-card-art.is-landscape { background: var(--l-raised); }
+.souv-cc .cc-card-art.is-landscape .cc-tile-face { width: calc(100% - 20px); height: auto; aspect-ratio: 7 / 5; border-radius: 8px; overflow: hidden; box-shadow: var(--l-shadow); }
+.souv-cc .cc-card-art img { object-fit: cover; }
+.souv-cc .cc-card-title { margin: 0; font-size: clamp(2rem, 1.6rem + 1.6vw, 2.8rem); font-weight: 300; line-height: 1.15; color: var(--l-heading); text-wrap: balance; }
+.souv-cc .cc-card-lede { max-width: 46ch; margin: 12px 0 0; font-size: 17px; line-height: 1.5; color: var(--l-paper-ink-2); }
+.souv-cc .cc-card-actions { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; max-width: 440px; margin-top: 22px; }
+.souv-cc .cc-card-actions .l-btn { gap: 8px; min-height: 52px; padding: 0 14px; font-size: 16px; white-space: nowrap; }
+.souv-cc .cc-card-more { margin: 18px 0 0; font-size: 15px; }
+.souv-cc .cc-card-more a { color: var(--l-paper-ink); font-weight: 700; text-underline-offset: 4px; }
+
+/* Guidelines pop-up spacing, so the closed list fits 1280x720 (audit C5 re-measure: 698px tall before). */
+.fd-overlay .cc-guide-dialog .fd-lede { margin-top: 8px; }
+.fd-overlay .cc-guide-dialog .cc-guide { gap: 6px; margin-top: 12px; }
+.fd-overlay .cc-guide-dialog .fd-fineprint { margin-top: 10px; }
+.fd-overlay .cc-guide-dialog .fd-actions { margin-top: 16px; }
+
+/* Short phones (max 700px tall, the same block as Build My Card's and the rights pop-up's): the Send,
+   guest and guidelines pop-ups tighten so they fit one screen. Every word stays. */
+@media (max-width: 599px) and (max-height: 700px) {
+  .fd-overlay .fd-dialog:is(.cc-send, .cc-signin, .cc-guide-dialog) { padding-top: 20px; }
+  .fd-overlay .fd-dialog:is(.cc-send, .cc-signin, .cc-guide-dialog) .fd-title { padding-right: 48px; }
+  .fd-overlay :is(.cc-send, .cc-signin, .cc-guide-dialog) .fd-title { margin-top: 0; font-size: 1.35rem; line-height: 1.2; }
+  .fd-overlay :is(.cc-send, .cc-signin, .cc-guide-dialog) .fd-lede { margin-top: 4px; font-size: 15px; line-height: 1.4; }
+  .fd-overlay :is(.cc-send, .cc-signin, .cc-guide-dialog) .fd-actions { margin-top: 12px; }
+  .fd-overlay .cc-send-form { gap: 8px; margin-top: 10px; }
+  .fd-overlay .cc-send-message { min-height: 84px; }
+  .fd-overlay .cc-send-count { margin-top: -4px; font-size: 14px; }
+  .fd-overlay .cc-send-note { font-size: 14px; line-height: 1.35; }
+  .fd-overlay .cc-guide-dialog .cc-guide { gap: 4px; margin-top: 8px; }
+  .fd-overlay .cc-guide-dialog .fd-fineprint { margin-top: 8px; font-size: 13px; line-height: 1.35; }
+}
+
+/* No eyebrows in Community Cards (owner, 2026-11-09): each pop-up starts with its title, so the
+   title keeps clear of the close button in the top-right corner. */
+.fd-overlay :is(.cc-send, .cc-signin, .cc-share, .cc-guide-dialog, .cc-submit) .fd-title { margin-top: 0; padding-right: 32px; }

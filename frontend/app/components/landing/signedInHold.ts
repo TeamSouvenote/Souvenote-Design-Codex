@@ -43,3 +43,21 @@ export const SIGNED_OUT_REDIRECT_SCRIPT = `(function () {
     location.replace("/");
   } catch (error) {}
 })();`;
+
+/**
+ * Every page (root layout): marks <html> before the first paint when the
+ * browser holds a stored sign-in, so the nav doesn't flash "Log In / Start for
+ * Free" while the sign-in is being checked (audit I5, 2026-11-08). landing.css
+ * hides the signed-out nav buttons while the mark is there (lifting itself
+ * after 3s); AuthProvider removes the mark if the sign-in turns out invalid.
+ */
+export const SESSION_HINT_ATTR = "data-souv-session";
+
+export const SESSION_HINT_SCRIPT = `(function () {
+  try {
+    var key = ${JSON.stringify(AUTH_SESSION_STORAGE_KEY)};
+    if (localStorage.getItem(key) || sessionStorage.getItem(key)) {
+      document.documentElement.setAttribute(${JSON.stringify(SESSION_HINT_ATTR)}, "1");
+    }
+  } catch (error) {}
+})();`;

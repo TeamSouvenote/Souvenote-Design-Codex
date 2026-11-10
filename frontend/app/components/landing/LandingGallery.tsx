@@ -84,7 +84,7 @@ function GalleryCard({ template }: { template: GalleryTemplate }) {
         <span className="l-gcard-inner">
           <span className={`l-gcard-face l-gcard-front l-tone-${template.tone}`}>
             {photo ? (
-              // Local blob preview chosen by the visitor; next/image can't optimise it.
+              // eslint-disable-next-line @next/next/no-img-element -- a local blob: preview chosen by the visitor; next/image can't optimise it
               <img src={photo} alt="" className="l-gcard-img" />
             ) : template.front ? (
               <Image src={template.front.src} alt="" fill sizes={GALLERY_IMAGE_SIZES} className="l-gcard-img" />
@@ -157,10 +157,10 @@ export function LandingGallery() {
             align="start"
           />
           <div className="l-gallery-controls">
-            <button type="button" className="l-arrow" onClick={() => step(-1)} disabled={atStart} aria-controls={trackId} aria-label="Previous cards">
+            <button type="button" className="l-arrow" onClick={() => { if (!atStart) step(-1); }} aria-disabled={atStart || undefined} aria-controls={trackId} aria-label="Previous cards">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M15 5l-7 7 7 7" /></svg>
             </button>
-            <button type="button" className="l-arrow" onClick={() => step(1)} disabled={atEnd} aria-controls={trackId} aria-label="Next cards">
+            <button type="button" className="l-arrow" onClick={() => { if (!atEnd) step(1); }} aria-disabled={atEnd || undefined} aria-controls={trackId} aria-label="Next cards">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M9 5l7 7-7 7" /></svg>
             </button>
           </div>

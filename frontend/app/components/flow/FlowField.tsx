@@ -5,6 +5,16 @@ import * as React from "react";
 // A labelled form field for the Cart/Delivery screens. The label is tied to the
 // control, and an error message is linked with aria-describedby and marks the
 // control aria-invalid, so screen readers read it with the field.
+//
+// After a failed submit, call focusFirstInvalid(form): focus lands on the first
+// field marked invalid, and its error is read with it (audit B12, 2026-11-08).
+
+/** Focuses the first invalid control inside `root` once the errors have rendered. */
+export function focusFirstInvalid(root: HTMLElement | null) {
+  window.requestAnimationFrame(() => {
+    root?.querySelector<HTMLElement>("[aria-invalid='true']")?.focus();
+  });
+}
 
 type FlowFieldProps = {
   label: React.ReactNode;

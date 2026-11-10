@@ -5,6 +5,8 @@ import { BmcIcon } from "./BmcShared";
 import { FlowDialog } from "./flow/FlowDialog";
 import { lookupPromo, promoDiscount, PROMO_INVALID_MESSAGE } from "../lib/promo";
 import type { AppliedPromo } from "../lib/promo";
+import { TAX_NOTE, orderTotals } from "../lib/taxEstimate";
+import { formatAmount, type Country, type Currency } from "../lib/priceLists";
 
 // Payment pop-up opened from the cart (berry & ivory, 2026-11-06). Payment is
 // still simulated here: "Pay" checks the card fields are filled, waits briefly
@@ -26,7 +28,9 @@ export type CheckoutPack = {
 type CheckoutModalProps = {
   open: boolean;
   pack?: CheckoutPack | null;
-  country?: string;
+  /** The account's country and currency (Canada pays CAD, the US pays USD). */
+  country?: Country;
+  currency?: Currency;
   /** Promo already applied in the cart; the pop-up starts with it. */
   promo?: AppliedPromo | null;
   onClose: () => void;
@@ -40,10 +44,6 @@ type CardDetails = {
   cvc: string;
   postal: string;
 };
-
-function coMoney(n: number) {
-  return "$" + n.toFixed(2);
-}
 
 type CardErrors = Partial<Record<keyof CardDetails, string>>;
 
@@ -71,7 +71,9 @@ function checkCard(card: CardDetails): CardErrors {
   return errors;
 }
 
-function CheckoutModal({ open, pack, country = "CA", promo: cartPromo = null, onClose, onPaid, onBack }: CheckoutModalProps) {
+const GRANT_FAILED_MESSAGE = "Your payment went through, but we couldn't add it to your account yet. Press “Add it to my account” to try again. You won't be charged again.";
+
+function CheckoutModal({ open, pack, country = "CA", currency = "CAD", promo: cartPromo = null, onClose, onPaid, onBack }: CheckoutModalProps) {
   const [promo, setPromo] = React.useState("");
   const [appliedPromo, setAppliedPromo] = React.useState<AppliedPromo | null>(cartPromo);
   const [promoError, setPromoError] = React.useState<string | null>(null);
@@ -79,10 +81,17 @@ function CheckoutModal({ open, pack, country = "CA", promo: cartPromo = null, on
   const [cardErrors, setCardErrors] = React.useState<CardErrors>({});
   const [processing, setProcessing] = React.useState(false);
   const [paymentError, setPaymentError] = React.useState<string | null>(null);
+  // Phones: the summary starts closed behind a bar with the total (audit Part B).
+  const [summaryOpen, setSummaryOpen] = React.useState(false);
+  // Set once the payment itself has gone through. If adding the purchase to the
+  // account then fails, the button only retries that step (the cart reuses the
+  // same idempotency key), so the customer is never asked to pay twice (audit B4).
+  const [paid, setPaid] = React.useState(false);
 
   React.useEffect(() => {
     if (open) {
       setProcessing(false);
+      setPaid(false);
       setPaymentError(null);
       setCardErrors({});
       setPromoError(null);
@@ -96,11 +105,7 @@ function CheckoutModal({ open, pack, country = "CA", promo: cartPromo = null, on
   const isCart = pack.kind === "cart";
   const subtotal = pack.price;
   const discount = promoDiscount(subtotal, appliedPromo);
-  const taxable = subtotal - discount;
-  const taxRate = country === "CA" ? 0.05 : (country === "GB" ? 0.20 : 0);
-  const taxLabel = country === "CA" ? "GST (5%)" : (country === "GB" ? "VAT (20%)" : "Tax");
-  const tax = +(taxable * taxRate).toFixed(2);
-  const total = +(taxable + tax).toFixed(2);
+  const { tax, taxLabel, total } = orderTotals(subtotal, discount, country);
 
   function fmtCard(value: string) {
     return value.replace(/\D/g, "").slice(0, 16).replace(/(.{4})/g, "$1 ").trim();
@@ -147,6 +152,16 @@ function CheckoutModal({ open, pack, country = "CA", promo: cartPromo = null, on
     if (!pack) return;
     if (processing) return;
     if (!onPaid) return;
+    if (paid) {
+      // Payment already taken: retry only adding the purchase to the account.
+      setProcessing(true);
+      setPaymentError(null);
+      Promise.resolve(onPaid(pack)).catch(() => {
+        setPaymentError(GRANT_FAILED_MESSAGE);
+        setProcessing(false);
+      });
+      return;
+    }
     if (!viaWallet) {
       const errors = checkCard(card);
       setCardErrors(errors);
@@ -159,9 +174,12 @@ function CheckoutModal({ open, pack, country = "CA", promo: cartPromo = null, on
     setProcessing(true);
     setPaymentError(null);
     window.setTimeout(() => {
+      // Mock: the payment is simulated, so it succeeds here. With Stripe this is
+      // where the confirmed payment comes back, before anything is added.
+      setPaid(true);
       Promise.resolve(onPaid?.(pack))
-        .catch((error) => {
-          setPaymentError(error instanceof Error ? error.message : "Payment succeeded, but credits could not be added. Please try again.");
+        .catch(() => {
+          setPaymentError(GRANT_FAILED_MESSAGE);
           setProcessing(false);
         });
     }, 1300);
@@ -171,14 +189,16 @@ function CheckoutModal({ open, pack, country = "CA", promo: cartPromo = null, on
     <FlowDialog
       onClose={onClose}
       labelledBy="co-title"
+      describedBy="co-desc"
       className="fd-wide fd-checkout"
       tone="forest"
       screenLabel="07 Checkout · Payment"
     >
       <div className="co-grid">
         <div className="co-pay">
-          <p className="fd-eyebrow"><BmcIcon name="lock" w={13} /> Secure checkout</p>
-          <h2 id="co-title" className="fd-title">Complete your purchase</h2>
+          <h2 id="co-title" className="fd-title">Complete your <span className="l-script">purchase</span></h2>
+          {/* Read with the dialog's name (audit I8); the total is also on the Pay button. */}
+          <p id="co-desc" className="l-sr-only">You pay {formatAmount(total)} {currency}. It&apos;s added to your account as soon as the payment goes through.</p>
 
           <div className="co-express">
             <button type="button" className="co-paybtn is-apple" onClick={() => pay(true)} aria-label="Pay with Apple Pay" aria-disabled={processing || undefined}>
@@ -260,9 +280,9 @@ function CheckoutModal({ open, pack, country = "CA", promo: cartPromo = null, on
             onClick={() => pay()}
             aria-disabled={processing || undefined}
           >
-            {processing ? <><span className="cf-spin" aria-hidden="true" /> Processing...</> : <>Pay {coMoney(total)} CAD <BmcIcon name="arrow" w={15} /></>}
+            {processing ? <><span className="cf-spin" aria-hidden="true" /> Processing…</> : paid ? <>Add it to my account <BmcIcon name="arrow" w={15} /></> : <>Pay {formatAmount(total)} {currency} <BmcIcon name="arrow" w={15} /></>}
           </button>
-          <p className="l-sr-only" role="status">{processing ? "Processing..." : ""}</p>
+          <p className="l-sr-only" role="status">{processing ? "Processing…" : ""}</p>
           {paymentError && (
             <p className="cf-alert" role="alert">{paymentError}</p>
           )}
@@ -271,39 +291,48 @@ function CheckoutModal({ open, pack, country = "CA", promo: cartPromo = null, on
         </div>
 
         <section className="co-summary" aria-labelledby="co-summary-title">
-          <h3 id="co-summary-title" className="co-summary-title">Order summary</h3>
+          <h3 id="co-summary-title" className="co-summary-title">
+            {/* Phones only (hidden from 700px, where the summary sits beside the form). */}
+            <button type="button" className="co-summary-toggle" aria-expanded={summaryOpen} aria-controls="co-summary-body" onClick={() => setSummaryOpen((open) => !open)}>
+              <span>Order summary</span>
+              <span className="co-summary-toggle-total">{formatAmount(total)} {currency}</span>
+            </button>
+            <span className="co-summary-title-text">Order summary</span>
+          </h3>
+          <div id="co-summary-body" className={`co-summary-body ${summaryOpen ? "is-open" : ""}`}>
           <div className="co-pack">
             <p className="co-pack-name">{pack.name}</p>
             <p className="co-pack-tag">
               {isCart
                 ? <><b>{pack.lineCount} {pack.lineCount === 1 ? "item" : "items"}</b> · cards, packs &amp; credits</>
                 : isCards
-                  ? <><b>{pack.cards} {pack.cards === 1 ? "card" : "cards"}</b> · {pack.cards === 1 ? "one physical send" : "physical sends"} · shipping included</>
+                  ? <><b>{pack.cards} {pack.cards === 1 ? "card" : "cards"}</b> · {pack.cards === 1 ? "one physical send" : "physical sends"} · postage included</>
                   : <><b>{pack.tokens} credits</b> · AI image, edit, or optional QR-song generations</>}
             </p>
           </div>
 
           <dl className="cf-rows co-lines">
-            <div><dt>Subtotal</dt><dd>{coMoney(subtotal)}</dd></div>
-            {(isCards || isCart) && <div><dt>Shipping</dt><dd className="is-included">Included</dd></div>}
-            {appliedPromo && <div><dt>Promo · {appliedPromo.code}</dt><dd className="is-discount">{"−"}{coMoney(discount)}</dd></div>}
-            {tax > 0 && <div><dt>{taxLabel}</dt><dd>{coMoney(tax)}</dd></div>}
+            <div><dt>Subtotal</dt><dd>{formatAmount(subtotal)}</dd></div>
+            {(isCards || isCart) && <div><dt>Postage</dt><dd className="is-included">Included</dd></div>}
+            {appliedPromo && <div><dt>Promo · {appliedPromo.code}</dt><dd className="is-discount">{"−"}{formatAmount(discount)}</dd></div>}
+            {tax > 0 && <div><dt>{taxLabel}</dt><dd>{formatAmount(tax)}</dd></div>}
           </dl>
 
           <p className="co-total">
             <span className="co-total-label">Total</span>
-            <span><span className="co-total-val">{coMoney(total)}</span><span className="co-total-cur">CAD</span></span>
+            <span><span className="co-total-val">{formatAmount(total)}</span><span className="co-total-cur">{currency}</span></span>
           </p>
 
           {isCards && Number(pack.bonus) > 0 && (
             <p className="co-bonus"><BmcIcon name="spark2" w={16} /> Includes {pack.tokens} AI credits, plus {pack.bonus} bonus on your first send</p>
           )}
-          {/* Tax is a flat rate until real tax by province is built (backend gap), so no "calculated from your address" line. */}
-          <p className="co-fx">Each card has a 15-month send window.</p>
+          {/* Placeholder tax until Stripe Tax is connected (lib/taxEstimate.ts). */}
+          <p className="co-fx">{TAX_NOTE} Each card has a 12-month send window.</p>
+          </div>
         </section>
       </div>
     </FlowDialog>
   );
 }
 
-export { coMoney, CheckoutModal };
+export { CheckoutModal };

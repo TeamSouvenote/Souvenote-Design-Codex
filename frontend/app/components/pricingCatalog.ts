@@ -1,25 +1,25 @@
-import { SOUV_CART_KEY, notifyCartChanged } from "./cartStorage";
+import { AI_CREDITS_PER_CARD, MIN_BIG_SENDER_CARDS, PRICE_LISTS, formatMoney, type Currency, type PriceTier } from "../lib/priceLists";
 
-export const MIN_BIG_SENDER_CARDS = 1;
+// Cart items for the card offers, in either currency (Canada and the US,
+// owner decisions 2026-11-08). Prices come from lib/priceLists.ts (the
+// fallback for the PostgreSQL catalog). Each item records its currency, so the
+// cart can re-price it if the visitor's country changes (e.g. on sign-in).
+
+export { MIN_BIG_SENDER_CARDS };
+
 /**
  * Where the last Big Sender tier's label stops ("21-30+ cards"). It is a
  * label only: Big Sender has no maximum quantity (owner decision 2026-11-04,
  * MVP PRD section 4), and every quantity in the last tier or above pays the
- * last tier's price. The backend seed still stores 30 as that tier's
- * card_count_max; see DEVELOPER_HANDOFF.md "Pricing".
+ * last tier's price. The catalog still stores 30 as that tier's card_count_max.
  */
 export const MAX_BIG_SENDER_CARDS = 30;
 
-/** Print and Send: one card, shipping included, no AI credits. Fixed CAD price (owner decision 2026-11-04). */
-export const PRINT_AND_SEND_PRICE = 9.99;
+/** Canadian Print and Send price (the cart's default list). */
+export const PRINT_AND_SEND_PRICE = PRICE_LISTS.CAD.printAndSend;
 export const PRINT_AND_SEND_CART_ID = "pack-print-and-send";
 
-export type BigSenderTier = {
-  min: number;
-  max: number;
-  pricePerCard: number;
-  label: string;
-};
+export type BigSenderTier = PriceTier;
 
 export type PricingCartItem = {
   id: string;
@@ -34,17 +34,8 @@ export type PricingCartItem = {
   lockedQuantity: boolean;
   replaceGroup: string;
   unitNote: string;
+  currency: Currency;
 };
-
-export type TryRiskFreeCartItemOptions = {
-  name?: string;
-  priceCents?: number;
-  creditsPerCard?: number;
-  holdDays?: number;
-};
-
-// The cart key lives in cartStorage.ts; re-exported here for existing imports.
-export { SOUV_CART_KEY };
 
 export type BigSenderPricing = {
   qty: number;
@@ -53,11 +44,8 @@ export type BigSenderPricing = {
   totalText: string;
 };
 
-export const BIG_SENDER_TIERS: BigSenderTier[] = [
-  { min: 1, max: 10, pricePerCard: 8.99, label: "1-10 cards" },
-  { min: 11, max: 20, pricePerCard: 7.99, label: "11-20 cards" },
-  { min: 21, max: 30, pricePerCard: 6.99, label: "21-30+ cards" },
-];
+/** Canadian Big Sender tiers (the default list). */
+export const BIG_SENDER_TIERS: BigSenderTier[] = PRICE_LISTS.CAD.bigSender;
 
 /** Whole-number quantity of at least `min`. No upper limit unless `max` is given. */
 export function clampBigSenderQuantity(
@@ -98,83 +86,42 @@ export function getBigSenderPricing(
 export function makeBigSenderCartItem(
   quantity: unknown,
   tiers: BigSenderTier[] = BIG_SENDER_TIERS,
+  currency: Currency = "CAD",
 ): PricingCartItem {
   const pricing = getBigSenderPricing(quantity, tiers);
   return {
     id: "pack-bigsender",
     type: "pack",
     name: "Big Sender",
-    meta: `${pricing.qty} cards · shipping included`,
-    sub: "Send multiple different cards, 10 AI credits per card.",
+    meta: `${pricing.qty} cards · postage included`,
+    sub: `Send multiple different cards, ${AI_CREDITS_PER_CARD} AI credits per card.`,
     price: pricing.total,
     qty: 1,
     cardCount: pricing.qty,
-    creditsPerCard: 10,
+    creditsPerCard: AI_CREDITS_PER_CARD,
     lockedQuantity: true,
     replaceGroup: "pack-bigsender",
-    unitNote: `$${pricing.tier.pricePerCard.toFixed(2)} / card`,
+    unitNote: `${formatMoney(pricing.tier.pricePerCard, currency)} / card`,
+    currency,
   };
 }
 
-export function makeTryRiskFreeCartItem(
-  options: TryRiskFreeCartItemOptions = {},
-): PricingCartItem {
-  const price = Number.isFinite(options.priceCents)
-    ? Number(((options.priceCents ?? 999) / 100).toFixed(2))
-    : 9.99;
-  const credits = options.creditsPerCard ?? 10;
-  const holdDays = options.holdDays ?? 5;
-
-  return {
-    id: "pack-try-risk-free",
-    type: "pack",
-    name: options.name ?? "Try Risk-Free",
-    meta: "1 card · shipping included",
-    sub: `Temporary ${holdDays}-day hold. Includes ${credits} AI credits and finalizes only if the card is sent.`,
-    price,
-    qty: 1,
-    cardCount: 1,
-    creditsPerCard: credits,
-    lockedQuantity: true,
-    replaceGroup: "pack-try-risk-free",
-    unitNote: `$${price.toFixed(2)} hold`,
-  };
-}
-
-/** Print and Send: one card to send from Saved Cards & Songs or Community Cards. No AI credits. */
-export function makePrintAndSendCartItem(): PricingCartItem {
+/** Print and Send: one card to send from Saved Cards & Songs or Community Cards, with 10 AI credits. */
+export function makePrintAndSendCartItem(currency: Currency = "CAD", price = PRICE_LISTS[currency].printAndSend): PricingCartItem {
   return {
     id: PRINT_AND_SEND_CART_ID,
     type: "pack",
     name: "Print and Send",
-    meta: "1 card · shipping included",
+    meta: "1 card · postage included",
     sub: "One flat price to print and send your card.",
-    price: PRINT_AND_SEND_PRICE,
+    price,
     qty: 1,
     cardCount: 1,
     // 10 AI creation credits included (owner, 2026-11-06), same as each Big Sender card.
-    creditsPerCard: 10,
+    creditsPerCard: AI_CREDITS_PER_CARD,
     lockedQuantity: true,
     replaceGroup: PRINT_AND_SEND_CART_ID,
-    unitNote: `$${PRINT_AND_SEND_PRICE.toFixed(2)} / card`,
+    unitNote: `${formatMoney(price, currency)} / card`,
+    currency,
   };
-}
-
-export function addPricingCartItemToCart(item: PricingCartItem): void {
-  if (typeof window === "undefined") return;
-
-  try {
-    const raw = JSON.parse(window.localStorage.getItem(SOUV_CART_KEY) || "[]");
-    let current = Array.isArray(raw) ? raw : [];
-    if (item.replaceGroup) {
-      current = current.filter((candidate) => candidate?.replaceGroup !== item.replaceGroup && candidate?.id !== item.id);
-    }
-    const existing = item.replaceGroup ? null : current.find((candidate) => candidate?.id === item.id);
-    if (existing) existing.qty += item.qty || 1;
-    else current.push(item);
-    window.localStorage.setItem(SOUV_CART_KEY, JSON.stringify(current));
-    notifyCartChanged();
-  } catch {
-    // Cart storage is best-effort in the local prototype.
-  }
 }

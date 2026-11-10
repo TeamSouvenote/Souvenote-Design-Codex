@@ -7,6 +7,13 @@ import { deliveryOrderNumber, deliveryStatusLabel } from "./delivery/deliverySta
 import { EMPTY_FLOW_STATE, MOCK_MVP_FLOW_UPDATED_EVENT, readMockMvpFlowState } from "../lib/mockMvpFlow";
 import type { MockMvpFlowState } from "../lib/mockMvpFlow";
 
+/** "2 cards to 2 addresses", "3 cards to 1 address", "1 card". */
+function cardsLabel({ cards, addresses }: { cards: number; addresses: number }) {
+  const c = cards === 1 ? "1 card" : `${cards} cards`;
+  if (cards === 1) return c;
+  return `${c} to ${addresses === 1 ? "1 address" : `${addresses} addresses`}`;
+}
+
 // Delivery confirmation: reads the order stored by Delivery. Customer wording
 // approved 2026-11-06; the internal IDs sit in a closed "Reference details"
 // section (for support) instead of the main list.
@@ -38,22 +45,19 @@ function DeliveryConfirmationApp() {
   }, []);
 
   const fulfilled = flowState.orderStatus === "fulfilled_mock";
+  const cards = flowState.orderCards?.cards ?? 1;
 
   return (
     <div className={`cf-wrap dc-wrap ${ready ? "" : "is-loading"}`.trim()} data-screen-label="08 Delivery Confirmation" aria-busy={ready ? undefined : true}>
       <header className="cf-head">
-        <p className="cf-eyebrow">
-          <span className="cf-eyebrow-num">08</span>
-          <span>Confirmation</span>
-        </p>
         <h1 className="cf-title">
           {fulfilled
             ? <>On its <span className="l-script">way</span></>
-            : <>Nothing to <span className="l-script">confirm</span> yet</>}
+            : <>Nothing to <span className="l-script">confirm yet</span></>}
         </h1>
         <p className="cf-lede">
           {fulfilled
-            ? "We're hand-writing your card now, and you'll get an email when it's posted."
+            ? `We're hand-writing your ${cards > 1 ? `${cards} cards` : "card"} now, and you'll get an email when ${cards > 1 ? "they're" : "it's"} posted.`
             : "We don't have a sent order to show yet. Finish sending your card from Delivery first."}
         </p>
       </header>
@@ -66,6 +70,9 @@ function DeliveryConfirmationApp() {
         <dl className="cf-rows dc-rows">
           {flowState.orderId && (
             <div><dt>Order number</dt><dd>{deliveryOrderNumber(flowState.orderId)}</dd></div>
+          )}
+          {flowState.orderCards && (
+            <div><dt>Cards</dt><dd>{cardsLabel(flowState.orderCards)}</dd></div>
           )}
           <div><dt>Order status</dt><dd>{flowState.orderStatus ? deliveryStatusLabel(flowState.orderStatus) : "Not started"}</dd></div>
         </dl>

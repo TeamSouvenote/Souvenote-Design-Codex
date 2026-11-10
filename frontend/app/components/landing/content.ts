@@ -1,4 +1,4 @@
-// Shared by the public landing page (`/`) and the signed-in home (`/home`); `/faq` keeps its original component.
+// Shared by the public landing page (`/`) and the signed-in home (`/home`).
 
 export const COMMUNITY_CARDS_HREF = "/community-cards";
 
@@ -90,8 +90,8 @@ export const STEPS: Step[] = [
   {
     n: "03",
     title: "Print, send, or keep",
-    // "$6.99" = Big Sender's lowest per-card price (21+ cards), confirmed by the owner 2026-11-01.
-    body: "Send a premium physical card directly to their mailbox from $6.99—or keep it as a digital keepsake for a rainy day.",
+    // Big Sender's lowest per-card price (21+ cards) in each country: $6.99 CAD (owner, 2026-11-01), $4.99 USD (owner, 2026-11-08).
+    body: "Send a premium physical card directly to their mailbox from $6.99 CAD or $4.99 USD—or keep it as a digital keepsake for a rainy day.",
   },
 ];
 
@@ -116,31 +116,4 @@ export const COMPARISON = {
   ] as { service: string; values: boolean[]; highlight?: boolean }[],
 };
 
-export type FaqItem = { q: string; a: string };
-
-export const FAQ_ITEMS: FaqItem[] = [
-  {
-    q: "Can I buy creation credits without buying a card?",
-    a: "Yes. You can top up creation credits on the Pricing page at any time, without ordering a printed card. One credit covers one action — generating a design, editing an image, or creating an optional QR-code song — so you can explore ideas first and print only when you’re ready.",
-  },
-  {
-    q: "What does a personalized song sound like?",
-    a: "Songs are optional. If you include one, it is uniquely generated from the details you provide and added to the printed card by QR code.",
-  },
-  {
-    q: "How long does shipping take?",
-    a: "Cards typically arrive within 5–7 business days across North America. International shipping times vary by destination.",
-  },
-  {
-    q: "Can I save my card and finish later?",
-    a: "Yes. All designs are automatically saved in Saved Cards & Songs for 30 days. Return anytime to finish and purchase.",
-  },
-  {
-    q: "What payment methods do you accept?",
-    a: "We accept all major credit cards, Apple Pay, and Google Pay. You can toggle prices between USD and CAD.",
-  },
-  {
-    q: "What happens if I don’t like my card?",
-    a: "Take a screenshot of the card you’re referring to and tell us why it doesn’t work for you — we’ll reimburse your credits so you can try again.",
-  },
-];
+// The FAQ list moved to components/faq/faqData.ts (one list for / , /home and /faq).

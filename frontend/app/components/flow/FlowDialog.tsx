@@ -7,8 +7,8 @@ import { brandFontVariables, handFontVariable } from "../../lib/brandFonts";
 import "../../styles/landing.css";
 import "../../styles/checkout-flow.css";
 
-// Pop-up shell for the Cart and Delivery screens (checkout, gift offer, blank
-// gift, card top-up, "On its way"). Same behaviour as the Print and Send
+// Pop-up shell for the Cart and Delivery screens (checkout, card top-up,
+// "On its way"). Same behaviour as the Print and Send
 // pop-up: rendered into <body>, page behind made inert, Tab kept inside,
 // Escape closes, page scroll locked, focus returned on close. A press closes it
 // only when it starts and ends on the backdrop. A tall pop-up scrolls inside

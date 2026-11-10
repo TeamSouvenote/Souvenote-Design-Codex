@@ -16,15 +16,12 @@ type DlvKeepsakeProps = {
 // gap), so the handwritten message preview and the song line are not shown.
 function DlvKeepsake({ imageUrl = null, songIncluded = false }: DlvKeepsakeProps) {
   return (
-    <section className="dv-keepsake" aria-labelledby="dv-keepsake-title">
-      <p className="dv-keepsake-eyebrow" id="dv-keepsake-title">
-        <span className="dv-diamond" aria-hidden="true" />
-        <span>Your keepsake is approved</span>
-      </p>
+    <section className="dv-keepsake" aria-label="Your keepsake is approved">
 
       <div className="dv-keepsake-top">
         <div className={`dv-art ${imageUrl ? "has-image" : "is-empty"}`} aria-hidden="true">
           {imageUrl ? (
+            // eslint-disable-next-line @next/next/no-img-element -- the generated front comes from asset storage (a remote or mock:// address) that next/image can't optimise
             <img className="dv-art-img" src={imageUrl} alt="" />
           ) : (
             <>

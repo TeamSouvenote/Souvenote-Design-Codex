@@ -1,4 +1,6 @@
 import type { CSSProperties, ReactNode } from "react";
+// The cart's card thumbnails (audit E3: no longer global).
+import "../styles/cardart.css";
 
 type CardPalette = {
   bg: string;

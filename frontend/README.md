@@ -18,6 +18,18 @@ npm.cmd run dev
 npm.cmd run build
 ```
 
+## Mock data mode (`mock-data-mode` branch)
+
+On this branch the whole app runs on mock data: no backend, Postgres or Cognito needed. Just `npm run dev`.
+
+- Every call in `app/lib/api.ts` is answered by `app/lib/mockApi.ts`, and every Cognito call in `app/lib/cognitoAuth.ts` by `app/lib/mockCognito.ts`. Data lives in the browser's localStorage (`app/lib/mockDb.ts`) and survives reloads.
+- Ready-made account: `demo@souvenote.com` / `Souvenote123!` (20 credits, a saved Visa ending 4242, one sent card, one draft in progress).
+- New sign-ups work with any email. The email code and password-reset code accept any 6 digits (for example `123456`). New accounts get the 2 starter credits on first login.
+- Google / Apple / Facebook buttons sign straight into a test account for that provider and show the one-time Terms screen, like a first real social sign-in.
+- Generation costs 2 credits and returns an image, song and message. Card payments and checkout always succeed; credit packs add their credits.
+- The **Mock data** button (bottom right) shows the logins, adds 20 credits, and **Reset all mock data** wipes everything back to the seed.
+- To use the real backend again, set `NEXT_PUBLIC_MOCK_MODE=0` in `.env.local` and restart `npm run dev`.
+
 ## Converted Routes
 
 - `/` from `landing-logged-out.html`

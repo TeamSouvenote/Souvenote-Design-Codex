@@ -244,8 +244,8 @@
   cursor: pointer;
   transition: color .25s var(--l-ease);
 }
-.souv-pricing .pr-stepper button:hover:not(:disabled) { color: var(--l-hover); }
-.souv-pricing .pr-stepper button:disabled { opacity: 0.4; cursor: default; }
+.souv-pricing .pr-stepper button:hover:not(:disabled, [aria-disabled="true"]) { color: var(--l-hover); }
+.souv-pricing .pr-stepper button:is(:disabled, [aria-disabled="true"]) { opacity: 0.4; cursor: default; }
 .souv-pricing .pr-stepper input {
   width: 5ch;
   min-height: 44px;
@@ -527,40 +527,70 @@
   margin: 14px auto 0;
   color: var(--l-paper-ink-2);
 }
-/* Four option buttons in the Create Options colours (owner, 2026-11-06):
-   Template gold, Build berry, Community forest, Saved espresso. 2x2 from 520px. */
+/* Four option cards (owner, 2026-11-08): design-system colours only. Ivory card,
+   hairline edge, espresso title, cocoa one-line explanation, forest arrow; berry
+   edge, tint and title on hover (berry = hover). The small dot names the option
+   and is decoration only: terracotta, berry, forest, cocoa (never gold: gold
+   means AI). One column on phones, 2x2 from 520px, titles on one top line. */
 .pr-ready-overlay .pr-ready-options {
-  display: grid; grid-template-columns: 1fr; gap: 10px;
-  margin-top: 28px;
+  display: grid; grid-template-columns: minmax(0, 1fr); gap: 10px;
+  margin-top: 26px;
+  text-align: left;
 }
 @media (min-width: 520px) {
-  .pr-ready-overlay .pr-ready-options { grid-template-columns: 1fr 1fr; gap: 12px; }
+  .pr-ready-overlay .pr-ready { max-width: 660px; }
+  .pr-ready-overlay .pr-ready-options { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
 }
 .pr-ready-overlay .pr-ready-opt {
-  --opt-bg: #D8B65A; --opt-ink: #4A3B39;
-  display: flex; align-items: center; justify-content: center;
+  --opt-dot: var(--l-stripe);
+  display: flex; flex-direction: column; justify-content: flex-start; gap: 6px;
   min-height: 56px;
-  padding: 10px 16px;
-  border-radius: 999px;
-  background: var(--opt-bg);
-  color: var(--opt-ink);
-  font-size: 16px; font-weight: 700;
-  line-height: 1.2;
-  text-align: center;
+  padding: 14px 16px 16px;
+  border: 1.5px solid var(--l-line-strong);
+  border-radius: 16px;
+  background: var(--l-bg);
+  color: var(--l-text);
   text-decoration: none;
-  box-shadow: 0 6px 16px rgba(74, 59, 57, 0.16);
-  transition: transform .2s var(--l-ease), box-shadow .2s var(--l-ease), filter .2s var(--l-ease);
+  transition: transform .25s var(--l-ease), box-shadow .25s var(--l-ease), border-color .25s var(--l-ease), background-color .25s var(--l-ease);
 }
-.pr-ready-overlay .pr-ready-opt.is-build { --opt-bg: #9E3D58; --opt-ink: #F7F0E8; }
-.pr-ready-overlay .pr-ready-opt.is-community { --opt-bg: #2F3E3B; --opt-ink: #F7F0E8; }
-.pr-ready-overlay .pr-ready-opt.is-saved { --opt-bg: #4A3B39; --opt-ink: #F7F0E8; }
+.pr-ready-overlay .pr-ready-opt.is-build { --opt-dot: var(--l-script-color); }
+.pr-ready-overlay .pr-ready-opt.is-community { --opt-dot: var(--l-btn-bg); }
+.pr-ready-overlay .pr-ready-opt.is-saved { --opt-dot: var(--l-text-2); }
+.pr-ready-overlay .pr-ready-opt-head { display: flex; align-items: center; gap: 10px; }
+.pr-ready-overlay .pr-ready-dot {
+  flex: none;
+  width: 10px; height: 10px;
+  border-radius: 50%;
+  background: var(--opt-dot);
+}
+.pr-ready-overlay .pr-ready-opt-title {
+  flex: 1 1 auto; min-width: 0;
+  font-size: 17px; font-weight: 700; line-height: 1.25;
+  transition: color .25s var(--l-ease);
+}
+.pr-ready-overlay .pr-ready-opt-go { flex: none; color: var(--l-btn-bg); transition: transform .25s var(--l-ease), color .25s var(--l-ease); }
+.pr-ready-overlay .pr-ready-opt-sub {
+  padding-left: 20px;
+  font-size: 15px; line-height: 1.45;
+  color: var(--l-text-2);
+}
 @media (hover: hover) {
-  .pr-ready-overlay .pr-ready-opt:hover { transform: translateY(-2px); box-shadow: 0 10px 22px rgba(74, 59, 57, 0.22); filter: brightness(1.06); }
+  .pr-ready-overlay .pr-ready-opt:hover { border-color: var(--l-hover); background: var(--l-hover-tint); transform: translateY(-1px); box-shadow: var(--l-shadow); }
+  .pr-ready-overlay .pr-ready-opt:hover .pr-ready-opt-title,
+  .pr-ready-overlay .pr-ready-opt:hover .pr-ready-opt-go { color: var(--l-hover); }
+  .pr-ready-overlay .pr-ready-opt:hover .pr-ready-opt-go { transform: translateX(2px); }
 }
-.pr-ready-overlay .pr-ready-opt:focus-visible { outline: 3px solid var(--l-focus); outline-offset: 3px; }
+.pr-ready-overlay .pr-ready-opt:focus-visible { outline: 2px solid var(--l-focus); outline-offset: 3px; }
 @media (prefers-reduced-motion: reduce) {
-  .pr-ready-overlay .pr-ready-opt { transition: none; }
-  .pr-ready-overlay .pr-ready-opt:hover { transform: none; }
+  .pr-ready-overlay .pr-ready-opt,
+  .pr-ready-overlay .pr-ready-opt-title,
+  .pr-ready-overlay .pr-ready-opt-go { transition: none; }
+  .pr-ready-overlay .pr-ready-opt:hover,
+  .pr-ready-overlay .pr-ready-opt:hover .pr-ready-opt-go { transform: none; }
+}
+@media (forced-colors: active) {
+  .pr-ready-overlay .pr-ready-opt { border-color: CanvasText; }
+  .pr-ready-overlay .pr-ready-dot { forced-color-adjust: none; }
 }
 
 @keyframes pr-ready-in {
@@ -636,7 +666,157 @@
 .tu-overlay .tu-close:hover { background: var(--l-raised); color: var(--l-hover); }
 .tu-overlay .tu-close:focus-visible { outline: 2px solid var(--l-focus); outline-offset: 2px; }
 .tu-overlay .tu-head { margin-bottom: 40px; }
+/* Compact pop-up (owner, 2026-11-08, audit I4): same content as the Pricing
+   page, tightened so it fits one desktop screen. Only inside .tu-overlay;
+   /pricing is unchanged. From 600px: smaller padding and heading, and the
+   "How it works" steps sit side by side under each offer instead of stacking. */
+@media (min-width: 600px) {
+  .tu-overlay .tu-dialog { padding: 30px 28px 18px; }
+  .tu-overlay .tu-head { margin-bottom: 18px; }
+  .tu-overlay .tu-head .l-h2 { font-size: clamp(1.9rem, 1.3rem + 1.4vw, 2.5rem); }
+  .tu-overlay .tu-head .pr-lede { margin-top: 6px; font-size: 16px; line-height: 1.5; }
+  .tu-overlay .pr-offer { padding: 18px 22px 20px; }
+  .tu-overlay .pr-offer-top { gap: 6px; }
+  .tu-overlay .pr-offer-text { margin-top: 8px; font-size: 15px; }
+  .tu-overlay .pr-how { margin-top: 10px; padding-top: 10px; }
+  .tu-overlay .pr-how-list {
+    display: grid; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr);
+    align-content: start; gap: 12px; margin-top: 8px;
+  }
+  .tu-overlay .pr-how-item { grid-template-columns: minmax(0, 1fr); gap: 6px; }
+  .tu-overlay .pr-how-num { width: 24px; height: 24px; font-size: 11px; }
+  .tu-overlay .pr-how-item-title,
+  .tu-overlay .pr-how-item-body { font-size: 14px; line-height: 1.4; }
+  .tu-overlay .pr-how + .pr-cta { margin-top: 12px; }
+  .tu-overlay .tu-head .l-h2 { margin-top: 0; }
+  .tu-overlay .pr-how { margin-bottom: 0; }
+  /* Big Sender's "How many cards?" row on one line: label, stepper, total. */
+  .tu-overlay .pr-qty { flex-wrap: nowrap; gap: 10px; }
+  .tu-overlay .pr-qty-label { flex: 0 1 auto; letter-spacing: 0.1em; }
+  .tu-overlay .pr-qty-total { font-size: 1.25rem; white-space: nowrap; }
+  .tu-overlay .tu-switch { margin-top: 12px; padding-top: 12px; }
+  .tu-overlay .pr-credits-grid { gap: 16px; }
+}
+/* Tablets: the two offers and the three credit packs side by side, as on desktop. */
+@media (min-width: 700px) {
+  .tu-overlay .pr-offers { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+  .tu-overlay .pr-credits-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .tu-overlay .tu-dialog { padding-left: 20px; padding-right: 20px; }
+}
+/* Phones: slimmer edges so the button labels stay on one line. */
+@media (max-width: 599px) {
+  .tu-overlay .tu-dialog { padding: 44px 14px 22px; }
+  .tu-overlay .pr-offer { padding: 20px 14px; }
+}
+/* Phones and tablets: compact buttons whose labels never wrap. */
+@media (max-width: 1023px) {
+  .tu-overlay .pr-cta { font-size: 15px; letter-spacing: 0; padding-inline: 12px; gap: 8px; }
+  .tu-overlay .pr-cta span { white-space: nowrap; }
+}
+/* "How it works" toggle in the pop-up (every size): a 44px row with a plus that
+   turns into a minus. Opened, the steps show and the pop-up grows (the overlay
+   scrolls like a page); closed, it fits the screen. */
+.tu-overlay .pr-how.is-collapsible { flex: 1 0 auto; }
+.tu-overlay .pr-how-toggle {
+  display: flex; align-items: center; justify-content: center; gap: 8px;
+  min-height: 44px;
+  border-radius: 10px;
+  cursor: pointer;
+  list-style: none;
+  transition: color .25s var(--l-ease), background .25s var(--l-ease);
+}
+.tu-overlay .pr-how-toggle::-webkit-details-marker { display: none; }
+.tu-overlay .pr-how-toggle::after {
+  content: "+";
+  display: grid; place-items: center;
+  width: 22px; height: 22px;
+  border: 1.5px solid currentColor; border-radius: 50%;
+  font-size: 15px; font-weight: 700; letter-spacing: 0; line-height: 1;
+}
+.tu-overlay .pr-how[open] .pr-how-toggle::after { content: "\2212"; }
+.tu-overlay .pr-how-toggle:hover { color: var(--l-hover); background: var(--l-hover-tint); }
+.tu-overlay .pr-how-toggle:focus-visible { outline: 2px solid var(--l-focus); outline-offset: 2px; }
+@media (prefers-reduced-motion: reduce) { .tu-overlay .pr-how-toggle { transition: none; } }
 @media (prefers-reduced-motion: reduce) {
   .tu-overlay .tu-dialog { animation: none; }
   .tu-overlay .tu-close { transition: none; }
+}
+
+/* ---------- Canada and the US (2026-11-08) ---------- */
+/* Small currency code after a big price ("$9.99 CAD"). */
+.souv-landing .pr-cur { font-size: 0.42em; font-weight: 700; letter-spacing: 0.12em; vertical-align: 0.6em; margin-left: 4px; }
+/* "Prices for: Canada | United States" (signed out) or the account's country (signed in). */
+.souv-landing .pc-switch { display: inline-flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 8px; margin-top: 18px; }
+.souv-landing .pc-switch-label { font-size: 15px; color: var(--l-text-2); }
+.souv-landing .pc-switch-btn {
+  display: inline-flex; align-items: center; min-height: 44px; padding: 0 18px; border-radius: 999px;
+  border: 1px solid var(--l-line-strong); background: var(--l-paper); color: var(--l-text);
+  font: inherit; font-size: 15px; cursor: pointer;
+}
+.souv-landing .pc-switch-btn:hover { border-color: var(--l-hover); color: var(--l-hover); }
+.souv-landing .pc-switch-btn.is-on { background: var(--l-btn-bg); border-color: var(--l-btn-bg); color: var(--l-btn-ink); }
+.souv-landing .pc-switch-btn:focus-visible { outline: 2px solid var(--l-focus); outline-offset: 2px; }
+.souv-landing .pc-switch-note { margin-top: 14px; font-size: 15px; color: var(--l-text-2); }
+
+/* High contrast (audit A1/A2, 2026-11-09): forced colours drop the fills, so the selected
+   country and tier get an outline, and the Top up pop-up gets an edge. */
+@media (forced-colors: active) {
+  .souv-landing .pc-switch-btn.is-on,
+  .souv-pricing .pr-tier.is-active { outline: 3px solid Highlight; outline-offset: 2px; }
+  .tu-overlay .tu-dialog { border: 1px solid CanvasText; }
+}
+
+/* ---------- Phones: the Top up pop-up on one screen (audit Part B, 2026-11-09) ----------
+   Cards: one offer at a time behind a two-button switch, and a two-row quantity line.
+   Credits: each pack as a compact row. Same prices, labels and buttons. */
+.tu-overlay .tu-offer-switch { display: none; }
+@media (max-width: 599px) {
+  .tu-overlay .tu-head { margin-bottom: 14px; }
+  .tu-overlay .tu-head .pr-lede { margin-top: 6px; font-size: 15px; line-height: 1.45; }
+  .tu-overlay .tu-switch { margin-top: 8px; padding-top: 8px; }
+  .tu-overlay .tu-dialog { padding-bottom: 16px; }
+  .tu-overlay .tu-offer-switch {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 4px;
+    margin: 0 0 10px; padding: 4px;
+    border: 1.5px solid var(--l-line-strong); border-radius: 999px;
+  }
+  .tu-overlay .tu-offer-switch button {
+    min-height: 44px; border: 0; border-radius: 999px;
+    background: transparent; color: var(--l-text);
+    font: 700 15px/1.2 var(--l-font); cursor: pointer;
+  }
+  .tu-overlay .tu-offer-switch button:hover { color: var(--l-hover); }
+  .tu-overlay .tu-offer-switch button[aria-pressed="true"] { background: var(--l-btn-bg); color: var(--l-btn-ink); }
+  .tu-overlay .tu-offer-switch button:focus-visible { outline: 2px solid var(--l-focus); outline-offset: 2px; }
+  .tu-overlay .tu-dialog[data-offer="single"] .pr-offers > :nth-child(2),
+  .tu-overlay .tu-dialog[data-offer="big"] .pr-offers > :nth-child(1) { display: none; }
+  .tu-overlay .pr-offer { padding: 14px; }
+  .tu-overlay .pr-credits-grid { gap: 8px; }
+  .tu-overlay .pr-credit article {
+    display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: baseline;
+    grid-template-areas: "badge badge" "name price" "blurb count" "cta cta";
+    gap: 2px 12px; padding: 10px 14px 12px; text-align: left;
+  }
+  .tu-overlay .pr-credit article > *,
+  .tu-overlay .pr-credit article > :nth-last-child(2) { margin: 0; }
+  .tu-overlay .pr-credit .pr-badge { position: static; transform: none; grid-area: badge; justify-self: start; margin-bottom: 4px; padding: 3px 10px; font-size: 11px; }
+  .tu-overlay .pr-credit-name { grid-area: name; font-size: 1.25rem; }
+  .tu-overlay .pr-credit-price { grid-area: price; font-size: 1.3rem; text-align: right; }
+  .tu-overlay .pr-credit-count { grid-area: count; justify-self: end; justify-content: flex-end; gap: 6px; padding-top: 0; border-top: 0; white-space: nowrap; }
+  .tu-overlay .pr-credit-count-num { font-size: 1.05rem; }
+  .tu-overlay .pr-credit-blurb { grid-area: blurb; font-size: 15px; }
+  .tu-overlay .pr-credit .pr-cta { grid-area: cta; min-height: 44px; margin-top: 8px; }
+}
+
+/* Quantity line in two rows (label; stepper and total) wherever the offer is narrow:
+   phones, and tablets where the two offers sit side by side. At 768 the one-line row
+   wrapped the label to four lines and pushed the total 29px past the card (Part B). */
+@media (max-width: 1023px) {
+  .tu-overlay .pr-qty {
+    display: grid; grid-template-columns: auto minmax(0, 1fr); grid-template-areas: "label label" "stepper total";
+    align-items: center; gap: 6px 10px; padding: 6px 12px;
+  }
+  .tu-overlay .pr-qty-label { grid-area: label; letter-spacing: 0.1em; }
+  .tu-overlay .pr-qty-total { grid-area: total; justify-self: end; margin-left: 0; font-size: 1.25rem; white-space: nowrap; }
+  .tu-overlay .pr-qty .pr-stepper { grid-area: stepper; justify-self: start; }
 }

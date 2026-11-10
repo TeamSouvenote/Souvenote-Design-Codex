@@ -17,20 +17,16 @@ import {
   PRINT_AND_SEND_CART_ID,
   makeBigSenderCartItem,
   makePrintAndSendCartItem,
-  makeTryRiskFreeCartItem,
 } from "./pricingCatalog";
+import { usePriceCountry } from "./pricing/usePriceCountry";
+import { COUNTRY_NAMES, PRICE_LISTS, formatAmount, toCurrency, type Currency } from "../lib/priceLists";
+import { TAX_NOTE, orderTotals } from "../lib/taxEstimate";
 import { PrintSendReadyModal } from "./pricing/PrintSendReadyModal";
 import type { PurchaseReadyKind } from "./pricing/PrintSendReadyModal";
-import { FlowDialog } from "./flow/FlowDialog";
 import { addDemoBalance, getCartTopUpDelta } from "./DemoBalance";
-import { consumePricingReturn, peekPricingReturn } from "./PricingReturn";
-import { CART_CHANGED_EVENT, notifyCartChanged } from "./cartStorage";
-import {
-  BLANK_SOUVENOTE_GIFT_CART_ID,
-  BLANK_SOUVENOTE_GIFT_PRICE,
-  addBlankSouvenoteGifts,
-  isBlankSouvenoteGiftId,
-} from "./GiftAddon";
+import { consumePricingReturn } from "./PricingReturn";
+import { CREATE_OPTIONS } from "./createOptions";
+import { CART_CHANGED_EVENT, SOUV_CART_KEY, notifyCartChanged } from "./cartStorage";
 
 type CartItem = {
   id: string;
@@ -50,13 +46,15 @@ type CartItem = {
   replaceGroup?: string;
   cards?: unknown;
   tokens?: unknown;
+  /** The price list the item was priced from; older carts have none (CAD). */
+  currency?: Currency;
 };
 
 type CartThumbProps = {
   item: CartItem;
 };
 
-type CartItemKind = "card" | "pack" | "credits" | "gift" | "item";
+type CartItemKind = "card" | "pack" | "credits" | "item";
 
 type CartItemPresentation = {
   kind: CartItemKind;
@@ -64,7 +62,7 @@ type CartItemPresentation = {
   icon: CartIconName;
 };
 
-type CartIconName = "minus" | "plus" | "close" | "trash" | "lock" | "arrow" | "cart" | "tag" | "truck" | "gift" | "spark" | "card" | "cards" | "coin";
+type CartIconName = "minus" | "plus" | "close" | "trash" | "lock" | "arrow" | "cart" | "tag" | "truck" | "card" | "cards" | "coin";
 
 type CartIcoProps = {
   name: CartIconName;
@@ -77,30 +75,25 @@ type CartLineProps = {
   onRemove: (id: string) => void;
 };
 
-const CART_SEED: CartItem[] = [];
-const CART_KEY = "souv_cart";
-const TOP_UP_GIFT_OFFER_SEEN_KEY = "souv_topup_blank_gift_offer_seen";
+/** Create flows that save the card before a top-up: paying returns there instead of stopping on the cart. */
+const CREATE_FLOW_RETURNS = [CREATE_OPTIONS.build.href, CREATE_OPTIONS.template.href];
 
-function makeBlankSouvenoteGiftCartItem(): CartItem {
-  return {
-    id: BLANK_SOUVENOTE_GIFT_CART_ID,
-    type: "gift",
-    name: "Blank Souvenote Gift",
-    meta: "A blank Souvenote for someone else to create",
-    sub: "We'll remind you at delivery that you have one to give.",
-    qty: 1,
-    price: BLANK_SOUVENOTE_GIFT_PRICE,
-    unitNote: "gift add-on",
-    lockedQuantity: true,
-  };
-}
+const CART_SEED: CartItem[] = [];
+// The one cart key (cartStorage.ts), not a second copy of the string (audit P5).
+const CART_KEY = SOUV_CART_KEY;
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return Boolean(value) && typeof value === "object";
 }
 
-function normalizeCartItems(raw: unknown): CartItem[] {
+/**
+ * Rebuilds catalog items (Print and Send, Big Sender, credit top-ups) from the
+ * price list for `currency`, so a stored price can't drift and a cart built
+ * in the other currency (e.g. before signing in) is re-priced.
+ */
+function normalizeCartItems(raw: unknown, currency: Currency): CartItem[] {
   if (!Array.isArray(raw)) return CART_SEED;
+  const list = PRICE_LISTS[currency];
   const next: CartItem[] = [];
 
   raw.forEach((item, index) => {
@@ -108,32 +101,29 @@ function normalizeCartItems(raw: unknown): CartItem[] {
 
     const source = item as Partial<CartItem>;
     const isBigSender = source.id === "pack-bigsender" || source.replaceGroup === "pack-bigsender";
-    const isTryRiskFree = source.id === "pack-try-risk-free" || source.replaceGroup === "pack-try-risk-free";
     const isPrintAndSend = source.id === PRINT_AND_SEND_CART_ID || source.replaceGroup === PRINT_AND_SEND_CART_ID;
-    const isBlankGift = isBlankSouvenoteGiftId(source.id);
-    // Catalog packs are rebuilt from pricingCatalog so a stored price can't drift.
+    const creditPack = typeof source.id === "string" && source.id.startsWith("credit-")
+      ? list.creditPacks.find((pack) => `credit-${pack.id}` === source.id)
+      : undefined;
     const normalized: CartItem = isBigSender
-      ? makeBigSenderCartItem(source.cardCount || parseInt(String(source.meta || ""), 10) || source.qty || 1)
+      ? makeBigSenderCartItem(source.cardCount || parseInt(String(source.meta || ""), 10) || source.qty || 2, list.bigSender, currency)
       : isPrintAndSend
-        ? makePrintAndSendCartItem()
-      : isTryRiskFree
-        ? makeTryRiskFreeCartItem({
-          creditsPerCard: Number(source.creditsPerCard) || undefined,
-        })
-        : isBlankGift
-          ? makeBlankSouvenoteGiftCartItem()
-          : {
-            ...source,
-            id: source.id || `cart-item-${index}`,
-            type: source.type || "cart",
-            name: source.name || "Cart item",
-            qty: Math.max(1, Math.floor(Number(source.qty) || 1)),
-            price: Number(source.price) || 0,
-          };
+        ? makePrintAndSendCartItem(currency)
+      : creditPack
+        ? { ...source, id: source.id as string, type: "credits", name: source.name || "Credits", qty: Math.max(1, Math.floor(Number(source.qty) || 1)), price: creditPack.price, currency }
+        : {
+          ...source,
+          id: source.id || `cart-item-${index}`,
+          type: source.type || "cart",
+          name: source.name || "Cart item",
+          qty: Math.max(1, Math.floor(Number(source.qty) || 1)),
+          price: Number(source.price) || 0,
+          currency: toCurrency(source.currency) || currency,
+        };
 
     const existing = next.find((candidate) => candidate.id === normalized.id);
     if (existing) {
-      if (normalized.id === "pack-bigsender" || normalized.id === "pack-try-risk-free" || normalized.id === PRINT_AND_SEND_CART_ID || isBlankSouvenoteGiftId(normalized.id)) {
+      if (normalized.id === "pack-bigsender" || normalized.id === PRINT_AND_SEND_CART_ID) {
         Object.assign(existing, normalized);
       } else {
         existing.qty += normalized.qty;
@@ -146,46 +136,27 @@ function normalizeCartItems(raw: unknown): CartItem[] {
   return next;
 }
 
-function loadCart(): CartItem[] {
+function readStoredCart(): unknown {
   if (typeof window === "undefined") return CART_SEED;
-
   try {
-    return normalizeCartItems(JSON.parse(window.localStorage.getItem(CART_KEY) || "null") || CART_SEED);
+    return JSON.parse(window.localStorage.getItem(CART_KEY) || "null") || CART_SEED;
   } catch {
     return CART_SEED;
   }
 }
 
-function cartMoney(n: number) {
-  return "$" + n.toFixed(2);
+/** True when a stored item was priced in another currency than `currency`. */
+function pricedInOtherCurrency(raw: unknown, currency: Currency) {
+  return Array.isArray(raw) && raw.some((item) => isRecord(item) && (toCurrency(item.currency) || "CAD") !== currency);
 }
 
-function hasSeenTopUpGiftOffer(): boolean {
-  if (typeof window === "undefined") return false;
-
-  try {
-    return window.localStorage.getItem(TOP_UP_GIFT_OFFER_SEEN_KEY) === "1";
-  } catch {
-    return false;
-  }
-}
-
-function markTopUpGiftOfferSeen(): void {
-  if (typeof window === "undefined") return;
-
-  try {
-    window.localStorage.setItem(TOP_UP_GIFT_OFFER_SEEN_KEY, "1");
-  } catch {}
+function loadCart(currency: Currency): CartItem[] {
+  return normalizeCartItems(readStoredCart(), currency);
 }
 
 function getCartItemPresentation(item: CartItem): CartItemPresentation {
   const type = String(item.type || "").toLowerCase();
-  const id = String(item.id || "").toLowerCase();
   const name = String(item.name || "").toLowerCase();
-
-  if (isBlankSouvenoteGiftId(item.id) || type === "gift" || id.includes("blank-souvenote")) {
-    return { kind: "gift", label: "Blank Souvenote", icon: "gift" };
-  }
 
   if (type === "credits" || name.includes("credit") || item.tokens != null) {
     return { kind: "credits", label: "Creation credits", icon: "coin" };
@@ -244,7 +215,7 @@ function CartThumb({ item }: CartThumbProps) {
         </span>
       ) : (
         <span className="ct-token" aria-hidden="true">
-          <CartIco name={presentation.icon} w={presentation.kind === "gift" ? 26 : 28} />
+          <CartIco name={presentation.icon} w={28} />
         </span>
       )}
       {badge}
@@ -263,8 +234,6 @@ function CartIco({ name, w = 16 }: CartIcoProps) {
     cart: <><path d="M3 5h2.4l2.3 11.2a2 2 0 0 0 2 1.6h7.6a2 2 0 0 0 1.96-1.6L21 9H6" /><circle cx="10" cy="21" r="1.2" /><circle cx="17" cy="21" r="1.2" /></>,
     tag: <><path d="M3 11.5V4a1 1 0 0 1 1-1h7.5L21 12.5 12.5 21 3 11.5z" /><circle cx="7.5" cy="7.5" r="1.3" /></>,
     truck: <><path d="M3 6h11v9H3zM14 9h4l3 3v3h-7z" /><circle cx="7" cy="18" r="1.6" /><circle cx="17" cy="18" r="1.6" /></>,
-    gift: <><rect x="3.5" y="9" width="17" height="11.5" rx="2" /><path d="M2.5 9h19M12 9v11.5" /><path d="M12 9S9.5 3.5 7 4.8 9 9 12 9zM12 9s2.5-5.5 5-4.2S15 9 12 9z" /></>,
-    spark: <path d="M12 3l1.9 5.6L19.5 10l-5.6 1.4L12 17l-1.9-5.6L4.5 10l5.6-1.4z" />,
     card: <><rect x="5" y="3.5" width="14" height="17" rx="2" /><path d="M8.5 7.5h7M8.5 11h7M8.5 14.5h4" /></>,
     cards: <><rect x="7" y="4" width="12" height="16" rx="2" /><path d="M5 7.5h-.5a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2H13" /><path d="M10 8h6M10 11.5h6M10 15h3.5" /></>,
     coin: <><circle cx="12" cy="12" r="8.5" /><path d="M12 7.5v9M8.75 10.25c0-1.5 1.45-2.35 3.25-2.35s3.25.85 3.25 2.35c0 3-6.5 1.35-6.5 4.15 0 1.45 1.45 2.2 3.25 2.2s3.25-.75 3.25-2.2" /></>,
@@ -276,7 +245,6 @@ function CartIco({ name, w = 16 }: CartIcoProps) {
 }
 
 function CartLine({ item, onQty, onRemove }: CartLineProps) {
-  const presentation = getCartItemPresentation(item);
   const lockedQuantity = item.lockedQuantity;
   const lockedLabel = item.cardCount
     ? `${item.cardCount} ${item.cardCount === 1 ? "card" : "cards"}`
@@ -286,10 +254,6 @@ function CartLine({ item, onQty, onRemove }: CartLineProps) {
     <li className="ct-line">
       <CartThumb item={item} />
       <div className="ct-line-main">
-        <p className={`ct-line-kind ct-line-kind-${presentation.kind}`}>
-          <CartIco name={presentation.icon} w={13} />
-          <span>{presentation.label}</span>
-        </p>
         <h3 className="ct-line-name">{item.name}</h3>
         {item.meta && <p className="ct-line-meta">{item.meta}</p>}
         {item.sub && <p className="ct-line-sub">{item.sub}</p>}
@@ -301,12 +265,13 @@ function CartLine({ item, onQty, onRemove }: CartLineProps) {
         {lockedQuantity ? (
           <p className="ct-qty-locked">
             <span className="ct-qty-num" aria-hidden="true">{item.cardCount || item.qty}</span>
-            <span className="ct-qty-label" aria-hidden="true">{item.cardCount ? (item.cardCount === 1 ? "card" : "cards") : "gift"}</span>
+            <span className="ct-qty-label" aria-hidden="true">{item.cardCount ? (item.cardCount === 1 ? "card" : "cards") : "item"}</span>
             <span className="l-sr-only">{`${lockedLabel} selected`}</span>
           </p>
         ) : (
           <div className="ct-stepper" role="group" aria-label={`Quantity of ${item.name}`}>
-            <button type="button" onClick={() => onQty(item.id, -1)} disabled={item.qty <= 1} aria-label="Decrease quantity">
+            {/* At 1 it stays focusable (aria-disabled): a disabled button would drop focus to <body>. */}
+            <button type="button" onClick={() => { if (item.qty > 1) onQty(item.id, -1); }} aria-disabled={item.qty <= 1 || undefined} aria-label="Decrease quantity">
               <CartIco name="minus" w={16} />
             </button>
             <span className="ct-qty-num" aria-live="polite">{item.qty}</span>
@@ -315,77 +280,10 @@ function CartLine({ item, onQty, onRemove }: CartLineProps) {
             </button>
           </div>
         )}
-        <p className="ct-line-price">{cartMoney(item.price * item.qty)}</p>
-        <p className="ct-line-unit">{cartMoney(item.price)} {"·"} {item.unitNote}</p>
+        <p className="ct-line-price">{formatAmount(item.price * item.qty)}</p>
+        <p className="ct-line-unit">{formatAmount(item.price)} {"·"} {item.unitNote}</p>
       </div>
     </li>
-  );
-}
-
-type GiftCheckoutOfferProps = {
-  open: boolean;
-  onClose: () => void;
-  onDecline: () => void;
-  onAdd: () => void;
-};
-
-// Not shown until version 2 (owner, 2026-11-06): giving a blank Souvenote to
-// someone isn't built yet. Kept so it can be switched back on (GIFT_OFFER_ENABLED).
-function GiftCheckoutOffer({ open, onClose, onDecline, onAdd }: GiftCheckoutOfferProps) {
-  if (!open) return null;
-  const giftPrice = BLANK_SOUVENOTE_GIFT_PRICE.toFixed(2);
-
-  return (
-    <FlowDialog
-      onClose={onClose}
-      labelledBy="cart-gift-offer-title"
-      describedBy="cart-gift-offer-lede"
-      className="fd-wide"
-      tone="berry"
-      screenLabel="Cart · Gift add-on"
-    >
-      <div className="fd-split">
-        <div className="fd-split-main">
-          <p className="fd-eyebrow">
-            <CartIco name="gift" w={14} />
-            <span>Gift a Souvenote</span>
-          </p>
-          <h2 id="cart-gift-offer-title" className="fd-title">
-            Add a blank <span className="l-script">Souvenote</span> to your order for ${giftPrice}?
-          </h2>
-          <p id="cart-gift-offer-lede" className="fd-lede">
-            This lets a recipient of your choice create a Souvenote for someone else. We&apos;ll remind you at delivery that you have one to give!
-          </p>
-          <ul className="fd-includes">
-            <li>
-              <span className="fd-includes-ico" aria-hidden="true"><CartIco name="spark" w={20} /></span>
-              <div><h3 className="fd-includes-h">Blank card experience</h3><p className="fd-includes-p">They choose the recipient, message, and creative direction.</p></div>
-            </li>
-            <li>
-              <span className="fd-includes-ico" aria-hidden="true"><CartIco name="truck" w={20} /></span>
-              <div><h3 className="fd-includes-h">Delivery reminder</h3><p className="fd-includes-p">We&apos;ll surface the gift again when you send your card.</p></div>
-            </li>
-          </ul>
-        </div>
-
-        <aside className="fd-aside" aria-label="Blank Souvenote Gift">
-          <div className="fd-token" aria-hidden="true">
-            <span>A Souvenote,<br />on you</span>
-          </div>
-          <p className="fd-aside-price"><span className="cur">$</span>{giftPrice}<span className="cad">CAD</span></p>
-          <p className="fd-aside-name">Blank Souvenote Gift</p>
-          <dl className="cf-rows">
-            <div><dt>Includes</dt><dd>1 blank gift</dd></div>
-            <div><dt>Recipient</dt><dd>Chosen at delivery</dd></div>
-            <div><dt>Reminder</dt><dd>Delivery step</dd></div>
-          </dl>
-        </aside>
-      </div>
-      <div className="fd-actions">
-        <button type="button" className="l-btn l-btn-secondary" onClick={onDecline}>No thanks</button>
-        <button type="button" className="l-btn l-btn-primary" onClick={onAdd}>Add gift · ${giftPrice} <CartIco name="arrow" w={16} /></button>
-      </div>
-    </FlowDialog>
   );
 }
 
@@ -420,9 +318,6 @@ function CartPaid() {
   );
 }
 
-// Blank Souvenote Gift offer before checkout: off until version 2 (gift recipients aren't built).
-const GIFT_OFFER_ENABLED = false;
-
 function CartPage() {
   const router = useRouter();
   const auth = useAuth();
@@ -432,17 +327,26 @@ function CartPage() {
   const [appliedPromo, setAppliedPromo] = React.useState<AppliedPromo | null>(null);
   const [promoError, setPromoError] = React.useState<string | null>(null);
   const [checkoutOpen, setCheckoutOpen] = React.useState(false);
+  const grantKeyRef = React.useRef<string | null>(null);
   const [authPromptOpen, setAuthPromptOpen] = React.useState(false);
-  const [giftOfferOpen, setGiftOfferOpen] = React.useState(false);
   const [confirmed, setConfirmed] = React.useState(false);
   // "Your card is waiting" pop-up after paying for Print and Send, Big Sender or credits.
   const [purchaseReadyOpen, setPurchaseReadyOpen] = React.useState(false);
   const [purchaseReadyKind, setPurchaseReadyKind] = React.useState<PurchaseReadyKind>("cards");
   const isAuthenticated = auth.status === "authenticated" && Boolean(auth.user?.id);
+  const { country, currency } = usePriceCountry();
+  // Shown when the cart had to be re-priced into this account's currency.
+  const [repricedTo, setRepricedTo] = React.useState<Currency | null>(null);
+
+  // Load (and re-price) whenever the currency is known or changes, e.g. on sign-in.
+  React.useEffect(() => {
+    const stored = readStoredCart();
+    if (pricedInOtherCurrency(stored, currency)) setRepricedTo(currency);
+    setItems(normalizeCartItems(stored, currency));
+    setHydrated(true);
+  }, [currency]);
 
   React.useEffect(() => {
-    setItems(loadCart());
-    setHydrated(true);
 
     // Stay in step with the saved cart when something else changes it while this
     // page is open (e.g. choosing a pack in the nav's Top up credits pop-up, or
@@ -450,9 +354,9 @@ function CartPage() {
     // total, and its next save dropped the new item. Only replaces the lines if
     // they really differ, so this page's own saves don't loop.
     const sync = () => {
-      const stored = loadCart();
+      const stored = loadCart(currency);
       setItems((current) => (
-        JSON.stringify(normalizeCartItems(current)) === JSON.stringify(stored) ? current : stored
+        JSON.stringify(normalizeCartItems(current, currency)) === JSON.stringify(stored) ? current : stored
       ));
     };
     const onStorage = (event: StorageEvent) => { if (event.key === null || event.key === CART_KEY) sync(); };
@@ -462,15 +366,15 @@ function CartPage() {
       window.removeEventListener(CART_CHANGED_EVENT, sync);
       window.removeEventListener("storage", onStorage);
     };
-  }, []);
+  }, [currency]);
 
   React.useEffect(() => {
     if (!hydrated) return;
     try {
-      window.localStorage.setItem(CART_KEY, JSON.stringify(normalizeCartItems(items)));
+      window.localStorage.setItem(CART_KEY, JSON.stringify(normalizeCartItems(items, currency)));
       notifyCartChanged();
     } catch {}
-  }, [items, hydrated]);
+  }, [items, hydrated, currency]);
 
   function onQty(id: string, delta: number) {
     setItems((current) => current.map((item) => item.id === id ? { ...item, qty: Math.max(1, item.qty + delta) } : item));
@@ -490,6 +394,9 @@ function CartPage() {
 
   async function handlePaid() {
     const topUpDelta = getCartTopUpDelta(items);
+    // One key per checkout: a retry after a failed grant reuses it, so the
+    // credits can't be added twice (audit B4, 2026-11-08).
+    grantKeyRef.current ??= createLocalIdempotencyKey(`cart-credit-grant-${topUpDelta.credits}`);
     const userId = auth.user?.id;
 
     if (topUpDelta.credits > 0) {
@@ -503,7 +410,7 @@ function CartPage() {
         userId,
         amount: topUpDelta.credits,
         source: "mock_checkout_purchase",
-        idempotencyKey: createLocalIdempotencyKey(`cart-credit-grant-${topUpDelta.credits}`),
+        idempotencyKey: grantKeyRef.current,
       });
 
       if (grant.balance) {
@@ -513,15 +420,11 @@ function CartPage() {
       }
     }
 
-    const blankGiftCount = items.reduce((sum, item) => (
-      isBlankSouvenoteGiftId(item.id) ? sum + Math.max(1, item.qty) : sum
-    ), 0);
     const boughtPrintAndSend = items.some((item) => item.id === PRINT_AND_SEND_CART_ID);
     // Owner, 2026-11-07: the same pop-up follows Big Sender and credit top-ups too.
     const boughtBigSender = items.some((item) => item.id === "pack-bigsender" || item.replaceGroup === "pack-bigsender");
     const boughtCredits = items.some((item) => item.type === "credits");
     if (topUpDelta.cards > 0) addDemoBalance({ cards: topUpDelta.cards });
-    if (blankGiftCount > 0) addBlankSouvenoteGifts(blankGiftCount);
     setCheckoutOpen(false);
     setItems([]);
     try {
@@ -536,7 +439,10 @@ function CartPage() {
     // back to send it (owner, 2026-11-07).
     // Title: "Your cards are waiting" if any cards were bought, "Your credits are waiting" for credits only.
     setPurchaseReadyKind(boughtPrintAndSend || boughtBigSender ? "cards" : "credits");
-    if (boughtPrintAndSend && returnTo !== "/delivery") {
+    // The same for a card bought from a create flow's top-up (Build My Card or
+    // Personalize a Template, owner 2026-11-08): its saved card is waiting.
+    const backToWork = returnTo === "/delivery" || CREATE_FLOW_RETURNS.some((path) => Boolean(returnTo?.startsWith(path)));
+    if (boughtPrintAndSend && !backToWork) {
       setConfirmed(true);
       setPurchaseReadyOpen(true);
       return;
@@ -552,41 +458,13 @@ function CartPage() {
     if (boughtBigSender || boughtCredits) setPurchaseReadyOpen(true);
   }
 
-  function continueToCheckout() {
-    setGiftOfferOpen(false);
-    setCheckoutOpen(true);
-  }
-
-  function addBlankSouvenoteGift() {
-    setItems((current) => {
-      if (current.some((item) => isBlankSouvenoteGiftId(item.id))) return current;
-      return [...current, makeBlankSouvenoteGiftCartItem()];
-    });
-    continueToCheckout();
-  }
-
   function handleCheckoutClick() {
     if (!isAuthenticated) {
       setAuthPromptOpen(true);
       return;
     }
-
-    if (!GIFT_OFFER_ENABLED || items.some((item) => isBlankSouvenoteGiftId(item.id))) {
-      continueToCheckout();
-      return;
-    }
-
-    const isTopUpReturnFlow = Boolean(peekPricingReturn());
-    if (isTopUpReturnFlow) {
-      if (hasSeenTopUpGiftOffer()) {
-        continueToCheckout();
-        return;
-      }
-
-      markTopUpGiftOfferSeen();
-    }
-
-    setGiftOfferOpen(true);
+    grantKeyRef.current = null; // a new checkout gets a new key
+    setCheckoutOpen(true);
   }
 
   const count = items.reduce((sum, item) => sum + item.qty, 0);
@@ -601,18 +479,18 @@ function CartPage() {
     ? { kind: "cards", name: lockedCartItem.name, price: subtotal, cards: lockedCardCount, tokens: lockedCardCount * lockedCreditsPerCard, bonus: 0 }
     : { kind: "cart", name: "Your cart", price: subtotal, lineCount: count, cardCount };
   const discount = promoDiscount(subtotal, appliedPromo);
-  const taxable = subtotal - discount;
-  const tax = +(taxable * 0.05).toFixed(2);
-  const total = +(taxable + tax).toFixed(2);
+  const { tax, taxLabel, total } = orderTotals(subtotal, discount, country);
 
   return (
     <>
       <div className="cf-wrap ct-wrap" data-screen-label="Cart">
         <header className="cf-head">
-          <p className="cf-eyebrow"><span>Account</span><span className="cf-eyebrow-dot" aria-hidden="true" />Cart</p>
           <h1 className="cf-title">
             Your <span className="l-script">cart</span>
           </h1>
+          {!confirmed && repricedTo && items.length > 0 && (
+            <p className="cf-alert ct-repriced" role="status">Prices are shown in {repricedTo} for {COUNTRY_NAMES[country]}, your account&apos;s country.</p>
+          )}
           {!confirmed && items.length > 0 && (
             <p className="cf-lede">
               {count} {count === 1 ? "item" : "items"} ready to check out: cards, packs, and credits all in one go.
@@ -645,21 +523,21 @@ function CartPage() {
                 <dl className="cf-rows ct-sum-rows">
                   <div>
                     <dt>Subtotal</dt>
-                    <dd>{cartMoney(subtotal)}</dd>
+                    <dd>{formatAmount(subtotal)}</dd>
                   </div>
                   <div>
-                    <dt><CartIco name="truck" w={15} /> Shipping</dt>
+                    <dt><CartIco name="truck" w={15} /> Postage</dt>
                     <dd className="is-included">Included</dd>
                   </div>
                   {appliedPromo && (
                     <div>
                       <dt>Promo {"·"} {appliedPromo.code}</dt>
-                      <dd className="is-discount">{"−"}{cartMoney(discount)}</dd>
+                      <dd className="is-discount">{"−"}{formatAmount(discount)}</dd>
                     </div>
                   )}
                   <div>
-                    <dt>GST (5%)</dt>
-                    <dd>{cartMoney(tax)}</dd>
+                    <dt>{taxLabel}</dt>
+                    <dd>{formatAmount(tax)}</dd>
                   </div>
                 </dl>
 
@@ -691,7 +569,7 @@ function CartPage() {
 
                 <p className="ct-total">
                   <span className="ct-total-label">Total</span>
-                  <span className="ct-total-val">{cartMoney(total)}<span className="cur">CAD</span></span>
+                  <span className="ct-total-val">{formatAmount(total)}<span className="cur">{currency}</span></span>
                 </p>
 
                 <button type="button" className="l-btn l-btn-primary ct-checkout" onClick={handleCheckoutClick}>
@@ -700,7 +578,7 @@ function CartPage() {
                 <p className="ct-secure"><CartIco name="lock" w={14} /> Secure checkout {"·"} payments by <b>Stripe</b></p>
               </div>
 
-              <p className="ct-foot">Shipping is always included.</p>
+              <p className="ct-foot">Postage is always included. {TAX_NOTE}</p>
             </aside>
           </div>
         )}
@@ -708,22 +586,19 @@ function CartPage() {
       <CheckoutModal
         open={checkoutOpen}
         pack={checkoutPack}
+        country={country}
+        currency={currency}
         promo={appliedPromo}
         onClose={() => setCheckoutOpen(false)}
         onBack={() => setCheckoutOpen(false)}
         onPaid={handlePaid}
       />
-      <GiftCheckoutOffer
-        open={giftOfferOpen}
-        onClose={() => setGiftOfferOpen(false)}
-        onDecline={continueToCheckout}
-        onAdd={addBlankSouvenoteGift}
-      />
       <AuthGatePrompt
         open={authPromptOpen}
         onClose={() => setAuthPromptOpen(false)}
         returnTo="/cart"
-        title="Log in before checkout"
+        title="Log in before"
+        script="checkout"
         body="Sign up or log in to purchase cards and credits so everything is added to your account, not a temporary demo profile."
         primaryLabel="Sign up"
         secondaryLabel="Log in"

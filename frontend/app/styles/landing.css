@@ -60,6 +60,8 @@
   --l-line: rgba(74, 59, 57, 0.14);
   --l-line-strong: rgba(74, 59, 57, 0.34);
   --l-paper-line: rgba(74, 59, 57, 0.16);
+  --l-field-line: #8A7B77;      /* form field outlines: 3:1+ on paper and ivory (WCAG 1.4.11); --sv-field-line */
+  --l-graphite: #514C4A;        /* pencil handwriting in the option-card sketches only (7.6 on ivory); --sv-graphite-600 */
   --l-shadow: 0 18px 40px rgba(74, 59, 57, 0.14), 0 2px 8px rgba(74, 59, 57, 0.08);
   --l-shadow-soft: rgba(74, 59, 57, 0.16);
   --l-floor-shadow: rgba(74, 59, 57, 0.3);
@@ -443,6 +445,16 @@ body:has(.souv-landing) { background: #F7F0E8; } /* keep in sync with --l-bg */
   text-align: center;
 }
 
+/* A stored sign-in is still being checked (html[data-souv-session], set before
+   paint by SESSION_HINT_SCRIPT): keep the signed-out buttons hidden so they don't
+   flash before the signed-in cluster arrives. Lifts itself after 3s if anything
+   stalls; AuthProvider removes the mark when the sign-in isn't valid (audit I5). */
+html[data-souv-session] .souv-landing .souv-nav.is-signed-out .souv-nav-right {
+  visibility: hidden;
+  animation: souv-session-reveal 0s linear 3s forwards;
+}
+@keyframes souv-session-reveal { to { visibility: visible; } }
+
 /* Menu */
 .souv-landing .souv-popmenu {
   top: calc(100% + 12px);
@@ -461,6 +473,14 @@ body:has(.souv-landing) { background: #F7F0E8; } /* keep in sync with --l-bg */
   backdrop-filter: none;
 }
 .souv-landing .souv-popmenu-wide { min-width: 280px; }
+/* Signed-in menu: related links in pairs, two across, so all of it fits one
+   screen. The max-height scroll above stays only as a last resort for very
+   short windows (audit B1, 2026-11-08). */
+.souv-landing .souv-popmenu-site { width: 320px; }
+.souv-landing .souv-popmenu-pair { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 2px 4px; }
+/* One left edge for every item, paired or not. */
+.souv-landing .souv-popmenu-site .souv-popmenu-item,
+.souv-landing .souv-popmenu-site .souv-popmenu-logout { padding: 0 10px; }
 .souv-landing .souv-popmenu-item,
 .souv-landing .souv-popmenu-logout {
   display: flex; align-items: center;
@@ -798,8 +818,8 @@ body:has(.souv-landing) { background: #F7F0E8; } /* keep in sync with --l-bg */
   transition: background .25s var(--l-ease), border-color .25s var(--l-ease), opacity .25s;
 }
 .souv-landing .l-arrow svg { width: 22px; height: 22px; }
-.souv-landing .l-arrow:hover:not(:disabled) { border-color: var(--l-hover); }
-.souv-landing .l-arrow:disabled { opacity: 0.4; cursor: default; }
+.souv-landing .l-arrow:hover:not(:disabled, [aria-disabled="true"]) { border-color: var(--l-hover); }
+.souv-landing .l-arrow:is(:disabled, [aria-disabled="true"]) { opacity: 0.4; cursor: default; }
 
 .souv-landing .l-gallery-track {
   display: flex; gap: 18px;
@@ -1085,6 +1105,17 @@ body:has(.souv-landing) { background: #F7F0E8; } /* keep in sync with --l-bg */
 }
 .souv-landing .l-faq-panel-inner { overflow: hidden; }
 .souv-landing .l-faq-panel p { max-width: 64ch; padding: 0 16px 26px; color: var(--l-text); }
+/* Answers with more than one block (shared FAQ data, 2026-11-08): paragraphs, lists, a price table. */
+.souv-landing .l-faq-panel p + p, .souv-landing .l-faq-panel p + .l-faq-ul, .souv-landing .l-faq-panel p + .l-faq-table { margin-top: -14px; }
+.souv-landing .l-faq-ul { max-width: 64ch; margin: 0; padding: 0 16px 26px 38px; color: var(--l-text); }
+.souv-landing .l-faq-ul li + li { margin-top: 6px; }
+.souv-landing .l-faq-table { margin: 0 16px 26px; border-collapse: collapse; font-size: 16px; color: var(--l-text); }
+.souv-landing .l-faq-table caption { padding-bottom: 6px; text-align: left; font-weight: 700; }
+.souv-landing .l-faq-table th, .souv-landing .l-faq-table td { padding: 8px 14px 8px 0; border-bottom: 1px solid var(--l-line); text-align: left; font-weight: 400; }
+.souv-landing .l-faq-table thead th { font-weight: 700; }
+.souv-landing .l-faq-more { margin-top: 24px; text-align: center; }
+.souv-landing .l-faq-more a { display: inline-flex; align-items: center; min-height: 44px; color: var(--l-text); text-decoration: underline; text-underline-offset: 4px; }
+.souv-landing .l-faq-more a:hover { color: var(--l-hover); }
 @media (prefers-reduced-motion: reduce) {
   .souv-landing .l-faq-panel,
   .souv-landing .l-faq-item.is-open .l-faq-panel,
@@ -1149,3 +1180,8 @@ body:has(.souv-landing) { background: #F7F0E8; } /* keep in sync with --l-bg */
 @media (min-width: 981px) {
   .souv-landing .souv-footer { padding: 80px var(--l-gutter) 48px; }
 }
+
+/* High contrast (audit A2, 2026-11-09): the menu and nav popovers keep an edge. */
+@media (forced-colors: active) { .souv-landing .souv-popmenu { border: 1px solid CanvasText; } }
+/* Reduced motion (audit A5): the nav underline appears without growing. */
+@media (prefers-reduced-motion: reduce) { .souv-landing .souv-nav-underline { transition: none; } }

@@ -50,6 +50,8 @@ function TopUpDialog({ initialView, returnTo, onClose }: TopUpModalProps) {
   const pressStartedOnScrim = React.useRef(false);
   const pathname = usePathname();
   const [view, setView] = React.useState<TopUpView>(initialView);
+  // Phones show one card offer at a time (audit Part B); the switch is hidden from 600px.
+  const [offer, setOffer] = React.useState<"single" | "big">("single");
   const headingRef = React.useRef<HTMLHeadingElement | null>(null);
   const swapped = React.useRef(false);
   const copy = VIEWS[view];
@@ -82,6 +84,7 @@ function TopUpDialog({ initialView, returnTo, onClose }: TopUpModalProps) {
       <div
         ref={dialogRef}
         className={`tu-dialog is-${view}`}
+        data-offer={view === "cards" ? offer : undefined}
         role="dialog"
         aria-modal="true"
         aria-labelledby="tu-title"
@@ -105,14 +108,20 @@ function TopUpDialog({ initialView, returnTo, onClose }: TopUpModalProps) {
             </p>
           ) : (
             <p id="tu-body" className="pr-lede">
-              Every card includes shipping + <span className="pr-lede-mark">10 AI credits</span>. Buy just one or stock
+              Every card includes postage + <span className="pr-lede-mark">10 AI credits</span>. Buy just one or stock
               up on more to save.
             </p>
           )}
         </header>
+        {view === "cards" && (
+          <div className="tu-offer-switch" role="group" aria-label="Choose an offer">
+            <button type="button" aria-pressed={offer === "single"} onClick={() => setOffer("single")}>Print and Send</button>
+            <button type="button" aria-pressed={offer === "big"} onClick={() => setOffer("big")}>Big Sender</button>
+          </div>
+        )}
         {view === "credits"
           ? <PricingCreditPacks idPrefix="tu" returnTo={signupReturn} onChosen={onChosen} />
-          : <PricingCardPacks idPrefix="tu" returnTo={signupReturn} onChosen={onChosen} />}
+          : <PricingCardPacks idPrefix="tu" returnTo={signupReturn} onChosen={onChosen} compactHow />}
         <div className="tu-switch">
           <button
             type="button"

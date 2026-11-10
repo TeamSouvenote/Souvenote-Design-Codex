@@ -16,6 +16,8 @@ export type MockMvpFlowState = {
   checkoutSessionId: string | null;
   paymentId: string | null;
   fulfillment: FulfillmentRecord | null;
+  /** How many cards the order mails, and to how many addresses (orders from 2026-11-08 on). */
+  orderCards: { cards: number; addresses: number } | null;
   updatedAt: string | null;
 };
 
@@ -31,6 +33,7 @@ export const EMPTY_FLOW_STATE: MockMvpFlowState = {
   checkoutSessionId: null,
   paymentId: null,
   fulfillment: null,
+  orderCards: null,
   updatedAt: null,
 };
 
@@ -67,6 +70,9 @@ export function readMockMvpFlowState(): MockMvpFlowState {
       checkoutSessionId: textValue(parsed.checkoutSessionId),
       paymentId: textValue(parsed.paymentId),
       fulfillment: isRecord(parsed.fulfillment) ? parsed.fulfillment as FulfillmentRecord : null,
+      orderCards: isRecord(parsed.orderCards) && Number(parsed.orderCards.cards) > 0
+        ? { cards: Number(parsed.orderCards.cards), addresses: Math.max(1, Number(parsed.orderCards.addresses) || 1) }
+        : null,
       updatedAt: textValue(parsed.updatedAt),
     };
   } catch {
@@ -99,6 +105,7 @@ export function resetMockMvpOrderState(cardDraftId: string | null): MockMvpFlowS
     checkoutSessionId: null,
     paymentId: null,
     fulfillment: null,
+    orderCards: null,
   });
 }
 
@@ -114,14 +121,26 @@ export function rememberGeneratedAssets(cardDraftId: string, assets: CardDraftAs
     checkoutSessionId: null,
     paymentId: null,
     fulfillment: null,
+    orderCards: null,
   });
 }
 
 export function rememberSelectedAsset(cardDraftId: string, selectedAssetId: string, assets: CardDraftAsset[] = []) {
+  const previous = readMockMvpFlowState();
+  // Starting a new send (2026-11-08): forget the last order once it has been
+  // sent, or when a different card arrives before anything was paid. Before,
+  // "Print and send" after a finished order opened Delivery on the old order
+  // ("View confirmation"), so the new card couldn't be sent. A paid but unsent
+  // order, and Delivery's own reload of the same card, keep their order.
+  const startsNewSend = previous.orderStatus === "fulfilled_mock"
+    || (previous.cardDraftId !== cardDraftId && previous.orderStatus !== "paid_mock");
   return writeMockMvpFlowState({
     cardDraftId,
     selectedAssetId,
-    generatedAssets: assets.length ? assets : readMockMvpFlowState().generatedAssets,
+    generatedAssets: assets.length ? assets : previous.generatedAssets,
+    ...(startsNewSend
+      ? { orderId: null, orderStatus: null, checkoutSessionId: null, paymentId: null, fulfillment: null, orderCards: null }
+      : {}),
   });
 }
 

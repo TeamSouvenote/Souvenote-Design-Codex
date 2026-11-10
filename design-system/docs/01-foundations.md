@@ -21,6 +21,8 @@ The token names are in `tokens/tokens.css` and `tokens/tokens.json`.
 | Platinum | `#CBCFD6` | `--sv-platinum-400` | Only the music note in the "S" mark (the app's existing `--platinum-mid`). Not for text or surfaces |
 | Muted terracotta | `#C98A76` | `--sv-terracotta-400` | Top stripes on tiles and footer; background glow; the third step tile's fill |
 | Oat | `#D9CFC3` | `--sv-ivory-400` | Secondary text on forest |
+| Field line | `#8A7B77` | `--sv-field-line` | Outlines of form fields (inputs, selects) only, so they reach 3:1 against paper and ivory. Not for text (v1.13) |
+| Graphite | `#514C4A` | `--sv-graphite-600` | Only the pencil handwriting in the create-option sketches (Welcome modal, `/create`) (v1.13) |
 
 The real colours are shown in `reference/index.html`.
 
@@ -38,6 +40,8 @@ The page should feel mostly ivory, held together by forest, and lifted by berry 
 - **Berry means emphasis.** One script word per heading, small spaced-capital labels, and every hover or active state on ivory.
 - **Forest means action or structure.** Primary buttons, and the bands that frame the page.
 - **Terracotta is decoration.** It appears in stripes, the background glow and the third step tile's fill, never as text. On a terracotta fill, text is deep espresso (`--sv-text-on-terracotta`).
+- **Terracotta also means "yours" in create flows (v1.5).** Gold is what the AI made; terracotta edges and tints mark what the sender made: their photos, their own message, the Photo stage and every Custom choice. Side by side, the two show at a glance which parts came from you and which from the AI. Still never text.
+- **Forest bands mark the "nearly done" moment (v1.5).** The Build My Card review header is a forest band, the same surface as the nav and comparison band: ivory text, oat secondary text, gold for the script word, an ivory pill button. Never berry on forest.
 
 ### Contrast (measured, WCAG 2.2)
 
@@ -55,6 +59,8 @@ The page should feel mostly ivory, held together by forest, and lifted by berry 
 | Oat | Forest | 7.29 | Any text |
 | Gold | Forest | 5.74 | Any text; the logo |
 | Platinum | Forest | 7.17 | The note in the "S" mark |
+| Field line | Paper / Ivory / White | 3.90 / 3.59 / 4.05 | Field outlines (3:1 for UI parts). Never text |
+| Graphite | Ivory / Paper | 7.49 / 8.15 | The sketches' handwriting |
 | Espresso | Gold | 5.45 | Any text |
 | Ivory | Berry | 5.70 | Any text |
 | Berry | Gold | 3.30 | Large text only (24px+, or 19px+ bold) |
@@ -89,7 +95,7 @@ Every screen has a fine paper grain on its **page background** (v1.2, 2026-11-05
 
 ## 1.2 Typography
 
-Two families, both from Google Fonts.
+Two families, both Google Fonts, **self-hosted** through `next/font` (`frontend/app/lib/brandFonts.ts`). The site makes no request to Google's servers; that would send visitors' IP addresses to Google before cookie consent. Their variables (`--font-lato`, `--font-lobster-two`) are set on `<html>`, and the old `--font-sans` / `--font-display` tokens point at Lato (audit E1, 2026-11-09).
 
 - **Lato** (300, 400, 700) does the work: headings, body, buttons, labels.
 - **Lobster Two** (400) is the voice: one accent word or short phrase per heading. It is never used for whole sentences.
@@ -117,6 +123,9 @@ Two families, both from Google Fonts.
 - **Headings are light (300), not bold.** The look is elegant and calm; size and the script word carry the emphasis.
 - **One script phrase per heading,** always last, always berry on ivory (gold on forest). For example: "Explore the *possibilities*", "Frequently asked *questions*".
 - **Spaced capitals are for labels only:** nav links, card occasions, step numbers, footer column titles, the free-credits line. Never paragraphs.
+- **No eyebrow above a page heading.** A page's h1 (and a section's h2) stands alone: no small breadcrumb or section label above it ("Create · Community Cards", "Account · Cart", "Pricing · Card packs", "Sign Up · Welcome"). The nav already says where you are, and the heading says what the page is. Since v1.16.
+- **No small label beside or around a heading either (v1.25).** That covers progress counts ("0 of 3 approved"), flow labels ("Personalizing") and section markers ("Part 1 of 3 · Front"). The heading, its lede and the controls carry the meaning: status pills on each piece show what is approved, and "Next: …" buttons name the next section.
+- **No eyebrows in pop-ups either (owner, 2026-11-09; v1.39).** Every pop-up, panel and card starts with its title. There's no small spaced-capital line above it, such as "Account required", "Secure checkout", "Uses 1 credit", "Almost there", "Community Card · Birthday" or "Your keepsake is approved". Say anything that matters in the title or the lede. Titles keep clear of the close button (`.fd-title` padding in `checkout-flow.css`). There are no exceptions.
 - **Measure:** ledes stop at 34ch, sub-headings at 44ch, step text at 38ch, answers at 64ch.
 - **Balance headings** with `text-wrap: balance`.
 - **Numbers that change** (song time) use `font-variant-numeric: tabular-nums`.

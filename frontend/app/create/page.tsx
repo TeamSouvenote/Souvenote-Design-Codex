@@ -8,6 +8,7 @@ import { CreditsLine } from "../components/landing/CreditsLine";
 import { SignedOutRedirect } from "../components/landing/SignedOutRedirect";
 import { SIGNED_OUT_REDIRECT_SCRIPT } from "../components/landing/signedInHold";
 import { brandFontVariables, handFontVariable } from "../lib/brandFonts";
+import "../styles/opened-card.css";
 import "../styles/landing.css";
 import "../styles/create-options.css";
 

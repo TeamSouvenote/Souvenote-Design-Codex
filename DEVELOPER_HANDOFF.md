@@ -26,6 +26,13 @@ Latest snapshot of the working tree: `saved-ui/create-options-2026-11-04/` (READ
   existing databases (see `backend/database/README.md`).
 - **Run migration 006 on existing databases** (`006_print_and_send_offer.sql`, safe to re-run): it adds the
   `print_and_send` offer that the Pricing page now reads. Without it the page still shows $9.99 (its fallback).
+- **Run migration 008 on existing databases** (`008_canada_us_price_lists.sql`, safe to re-run; approved
+  2026-11-08 as a file only, not yet run anywhere). Canada and the US are both in the MVP, so it adds the USD
+  rows (`print_and_send_usd` 799, `big_sender_usd_*` 699/599/499), the credit packs in both currencies
+  (`credits_{starter,creator,power}_{cad,usd}`, credit count in `metadata.credits`), typo replacement
+  (`replacement_cad` 399, `replacement_usd` 299), marks the Big Sender rows `cad`, and turns off
+  `try_risk_free_one_card`. The seed (`seeds/001_pricing_catalog.sql`) has the same rows. Without it the
+  frontend uses its fallback lists (`frontend/app/lib/priceLists.ts`), so prices still show.
 - **Staging and preview deploys would be indexed by search engines.** `SITE_URL` is hard-coded to
   `https://souvenote.com` (`frontend/app/lib/site.ts`), and `robots.txt` allows everything. Any non-production
   deploy will (a) set canonical, Open Graph and sitemap URLs to production and (b) be crawlable. Make
@@ -48,6 +55,22 @@ Check these in the Cognito console; the UI copy assumes them:
 - **Token lifetimes must match the copy.** Log In says "Remember me on this device · 30-day rolling session"
   (refresh token validity 30 days). The expired screen says "Verification codes last twenty-four hours"
   (Cognito's default for sign-up codes).
+- **Two-step sign-in (added 2026-11-08, Account Settings > Password & sign-in).** Set:
+  - MFA **Optional**;
+  - MFA method **Authenticator apps (TOTP)** only. No SMS (no SNS needed) and no email MFA (no SES or paid plan needed);
+  - account recovery stays **email**;
+  - device tracking / remembered devices **off**.
+
+  How the frontend uses it:
+  - Settings: `associateSoftwareToken`, `verifySoftwareToken(code, "Souvenote")` and `setUserMfaPreference`.
+  - Log In: a `totpRequired` challenge shows a 6-digit code step, sent with `sendMFACode(code, cb, "SOFTWARE_TOKEN_MFA")`.
+
+  Federated users (Google, Apple, Facebook) get no Cognito MFA; Settings hides it for them, using the id token's `identities` claim.
+  **Lost authenticator:** Cognito TOTP has no backup codes. Support (cameron@souvenote.com) confirms who the customer is, then an admin resets MFA with `AdminSetUserMFAPreference` (`SoftwareTokenMfaSettings: { Enabled: false }`).
+- **Change password / sign out of all devices (2026-11-08).**
+  - Change password uses `ChangePassword`, for email and password accounts only.
+  - "Sign out of all devices" (and the optional step after a password change) uses `GlobalSignOut` on the current session. That signs **this device out too**, and the app then goes to `/login?signup=password` or `/login?signup=signed-out`.
+- **Delete account (2026-11-08).** The frontend calls `DELETE /auth/me` (backend, below) and then the Cognito `DeleteUser` for the signed-in user.
 
 ## How the new auth behaviour works
 
@@ -77,6 +100,71 @@ Worth knowing before changing these areas:
 - **Account Profile and Delivery** now use the signed-in user instead of the hard-coded demo user.
 
 ## Not built yet (backend)
+
+- **Community Cards, 2026-11-08.**
+  - **Catalog:** the frontend catalog is `components/community/catalog.ts` (58 cards across 14 occasions, owner-approved names; `COMMUNITY_CATALOG_VERSION`).
+    - Each card has an `id`, a `version`, art, a print asset, `approved` and `publicExample`.
+    - Signed-out visitors (and the prerendered HTML) see only the 8 `publicExample` cards; the full catalog needs sign-in (PRD §3).
+  - **Send:** `POST /community-cards/drafts` with body `{ cardId, cardVersion, cardName, occasion, message | null, artUrl }` → `{ cardDraft, assets }`.
+    - The server checks the card id and version against its own catalog, saves `creative_brief: { flow: "community_card", communityCard, message }`, and attaches the card's approved print file as the draft's image asset (plus a message asset unless the inside is blank).
+    - **No AI, no credits.**
+    - Checkout uses Print and Send or a Big Sender card, as for any saved card.
+  - **Launch blocker:** every card is `approved: false` with the logo placeholder (`/assets/mock-card-front.png`). The PRD says unapproved art isn't launch-ready, so each card needs approved, print-ready, cleared artwork and a real print file before release.
+
+- **Community Cards: customer submissions and Share, 2026-11-09.**
+  - **For now (owner, 2026-11-09):** no new backend. The band's one button, **Build a card for the Community**, opens Build My Card with `?for=community`. The page title reads "Build a card for the Community" (`bmc/BmcPageHeading.tsx`). The Photo step is describe-only, with no uploads and no hair / clothes follow-ups, because Community cards can't show real people (`bmc/community.ts`). **There's no song:** `song.mode` is set to `"none"` up front, so Create costs 1 credit; the rail and summary use `COMMUNITY_STAGES`, which leaves out Song. The rest of the flow and its backend are the same. Guidelines are now `community-guidelines-2026-11-09-v2`: they add "Causes and statements we welcome" (political, civic, social justice, health, environment, money milestones, work, faith), on the rule that a card can stand for something, never against people. The rules on elections, financial promotions and group-targeting are explained in `communityGuidelines.ts`. `?for=community` is kept through sign-up and top-up returns, and **the draft is saved with `creative_brief.audience: "community"`** (Community Cards audit C2), so Delivery's Back and Saved Cards reopen it in community mode. The backend should keep `audience` as sent. **The Photo tab reads "Front"**, and "Who it's from and to" is skipped. At Review, **Share to Community Cards** opens `/community-cards?submit={draftId}`: the submit pop-up with that card chosen (audit C1). "Share a card I made" and "Your shared cards" are back on the page, on the mock submissions below. `?for=` is read in the browser, so `/create/build-my-card` is static again (audit C4).
+  - **No login to browse (owner, 2026-11-09):** everyone sees the full catalog with search and chips, and so does the server-rendered HTML. Sending still needs an account (sign-in pop-up). This replaces the PRD §3 rule that the full catalog needs sign-in; the 8 `publicExample` flags are no longer used on the page.
+  - **Share link** is now a full-width outlined button under **Send this card** on every tile.
+  - **What it is:** a band at the top of `/community-cards` ("Have a card the public would love?") lets a signed-in customer offer one of their finished Build My Card designs to the public collection. Every card is reviewed by our team before it's posted. Rules: `components/community/communityGuidelines.ts` (`COMMUNITY_GUIDELINES_VERSION`), shown in the "What we can post" pop-up and inside the submit form; matching wording in Terms of Service §5.
+  - **Submit:** `POST /community-cards/submissions` with body `{ cardDraftId, name (≤40), occasion, guidelinesVersion }` → `{ submission }`.
+    - Only the customer's own drafts with `flow: "build_my_card"` (or no flow) and a front image. **Reject (400) drafts made from uploaded photos** (`creative_brief.photo.mode` other than `"describe"`): real people can't be on a public card. 409 if the draft is already in review or approved.
+    - Store the guidelines version and agreement time, and copy the front image at submission time so later edits don't change what was reviewed.
+  - **Mine:** `GET /community-cards/submissions/mine` → `{ submissions }`. Statuses `in_review | changes_requested | approved | declined`, plus `reviewNote` and `publicCardId`. Shown as "Your shared cards" on the page; only the owner sees cards in review.
+  - **Still to build:** a staff review queue (approve / ask for a change / decline, with a note), emails to the customer on each status change, adding approved cards to the server catalog (new `id`, `version`, print file, `approved: true`), and a takedown path for rights-holder reports to SUPPORT_EMAIL (Canada notice-and-notice, US DMCA). Mock mode stores submissions in `souv_mock_db.communitySubmissions` and never approves them.
+  - **Share:** every tile has Share link, and so do the guest pop-up and each card's page.
+    - **The link** is the card's own page, `/community-cards/{id}` (audit C11), on `NEXT_PUBLIC_SITE_URL` when set (else the current origin).
+    - **Its page** is built statically for the 58 cards, plus the renamed cards' old ids (`COMMUNITY_CARD_ALIASES` in `catalog.ts`; they canonicalise to the new id). It has its own title, description, canonical, Open Graph/Twitter image (the card's `art`) and CreativeWork JSON-LD. Unknown ids are a 404.
+    - **The gallery** has an ItemList JSON-LD of the card pages, and the sitemap lists them.
+    - **When real art exists,** give each card a 1200×630 preview image; the 5×7 front is used today.
+    - **Options:** the device share sheet when `navigator.share` exists, plus Facebook, X, Pinterest, WhatsApp, Email and Copy link. No tracking.
+  - **`?card=id` on the gallery** still opens that card's Send pop-up (or the guest pop-up), following aliases. An unknown id shows a short notice (audit C9).
+  - **Send again** (audit C7): in the same tab, sending a card again reuses that draft (`PATCH /card-drafts/:id` with the new `creative_brief.message`) instead of creating another. A new draft is made only when the inside switches between blank and written.
+  - **Delivery** reads `creative_brief.flow === "community_card"` from the draft for the Community wording, wherever the customer came from (audit C6).
+  - **Creators are not credited or paid** (owner, 2026-11-09): posted cards carry no creator name, and there's no payment or credits for sharing (Terms §5). **Still open for owner and lawyer review:** the guidelines text and review turnaround (no promise is shown).
+
+- **Contact messages, 2026-11-08.**
+  - `POST /support/messages` with body `{ name, email, topic, orderReference?, message }` → `{ reference }`.
+  - Topics: `card-or-order | song | account | refund-or-reprint | something-else`.
+  - It should deliver the message to the support inbox (`lib/support.ts` SUPPORT_EMAIL, cameron@souvenote.com) and keep it for follow-up.
+  - No email provider is wired in the frontend. Mock mode stores the message in `souv_mock_db.supportMessages`.
+- **Photo-consent records, 2026-11-08.**
+  - `POST /attestations` with body `{ version, acceptedAt, photoCount, cardDraftId? }` → 204, owner taken from the token.
+  - The upload rights pop-up sends one per accepted photo batch (`ATTESTATION_VERSION` in `components/attestationContent.ts`).
+  - The Build My Card and Personalize questionnaires can pass `cardDraftId` when they save the upload. Their `onAgree(record)` now receives the record; they don't use it yet.
+- **Analytics (PostHog), when there's an account.**
+  - Install `posthog-js` and set `NEXT_PUBLIC_POSTHOG_KEY`.
+  - Initialise PostHog **only** where `analyticsAllowed()` (`lib/analytics.ts`) is true: the visitor accepted in the cookie banner *and* the key is set.
+  - Listen for `souv-cookie-consent-changed` and call `opt_out_capturing()` on "declined".
+  - Never capture card text, messages, recipients, photos or songs (PRD privacy).
+  - The choice is `localStorage.souv_cookie_consent` (`{ choice, decidedAt, version }`). Bumping `COOKIE_POLICY_VERSION` in `lib/consent.ts` asks everyone again.
+
+- **Saved recipients (address book, PRD §5), 2026-11-08.**
+  - Frontend: `lib/api.ts` (`fetchSavedRecipients`, `createSavedRecipient`, `updateSavedRecipient`, `deleteSavedRecipient`), mock-only today.
+  - Contract: `GET /recipients` → `{ recipients }`; `POST /recipients` and `PATCH /recipients/:id` take `SavedRecipientFields` (title, firstName, lastName, company, address1–3, city, state, postalCode, country CA|US) → `{ recipient }`; `DELETE /recipients/:id` → 204.
+  - **Every route must check ownership from the token**; an id from another account is a 404.
+  - Orders keep their own address snapshot, so edits and deletes never change a submitted order. Saving the same name and address twice should keep one entry.
+  - Delivery offers a saved-recipient picker and an optional "Save this recipient" checkbox. It saves after the order is created, and never blocks checkout.
+- **Delete a saved card or draft, 2026-11-08.**
+  - `DELETE /card-drafts/:id` (owner-checked) → 204.
+  - A draft that an order points at must stay for that order (the mock marks it `status: "deleted"` and hides it), and a mailed card's QR song must keep working.
+- **Delete account, 2026-11-08.** `DELETE /auth/me`:
+  - **removes:** profile, saved recipients, payment methods, credit balance and the private library;
+  - **keeps:** orders and the card and assets they point at (so mailed-card QR songs keep playing), and the order and payment records the law requires.
+  - Then the frontend deletes the Cognito user.
+- **Library storage date, 2026-11-08.**
+  - `CardDraft.last_saved_edit_at` is the last real change to the creation. Set it on create and when a saved change actually changes the brief, occasion or relationship.
+  - **Don't** set it on views, or on order and job updates.
+  - Saved Cards & Songs shows "Saved until" = this + 12 calendar months (PRD §5). Missing values fall back to `created_at`.
 
 - **Account recovery (`/recover`).** The screen is designed, but there is no backend behind it, so it cannot
   restore an account scheduled for deletion. The spec is in `backend/docs/account-recovery-spec.md`.
@@ -422,8 +510,8 @@ gift flags back on.
    the discounted total.
 3. **Mailing address on the profile** (item 4). Profiles have only name + billing postal code. Once there's an
    address, pre-fill the Delivery return address lines from it.
-4. **Several recipients + quantity per order** (item 6, owner chose to leave as is for now). `POST /orders` takes one
-   recipient, so with "Multiple" only `recipients[0]` is sent, and "How many cards to this address?" is never sent.
+4. **Several recipients + quantity per order:** done on the frontend 2026-11-08. The backend part is in
+   "Orders with several recipients (Scribeless)" below.
 5. **Card balance on the backend** (item 8). The card bank is browser-only (`DemoBalance`), so the out-of-cards check on
    Delivery stays off (`CARD_BALANCE_CHECK_ENABLED = false` in `Delivery.tsx`) and a customer with 0 cards can still
    send. When on, it opens the Top up pop-up on its cards view. Turn it on once the backend owns the card balance.
@@ -455,6 +543,84 @@ Owner-approved.
   from `CREATE_OPTIONS` in the Create Options colours (Personalize a Template gold, Build My Card berry, Community
   Cards forest, Saved Cards & Songs espresso; 2x2 from 520px, stacked on phones). Search description + structured data mention
   the 10 credits.
+
+## Canada and the US (2026-11-08, uncommitted)
+
+Owner decisions: Canada pays CAD, the US pays USD; anyone can send to either country; Stripe Tax for both.
+
+- **Price lists:** `frontend/app/lib/priceLists.ts` is the one fallback for both currencies (Print and Send,
+  Big Sender tiers from 2 cards, credit packs, typo replacement, 10 AI credits per card). The Pricing page
+  prefers the `GET /pricing` rows in the visitor's currency and falls back to these lists.
+- **Account country decides the currency.** Country (Canada or United States) is required at sign-up and on
+  the terms step for social sign-ins; currency is saved with it (`CURRENCY_BY_COUNTRY`). Both are read-only in
+  Settings ("To change your country, email cameron@souvenote.com"). **Backend gap:** the profile update must
+  accept `country` and `currency` on sign-up/terms, and should refuse later changes to them from the client.
+- **Signed-out visitors** get a "Prices for: Canada | United States" switch on Pricing
+  (`pricing/usePriceCountry.ts`, stored in localStorage `souv_price_country`, first guess from locale and time
+  zone). Signed in, the account's country always wins.
+- **Cart:** items are re-priced into the account's currency when it loads (a notice says so). A cart never mixes
+  currencies. Checkout should create the Stripe session in the account's currency with the matching
+  `offerCode` (`print_and_send` / `print_and_send_usd`; the mock order does this already).
+- **Tax:** the cart and payment pop-up show an "Estimated tax" line from placeholder rates
+  (`lib/taxEstimate.ts`: CA 5%, US 7%). Replace it with Stripe Tax's amount once checkout is wired.
+- **Cross-border postage:** `CROSS_BORDER_POSTAGE` in `priceLists.ts` is $0 both ways until Scribeless
+  confirms rates. The Delivery "Postage" section and checkout show the line only when it's above $0.
+- **Delivery copy:** no delivery-time promise ("We'll show an estimated delivery date here when one is
+  available"); new addresses start in the account's country (State and ZIP code for US accounts).
+- **Marketing opt-in removed from sign-up.** The `marketing_opt_in` column stays but nothing writes it now.
+
+## Orders with several recipients (Scribeless) (2026-11-08, uncommitted)
+
+Owner, 2026-11-08: one order is one card design mailed to one or more addresses. Delivery's "Multiple" mode and "How many cards to this address?" are both sent now. Scribeless (scribeless.io) does the printing and mailing, and its API takes many recipients per send. Checked against the public docs at docs.scribeless.co, not against our account.
+
+**Frontend contract** (`lib/api.ts`)
+- **`POST /orders` body:** `{ userId, cardDraftId, selectedAssetId, recipients: [{ address: PostalAddress, quantity }], senderAddress? }`.
+  - `recipients` has at least one entry. `quantity` is a whole number from 1 to 99; 2 or more means copies to the same address.
+  - "Multiple" sends each address once; "One recipient" sends that address with its quantity.
+- **`senderAddress`:** one return address for the whole order. Scribeless allows one per campaign or batch.
+- **Transitional field:** `recipientAddress` (= `recipients[0].address`) is still sent, because today's backend reads one address. Drop it from `createOrder` once `POST /orders` reads `recipients`.
+- **Order response:** may include `recipients: [{ address, quantity }]`. `orderCardCount()` and `assertOrderRecipients()` are the shared helpers.
+- **Price:** the order is charged per card: Σ quantity × Print and Send, plus cross-border postage per card going to the other country (mock: `mockCreateOrder`). The backend must price it the same way.
+
+**Backend: one order → one Scribeless one-time campaign**
+1. **Create the campaign:** `POST https://platform.scribeless.co/api/campaigns` (header `X-API-Key`). Use the folded 5×7 product with envelope, the card's artwork and the return address (`senderAddress`). Store the campaign ID on the order before doing anything else.
+2. **Add recipients:** `POST /api/recipients` with `{ campaignId, data: [...] }`, where `data` is an array. Give each copy its own entry: quantity 3 means three entries for that address.
+   - Map our address to theirs. Since 2026-11-09 (audit Part C), `PostalAddress` (`lib/api.ts`) carries every field separately:
+
+     | Ours (`PostalAddress`) | Scribeless (`data[]` entry) |
+     |---|---|
+     | `firstName`, `lastName` | `firstName`, `lastName`. For older orders without them, split `name` at the first space. |
+     | `line1`, `line2`, `line3` | `address.address1`, `address.address2`, `address.address3` (empty string when missing). |
+     | `city` | `address.city` |
+     | `region` (province or state) | `address.state`: required for Canada and the US. |
+     | `postalCode` | `address.postalCode` |
+     | `country` (`CA` or `US`) | `address.country`: already two letters. |
+     | `company`, `title` (optional) | `variables.company`, `variables.title`. To confirm in the account: whether the campaign template has its own company field. |
+     | order-recipient ID | `variables.externalId` |
+
+   - **Reference implementation:** the mock fulfilment's `requestPayload.scribeless.data` (`scribelessRecipient()` in `lib/mockApi.ts`) is built exactly this way, with one entry per copy.
+   - **Older orders:** orders stored before this change have one joined `line1` ("42 Maple Grove, Unit 3") and no `firstName` / `lastName`. Send them as they are, with `address2` and `address3` empty.
+   - `state` is required for the US and Canada; `country` is a two-letter code.
+   - Put the inside message in `variables`; the names must match the campaign's template variables.
+   - Set `variables.externalId` to our order-recipient ID.
+   - Store every returned recipient ID.
+3. **Pay:** `POST /api/recipients/checkout` with `{ campaignId }` (one-time accounts). Recipients stay `pending` until it's paid. A paid or finalized campaign can't take more recipients: the next order gets a new campaign.
+4. **Track:** use the webhooks (recipient lifecycle events) to move the order to sent or posted, and to send the "posted" email.
+
+**Retries: Scribeless has no idempotency key.** Never call step 1 or 2 twice for the same order.
+- Keep the campaign ID and recipient IDs on the order, and resume from the first missing step.
+- `externalId` upsert only exists for recurring campaigns with that feature turned on.
+- The frontend already reuses a pending order when "Checkout didn't start" (audit B5), so a retry doesn't create a second order.
+
+**Bulk HTML alternative:** if we render the artwork ourselves, `POST /api/recipients/html/bulk` takes 1–500 recipients per call, each with its own front/back HTML, plus one `product_key` and one return address per call. Scribeless creates the campaign itself.
+
+**To confirm in the Scribeless account** (not in the public docs):
+- the account type: one-time checkout or subscription (subscription accounts skip step 3 and bill automatically);
+- whether recurring campaigns and `externalId` upsert are on;
+- the product key for the folded 5×7 card with envelope;
+- that Canada is enabled as a destination;
+- whether a handwritten inside message goes in `variables` or needs a template;
+- the attachment and QR features for the song code.
 
 ## Running it locally
 

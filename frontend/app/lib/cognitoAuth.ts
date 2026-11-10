@@ -1,11 +1,31 @@
 import {
   AuthenticationDetails,
+  CognitoAccessToken,
+  CognitoIdToken,
   CognitoRefreshToken,
   CognitoUser,
   CognitoUserAttribute,
   CognitoUserPool,
   CognitoUserSession,
 } from "amazon-cognito-identity-js";
+
+// Mock data mode (see mockMode.ts for the switch). Inlined rather than
+// imported so Node's unit test can still load this file directly; the mock
+// Cognito module is only loaded when a mock branch actually runs.
+const MOCK_MODE = process.env.NEXT_PUBLIC_MOCK_MODE !== "0" && process.env.NEXT_PUBLIC_MOCK_MODE !== "false";
+const MOCK_SOCIAL_PENDING_KEY = "souv_mock_social_pending";
+
+type MockCognitoModule = typeof import("./mockCognito");
+
+async function runMockCognito<T>(call: (mock: MockCognitoModule) => Promise<T>): Promise<T> {
+  const mock = await import("./mockCognito");
+  try {
+    return await call(mock);
+  } catch (error) {
+    if (error instanceof mock.MockAuthError) throw new CognitoClientError(error.message, error.code);
+    throw error;
+  }
+}
 
 export type CognitoCodeDelivery = {
   AttributeName?: string;
@@ -29,6 +49,8 @@ export type CognitoSession = {
   givenName?: string;
   familyName?: string;
   picture?: string;
+  /** Set when the account signs in through Google, Facebook or Apple (from the id token's `identities` claim). */
+  provider?: CognitoSocialProvider;
 };
 
 export type LocalUser = {
@@ -106,6 +128,8 @@ type JwtClaims = {
   given_name?: string;
   family_name?: string;
   picture?: string;
+  /** Federated sign-ins only: the identity provider(s) behind this Cognito user. */
+  identities?: { providerName?: string }[];
 };
 
 export const AUTH_SESSION_STORAGE_KEY = "souv_cognito_session";
@@ -321,6 +345,7 @@ function buildSession(authResult: CognitoAuthResult, previousRefreshToken?: stri
     givenName: claims.given_name?.trim() || undefined,
     familyName: claims.family_name?.trim() || undefined,
     picture: claims.picture?.trim() || undefined,
+    provider: cleanProvider(claims.identities?.[0]?.providerName),
   };
 }
 
@@ -347,6 +372,7 @@ function buildSessionFromCognitoUserSession(session: CognitoUserSession): Cognit
     givenName: claims.given_name?.trim() || undefined,
     familyName: claims.family_name?.trim() || undefined,
     picture: claims.picture?.trim() || undefined,
+    provider: cleanProvider(claims.identities?.[0]?.providerName),
   };
 }
 
@@ -581,6 +607,25 @@ export function rememberHostedUiError(error: HostedUiError, authPath?: string) {
 export async function startHostedUiSignIn(provider?: CognitoSocialProvider, returnTo = "/create") {
   if (typeof window === "undefined") return;
 
+  if (MOCK_MODE) {
+    // No AWS redirect: remember the attempt, reload, and let
+    // completeHostedUiSignIn finish it like a returning OAuth callback.
+    const currentPath = `${window.location.pathname}${window.location.search}`;
+    setSessionPersistence(true);
+    removeAuthItems();
+    pendingHostedUiError = null;
+    pendingHostedUiAttempt = null;
+    pendingHostedUiReturnTo = null;
+    dispatchAuthUpdate();
+    window.localStorage.setItem(MOCK_SOCIAL_PENDING_KEY, JSON.stringify({
+      provider,
+      returnTo: cleanHostedUiReturnPath(returnTo, "/create"),
+      authPath: cleanAuthPath(currentPath.startsWith("/login") || currentPath.startsWith("/signup") ? currentPath : "/login"),
+    }));
+    window.location.reload();
+    return;
+  }
+
   const config = getHostedUiConfig();
   const verifier = randomBase64Url(64);
   const nonce = randomBase64Url(32);
@@ -650,6 +695,18 @@ async function completeHostedUiSignInOnce(
 ): Promise<CognitoSession | null> {
 
   if (typeof window === "undefined") return null;
+
+  if (MOCK_MODE) {
+    const raw = window.localStorage.getItem(MOCK_SOCIAL_PENDING_KEY);
+    if (!raw) return null;
+    window.localStorage.removeItem(MOCK_SOCIAL_PENDING_KEY);
+    const pending = JSON.parse(raw) as { provider?: CognitoSocialProvider; returnTo?: string; authPath?: string };
+    const session = await runMockCognito(async (mock) => mock.mockSocialSession(cleanProvider(pending.provider)));
+    storeHostedUiAttempt({ authPath: cleanAuthPath(pending.authPath), provider: cleanProvider(pending.provider) });
+    storeCognitoSession(session);
+    pendingHostedUiReturnTo = pending.returnTo ? cleanHostedUiReturnPath(pending.returnTo, "/create") : null;
+    return session;
+  }
 
   const url = new URL(currentUrl || window.location.href);
   const code = url.searchParams.get("code");
@@ -780,6 +837,8 @@ export function consumeHostedUiReturnTo() {
 }
 
 export function getHostedUiLogoutUrl() {
+  // Mock mode has no hosted UI to sign out of; logout() then just clears local state.
+  if (MOCK_MODE) throw new CognitoClientError("No hosted UI in mock data mode.", "MockMode");
   const config = getHostedUiConfig();
   const params = new URLSearchParams({
     client_id: config.clientId,
@@ -790,6 +849,7 @@ export function getHostedUiLogoutUrl() {
 }
 
 export async function signUpWithCognito(email: string, password: string): Promise<CognitoSignUpResult> {
+  if (MOCK_MODE) return runMockCognito((mock) => mock.mockSignUp(email, password));
   const username = email.trim().toLowerCase();
   const userPool = getCognitoUserPool();
 
@@ -815,6 +875,7 @@ export async function signUpWithCognito(email: string, password: string): Promis
 }
 
 export async function confirmCognitoSignUp(email: string, confirmationCode: string) {
+  if (MOCK_MODE) return runMockCognito((mock) => mock.mockConfirmSignUp(email, confirmationCode));
   const user = getCognitoUser(email);
 
   await new Promise<void>((resolve, reject) => {
@@ -828,6 +889,11 @@ export async function confirmCognitoSignUp(email: string, confirmationCode: stri
     });
   });
 }
+
+/** Error code when the password was right and an authenticator-app code is needed next. */
+export const TOTP_REQUIRED_CODE = "SOFTWARE_TOKEN_MFA";
+
+let pendingTotpSignIn: { user: CognitoUser; email: string } | null = null;
 
 function authenticateCognitoUser(user: CognitoUser, email: string, password: string) {
   const authenticationDetails = new AuthenticationDetails({
@@ -850,7 +916,10 @@ function authenticateCognitoUser(user: CognitoUser, email: string, password: str
         reject(new CognitoClientError("MFA is required for this Cognito user, but this local UI does not support MFA yet.", "SMS_MFA"));
       },
       totpRequired: () => {
-        reject(new CognitoClientError("Authenticator-app MFA is required for this Cognito user, but this local UI does not support MFA yet.", "SOFTWARE_TOKEN_MFA"));
+        // Two-step sign-in is on: keep this half-signed-in user so the Log In
+        // page can send the 6-digit code (completeCognitoTotpSignIn).
+        pendingTotpSignIn = { user, email: email.trim().toLowerCase() };
+        reject(new CognitoClientError("Enter the 6-digit code from your authenticator app.", TOTP_REQUIRED_CODE));
       },
       selectMFAType: () => {
         reject(new CognitoClientError("MFA selection is required for this Cognito user, but this local UI does not support MFA yet.", "SELECT_MFA_TYPE"));
@@ -860,14 +929,54 @@ function authenticateCognitoUser(user: CognitoUser, email: string, password: str
 }
 
 export async function signInWithCognito(email: string, password: string): Promise<CognitoSession> {
+  if (MOCK_MODE) {
+    const mockSession = await runMockCognito((mock) => mock.mockSignIn(email, password));
+    storeCognitoSession(mockSession);
+    return mockSession;
+  }
+  pendingTotpSignIn = null;
   const cognitoSession = await authenticateCognitoUser(getCognitoUser(email), email, password);
   const session = buildSessionFromCognitoUserSession(cognitoSession);
   storeCognitoSession(session);
   return session;
 }
 
+/**
+ * Finishes a sign-in that stopped at TOTP_REQUIRED_CODE: sends the 6-digit
+ * authenticator code for the same attempt. A wrong code can be retried; after
+ * five wrong codes Cognito locks sign-in for a while.
+ */
+export async function completeCognitoTotpSignIn(code: string): Promise<CognitoSession> {
+  const clean = code.replace(/\s+/g, "");
+  if (MOCK_MODE) {
+    const mockSession = await runMockCognito((mock) => mock.mockCompleteTotpSignIn(clean));
+    storeCognitoSession(mockSession);
+    return mockSession;
+  }
+  const pending = pendingTotpSignIn;
+  if (!pending) throw new CognitoClientError("Your sign-in timed out. Enter your email and password again.", "NotAuthorizedException");
+
+  const cognitoSession = await new Promise<CognitoUserSession>((resolve, reject) => {
+    pending.user.sendMFACode(clean, {
+      onSuccess: (result) => resolve(result),
+      onFailure: (error) => reject(toCognitoClientError(error)),
+    }, "SOFTWARE_TOKEN_MFA");
+  });
+  pendingTotpSignIn = null;
+  const session = buildSessionFromCognitoUserSession(cognitoSession);
+  storeCognitoSession(session);
+  return session;
+}
+
+/** Drops a sign-in that is waiting for its authenticator code (Back on the code step). */
+export function cancelCognitoTotpSignIn() {
+  pendingTotpSignIn = null;
+  if (MOCK_MODE) void runMockCognito(async (mock) => mock.mockCancelTotpSignIn());
+}
+
 /** Sends a password-reset code to the account's verified email. */
 export async function requestCognitoPasswordReset(email: string) {
+  if (MOCK_MODE) return runMockCognito((mock) => mock.mockRequestPasswordReset(email));
   const user = getCognitoUser(email);
 
   await new Promise<void>((resolve, reject) => {
@@ -881,6 +990,7 @@ export async function requestCognitoPasswordReset(email: string) {
 
 /** Sets a new password using the code from the reset email. */
 export async function confirmCognitoPasswordReset(email: string, resetCode: string, newPassword: string) {
+  if (MOCK_MODE) return runMockCognito((mock) => mock.mockConfirmPasswordReset(email, resetCode, newPassword));
   const user = getCognitoUser(email);
 
   await new Promise<void>((resolve, reject) => {
@@ -893,6 +1003,7 @@ export async function confirmCognitoPasswordReset(email: string, resetCode: stri
 
 /** Sends a fresh sign-up confirmation code. */
 export async function resendCognitoSignUpCode(email: string) {
+  if (MOCK_MODE) return runMockCognito((mock) => mock.mockResendSignUpCode(email));
   const user = getCognitoUser(email);
 
   await new Promise<void>((resolve, reject) => {
@@ -909,6 +1020,7 @@ export async function resendCognitoSignUpCode(email: string) {
 
 /** Revokes every refresh token for the account, signing it out on all devices. */
 export async function signOutCognitoEverywhere(email: string, password: string) {
+  if (MOCK_MODE) return runMockCognito((mock) => mock.mockSignOutEverywhere(email, password));
   const user = getCognitoUser(email);
   await authenticateCognitoUser(user, email, password);
 
@@ -918,6 +1030,124 @@ export async function signOutCognitoEverywhere(email: string, password: string) 
       onFailure: (error) => reject(toCognitoClientError(error)),
     });
   });
+}
+
+// ---- Signed-in account actions (Account Settings) --------------------------------
+// These run on the current session's tokens (the SDK needs a signed-in
+// CognitoUser). Google, Facebook and Apple accounts have no Cognito password and
+// no Cognito two-step sign-in: their provider manages both, so Settings hides
+// those controls (session.provider).
+
+async function signedInCognitoUser(): Promise<CognitoUser> {
+  const session = await getActiveCognitoSession();
+  if (!session) throw new CognitoClientError("Your session has ended. Log in again.", "NotAuthorizedException");
+  const user = getCognitoUser(session.email);
+  user.setSignInUserSession(new CognitoUserSession({
+    IdToken: new CognitoIdToken({ IdToken: session.idToken }),
+    AccessToken: new CognitoAccessToken({ AccessToken: session.accessToken }),
+    RefreshToken: new CognitoRefreshToken({ RefreshToken: session.refreshToken || "" }),
+  }));
+  return user;
+}
+
+function cognitoCallback(resolve: () => void, reject: (error: unknown) => void) {
+  return (error?: Error | null) => {
+    if (error) reject(toCognitoClientError(error));
+    else resolve();
+  };
+}
+
+/** Changes the password for an email-and-password account (ChangePassword). */
+export async function changeCognitoPassword(currentPassword: string, newPassword: string) {
+  if (MOCK_MODE) return runMockCognito((mock) => mock.mockChangePassword(currentPassword, newPassword));
+  const user = await signedInCognitoUser();
+  await new Promise<void>((resolve, reject) => {
+    user.changePassword(currentPassword, newPassword, cognitoCallback(resolve, reject));
+  });
+}
+
+/** Revokes every refresh token for the signed-in account (GlobalSignOut), this device included. */
+export async function signOutCognitoAllDevices() {
+  if (MOCK_MODE) {
+    await runMockCognito((mock) => mock.mockGlobalSignOut());
+  } else {
+    const user = await signedInCognitoUser();
+    await new Promise<void>((resolve, reject) => {
+      user.globalSignOut({ onSuccess: () => resolve(), onFailure: (error) => reject(toCognitoClientError(error)) });
+    });
+  }
+  clearCognitoAuthState();
+}
+
+/** Whether authenticator-app two-step sign-in is on for the signed-in account. */
+export async function fetchCognitoTotpEnabled(): Promise<boolean> {
+  if (MOCK_MODE) return runMockCognito((mock) => mock.mockTotpEnabled());
+  const user = await signedInCognitoUser();
+  return new Promise<boolean>((resolve, reject) => {
+    user.getUserData((error, data) => {
+      if (error || !data) {
+        reject(toCognitoClientError(error));
+        return;
+      }
+      resolve(data.PreferredMfaSetting === "SOFTWARE_TOKEN_MFA" || Boolean(data.UserMFASettingList?.includes("SOFTWARE_TOKEN_MFA")));
+    }, { bypassCache: true });
+  });
+}
+
+/** Step 1 of turning two-step sign-in on: a new secret for the authenticator app (AssociateSoftwareToken). */
+export async function startCognitoTotpSetup(): Promise<string> {
+  if (MOCK_MODE) return runMockCognito((mock) => mock.mockStartTotpSetup());
+  const user = await signedInCognitoUser();
+  return new Promise<string>((resolve, reject) => {
+    user.associateSoftwareToken({
+      associateSecretCode: (secret) => resolve(secret),
+      onFailure: (error) => reject(toCognitoClientError(error)),
+    });
+  });
+}
+
+/** Step 2: checks the app's first code (VerifySoftwareToken), then makes it the sign-in step (SetUserMFAPreference). */
+export async function confirmCognitoTotpSetup(code: string) {
+  const clean = code.replace(/\s+/g, "");
+  if (MOCK_MODE) return runMockCognito((mock) => mock.mockConfirmTotpSetup(clean));
+  const user = await signedInCognitoUser();
+  await new Promise<void>((resolve, reject) => {
+    user.verifySoftwareToken(clean, "Souvenote", {
+      onSuccess: () => resolve(),
+      onFailure: (error) => reject(toCognitoClientError(error)),
+    });
+  });
+  await new Promise<void>((resolve, reject) => {
+    user.setUserMfaPreference(null, { Enabled: true, PreferredMfa: true }, cognitoCallback(resolve, reject));
+  });
+}
+
+/** Turns authenticator-app two-step sign-in off. */
+export async function disableCognitoTotp() {
+  if (MOCK_MODE) return runMockCognito((mock) => mock.mockDisableTotp());
+  const user = await signedInCognitoUser();
+  await new Promise<void>((resolve, reject) => {
+    user.setUserMfaPreference(null, { Enabled: false, PreferredMfa: false }, cognitoCallback(resolve, reject));
+  });
+}
+
+/** The otpauth:// address an authenticator app scans to add the account. */
+export function totpSetupUri(email: string, secret: string) {
+  const label = encodeURIComponent(`Souvenote:${email}`);
+  return `otpauth://totp/${label}?secret=${encodeURIComponent(secret)}&issuer=Souvenote`;
+}
+
+/** Deletes the signed-in Cognito user (DeleteUser). Run after the backend has removed the account's data. */
+export async function deleteCognitoUser() {
+  if (MOCK_MODE) {
+    clearCognitoAuthState();
+    return;
+  }
+  const user = await signedInCognitoUser();
+  await new Promise<void>((resolve, reject) => {
+    user.deleteUser((error) => (error ? reject(toCognitoClientError(error)) : resolve()));
+  });
+  clearCognitoAuthState();
 }
 
 async function refreshCognitoSession(session: CognitoSession): Promise<CognitoSession | null> {

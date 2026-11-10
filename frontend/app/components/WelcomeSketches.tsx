@@ -379,3 +379,20 @@ export function SavedSketch() {
     </SketchSvg>
   );
 }
+
+/**
+ * A round gold badge with a music note: this option can come with a song
+ * (owner, 2026-11-08). Gold because songs are AI-made; it sits on the card's
+ * inside right, opposite the round arrow and the same size.
+ */
+export function SongMark() {
+  return (
+    <span className="sv-ocard-song" role="img" aria-label="Can include a song">
+      <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+        <path d="M9.5 17.2V5.6l9-1.9v11.1" fill="none" stroke="currentColor" strokeWidth={1.9} strokeLinecap="round" strokeLinejoin="round" />
+        <ellipse cx={7} cy={17.4} rx={2.8} ry={2.2} fill="currentColor" />
+        <ellipse cx={16} cy={15.2} rx={2.8} ry={2.2} fill="currentColor" />
+      </svg>
+    </span>
+  );
+}

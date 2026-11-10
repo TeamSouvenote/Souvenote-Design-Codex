@@ -1,30 +1,44 @@
 import type { Metadata } from "next";
-import Link from "next/link";
-import { PageHero } from "../components/Pages";
-import { StaticPageChrome } from "../components/StaticPageChrome";
+import { ContentPageShell } from "../components/content/ContentPageShell";
+import { CommunityGallery } from "../components/community/CommunityGallery";
+import { COMMUNITY_CARDS, communityCardPath } from "../components/community/catalog";
+import { SITE_URL, openGraphFor } from "../lib/site";
+import "../styles/community-cards.css";
 
-// Placeholder until the Community Cards experience is built.
+// Public page: indexed and in the sitemap. Everyone sees the full catalog,
+// signed in or not, and so does the server-rendered HTML (owner, 2026-11-09);
+// only sending a card needs an account. Each card also has its own page,
+// /community-cards/{id} (audit C11); ?card= addresses canonicalise here.
 export const metadata: Metadata = {
   title: "Community Cards | Souvenote",
-  description: "Ready-to-send cards from the Souvenote collection. Coming soon.",
-  robots: { index: false, follow: true },
+  description: "Ready-made greeting cards for birthdays, anniversaries, holidays and more. Write your own message inside for free, with no AI credits, and we print and mail it to Canada or the US.",
+  alternates: { canonical: "/community-cards" },
+  openGraph: openGraphFor("/community-cards", "Community Cards | Souvenote", "Ready-made greeting cards for every occasion. Write your own message inside for free, and we print and mail it to Canada or the US."),
+};
+
+// Structured data (audit C18): the collection as an ItemList of the cards' own pages.
+const structuredData = {
+  "@context": "https://schema.org",
+  "@type": "CollectionPage",
+  name: "Community Cards",
+  url: `${SITE_URL}/community-cards`,
+  mainEntity: {
+    "@type": "ItemList",
+    numberOfItems: COMMUNITY_CARDS.length,
+    itemListElement: COMMUNITY_CARDS.map((card, index) => ({
+      "@type": "ListItem",
+      position: index + 1,
+      name: card.name,
+      url: `${SITE_URL}${communityCardPath(card)}`,
+    })),
+  },
 };
 
 export default function CommunityCardsPage() {
   return (
-    <StaticPageChrome>
-      <div className="bmc-shell pg-faq-wrap">
-        <PageHero
-          crumbs={["Create", "Community Cards"]}
-          title={<>Community <span className="pg-italic text-metallic-rose-gold">Cards</span></>}
-          lede="Choose from our collection of ready to send cards, just add your personal message. No AI credits required."
-        />
-        <div className="pg-faq-contact">
-          <h3>Coming soon</h3>
-          <p>We’re putting the collection together. In the meantime, you can create your own card.</p>
-          <Link href="/create" className="btn-matte">Create a Card</Link>
-        </div>
-      </div>
-    </StaticPageChrome>
+    <ContentPageShell className="souv-cc">
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData).replace(/</g, "\\u003c") }} />
+      <CommunityGallery />
+    </ContentPageShell>
   );
 }

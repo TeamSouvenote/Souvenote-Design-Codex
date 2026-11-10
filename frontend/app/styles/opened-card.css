@@ -15,7 +15,8 @@
        span.sv-ocard-left   (title, sketch, optional span.sv-ocard-badge)
        span.sv-ocard-right  (span.sv-ocard-hand, span.sv-ocard-go)
 
-   Loaded globally from app/layout.tsx, before auth.css.
+   Loaded by Auth.tsx (before auth.css) and the /create page (before
+   create-options.css), not globally (audit E3, 2026-11-09).
    ========================================================================== */
 
 /* ---------- Design-system tokens (design-system/tokens/tokens.css) ---------- */
@@ -33,6 +34,7 @@
   --sv-gold-400: #D8B65A;
   --sv-terracotta-400: #C98A76;
   --sv-platinum-400: #CBCFD6; /* fills in the pencil sketches only */
+  --sv-graphite-600: #514C4A; /* pencil handwriting only (7.6 on ivory) */
 
   --sv-text: var(--sv-espresso-700);
   --sv-focus: var(--sv-forest-700);
@@ -123,8 +125,8 @@
 .sv-ocard-hand {
   position: relative;
   font-family: var(--font-hand), "Patrick Hand", cursive;
-  color: #514C4A;
-  text-shadow: 0 0 0.6px rgba(81, 76, 74, 0.55);
+  color: var(--sv-graphite-600);
+  text-shadow: 0 0 0.6px rgba(81, 76, 74, 0.55); /* graphite at 55% */
 }
 .sv-ocard-go {
   position: relative;
@@ -136,6 +138,25 @@
   border-radius: var(--sv-radius-pill);
   transition: color .25s var(--sv-ease), background-color .25s var(--sv-ease);
 }
+
+/* The bottom row of the inside right: the song badge (when the option has a song) and the arrow.
+   Each screen gives the badge the same size as its arrow (auth.css, create-options.css). */
+.sv-ocard-foot {
+  position: relative;
+  display: flex; align-items: center; justify-content: flex-end; gap: 8px;
+  margin-top: auto;
+}
+.sv-ocard-foot > .sv-ocard-go { margin-top: 0; align-self: auto; }
+.sv-ocard-song {
+  flex: none;
+  margin-right: auto;
+  display: inline-flex; align-items: center; justify-content: center;
+  color: var(--sv-espresso-700);
+  background: var(--sv-gold-400);
+  border-radius: var(--sv-radius-pill);
+  box-shadow: inset 0 0 0 1.5px rgba(74, 59, 57, 0.18);
+}
+.sv-ocard-song svg { width: 56%; height: 56%; }
 
 /* ---------- Raised state (mouse hover) ----------
    Hover pauses any breathing/throb animation where it is (no snap) and adds a

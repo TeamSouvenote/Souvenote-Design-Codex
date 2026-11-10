@@ -1,8 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { createPortal } from "react-dom";
-import { useModalDialog } from "./useModalDialog";
+import { FlowDialog } from "./flow/FlowDialog";
 
 export type BmcIconName =
   | "check"
@@ -25,57 +24,9 @@ export type BmcIconName =
   | "warn"
   | "chevron";
 
-export type BmcStepId = "photo" | "basics" | "image" | "message" | "song" | "review";
-
 type BmcIconProps = {
   name: BmcIconName;
   w?: number;
-};
-
-type BmcStep = {
-  id: BmcStepId;
-  label: string;
-};
-
-type BmcNavContextValue = {
-  activeId: BmcStepId;
-  onChange: (id: BmcStepId) => void;
-};
-
-type BmcStepperProps = BmcNavContextValue;
-
-type BmcHeadProps = {
-  num: string;
-  eyebrow: string;
-  title: string;
-  lede?: React.ReactNode;
-  italicWord?: string;
-  accent?: "gold" | "rose" | "silver";
-  center?: boolean;
-  titleStyle?: React.CSSProperties;
-  titleClassName?: string;
-  italicAccent?: boolean;
-};
-
-type BmcFootProps = {
-  costLabel: React.ReactNode;
-  onBack?: () => void;
-  onNext?: () => void | Promise<void>;
-  nextLabel?: string;
-  secondary?: React.ReactNode;
-  disabled?: boolean;
-};
-
-type CreditCostProps = {
-  n: number;
-  label?: string;
-};
-
-type BmcCheckProps = {
-  checked: boolean;
-  onChange?: (checked: boolean) => void;
-  error?: boolean;
-  children: React.ReactNode;
 };
 
 type BmcErrorDetail = {
@@ -119,135 +70,17 @@ function BmcIcon({ name, w = 18 }: BmcIconProps) {
   }
 }
 
-const STEPS: BmcStep[] = [
-  { id: "photo", label: "Photo" },
-  { id: "basics", label: "Basics" },
-  { id: "image", label: "Image Flow" },
-  { id: "message", label: "Inside Message" },
-  { id: "song", label: "QR Song" },
-  { id: "review", label: "Review" },
-];
-
-const BmcNavContext = React.createContext<BmcNavContextValue | null>(null);
-
-function BmcStepper({ activeId, onChange }: BmcStepperProps) {
-  const idx = STEPS.findIndex((step) => step.id === activeId);
-
-  return (
-    <div className="bmc-stepper" data-count={STEPS.length}>
-      {STEPS.map((step, index) => (
-        <div
-          key={step.id}
-          className={`bmc-step ${index === idx ? "is-active" : ""} ${index < idx ? "is-done" : ""}`}
-          onClick={() => onChange(step.id)}
-        >
-          <span className="bmc-step-dot">{index < idx ? <BmcIcon name="check" w={14} /> : (index + 1)}</span>
-          <span className="bmc-step-name">{step.label}</span>
-        </div>
-      ))}
-    </div>
-  );
-}
-
-function BmcHead({
-  num,
-  eyebrow,
-  title,
-  lede,
-  italicWord,
-  accent = "gold",
-  center = false,
-  titleStyle,
-  titleClassName = "",
-  italicAccent = true,
-}: BmcHeadProps) {
-  const nav = React.useContext(BmcNavContext);
-  const accentClass = accent === "rose" ? "text-metallic-rose-gold" : "text-metallic-rose-gold";
-  const accentClassName = italicAccent ? `souv-hero-italic ${accentClass}` : accentClass;
-  let pre = title;
-  let post = "";
-
-  if (italicWord && title.includes(italicWord)) {
-    [pre, post] = title.split(italicWord);
-  }
-
-  return (
-    <>
-      <div className="bmc-head" style={center ? { textAlign: "center", margin: "0 auto 36px" } : undefined}>
-        <div className="bmc-eyebrow" style={center ? { justifyContent: "center" } : undefined}>
-          <span className="bmc-eyebrow-num">{num}</span>
-          <span>{eyebrow}</span>
-        </div>
-        <h1 className={`bmc-title ${titleClassName}`.trim()} style={titleStyle}>
-          {pre}
-          {italicWord && <span className={accentClassName}>{italicWord}</span>}
-          {post}
-        </h1>
-        {lede && <p className="bmc-lede" style={center ? { margin: "0 auto" } : undefined}>{lede}</p>}
-      </div>
-      {nav && <BmcStepper activeId={nav.activeId} onChange={nav.onChange} />}
-    </>
-  );
-}
-
-function BmcFoot({ costLabel, onBack, onNext, nextLabel = "Continue", secondary, disabled = false }: BmcFootProps) {
-  return (
-    <div className="bmc-foot">
-      <div className="bmc-foot-cost">{costLabel}</div>
-      <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
-        {onBack && (
-          <button type="button" className="bmc-cta-secondary" onClick={onBack}>
-            <BmcIcon name="back" w={14} /> Back
-          </button>
-        )}
-        {secondary}
-        <button
-          type="button"
-          className="bmc-cta"
-          onClick={onNext}
-          style={disabled ? { opacity: 0.5, pointerEvents: "none" } : undefined}
-        >
-          {nextLabel} <BmcIcon name="arrow" w={16} />
-        </button>
-      </div>
-    </div>
-  );
-}
-
-function FreeCost() {
-  return <><BmcIcon name="check" w={13} /> Free step <span className="bmc-foot-cost-sep">{"\u00b7"}</span> no credits</>;
-}
-
-function CreditCost({ n, label = "on generate" }: CreditCostProps) {
-  return <>{label} <span className="bmc-foot-cost-sep">{"\u00b7"}</span> <b>{n}</b> {n === 1 ? "credit" : "credits"}</>;
-}
-
-function BmcCheck({ checked, onChange, error = false, children }: BmcCheckProps) {
-  return (
-    <label className={`bmc-check ${checked ? "is-checked" : ""} ${error ? "is-error" : ""}`}>
-      <span className="bmc-check-box">
-        <BmcIcon name="check" w={14} />
-      </span>
-      <input
-        type="checkbox"
-        checked={checked}
-        onChange={(event) => onChange?.(event.target.checked)}
-        style={{ position: "absolute", opacity: 0, pointerEvents: "none" }}
-      />
-      <span className="bmc-check-text">{children}</span>
-    </label>
-  );
-}
-
 function bmcError(message: React.ReactNode, title: React.ReactNode = "One more thing") {
   if (typeof window === "undefined") return;
   window.dispatchEvent(new CustomEvent<BmcErrorDetail>("bmc-error", { detail: { message, title } }));
 }
 
-// Shared error pop-up (Build My Card, Personalize, Delivery). Dark look kept
-// until the Build My Card redesign; behaviour matches the other pop-ups
-// (build-fixes item 27): focus moves in, Tab stays inside, Escape closes, page
-// scroll locked, page behind inert, focus returns to where it was.
+// Error pop-up for Delivery ("Address needed", "Checkout didn't start", ...), opened
+// with bmcError(). Since 2026-11-09 it is the design-system FlowDialog (owner): ivory
+// card with a berry stripe, Lato, one "Got it" button. Build My Card and Personalize
+// have their own error handling and don't use it. FlowDialog gives it the usual
+// behaviour: labelled and described, Tab kept inside, Escape and the x close it, page
+// behind inert, focus returned to where it was.
 function BmcErrorModal() {
   const [state, setState] = React.useState<BmcErrorDetail | null>(null);
 
@@ -265,54 +98,37 @@ function BmcErrorModal() {
   }, []);
 
   if (!state) return null;
-  return createPortal(<BmcErrorDialog state={state} onClose={() => setState(null)} />, document.body);
+  return <BmcErrorDialog state={state} onClose={() => setState(null)} />;
 }
 
 function BmcErrorDialog({ state, onClose }: { state: BmcErrorDetail; onClose: () => void }) {
-  const dialogRef = useModalDialog(onClose, ".bmc-modal-wrap");
-  const buttonRef = React.useRef<HTMLButtonElement>(null);
   const titleId = React.useId();
   const messageId = React.useId();
-
-  // Runs after useModalDialog has focused the dialog: start on "Got it".
-  React.useEffect(() => {
-    buttonRef.current?.focus({ preventScroll: true });
-  }, []);
-
   return (
-    <div className="bmc-modal-wrap" data-screen-label="Modal · Error">
-      <div className="bmc-modal-scrim" onClick={onClose} />
-      <div
-        ref={dialogRef}
-        className="bmc-modal"
-        role="alertdialog"
-        aria-modal="true"
-        aria-labelledby={titleId}
-        aria-describedby={state.message ? messageId : undefined}
-        tabIndex={-1}
-        style={{ width: "min(440px, 100%)" }}
-      >
-        <span className="bmc-error-icon" aria-hidden="true"><BmcIcon name="warn" w={26} /></span>
-        <h2 id={titleId} className="bmc-modal-title" style={{ fontSize: "clamp(1.4rem, 2.2vw, 1.8rem)" }}>{state.title}</h2>
-        <p id={messageId} className="bmc-modal-sub">{state.message}</p>
-        <div className="bmc-modal-acts">
-          <button ref={buttonRef} type="button" className="bmc-cta" onClick={onClose}>Got it</button>
-        </div>
+    <FlowDialog onClose={onClose} labelledBy={titleId} describedBy={state.message ? messageId : undefined} tone="berry" role="alertdialog" className="fd-narrow" screenLabel="Modal · Error">
+      <h2 id={titleId} className="fd-title">{state.title}</h2>
+      {state.message ? <div id={messageId} className="fd-lede">{state.message}</div> : null}
+      <div className="fd-actions">
+        <GotItButton onClose={onClose} />
       </div>
-    </div>
+    </FlowDialog>
   );
+}
+
+/** Starts with focus, so Enter or Space closes the message straight away. */
+function GotItButton({ onClose }: { onClose: () => void }) {
+  const ref = React.useRef<HTMLButtonElement>(null);
+  // FlowDialog focuses its panel in its own effect, which runs after this one,
+  // so move focus to the button just after that.
+  React.useEffect(() => {
+    const timer = window.setTimeout(() => ref.current?.focus({ preventScroll: true }), 0);
+    return () => window.clearTimeout(timer);
+  }, []);
+  return <button ref={ref} type="button" className="l-btn l-btn-primary" onClick={onClose}>Got it</button>;
 }
 
 export {
   BmcIcon,
-  STEPS,
-  BmcStepper,
-  BmcHead,
-  BmcFoot,
-  FreeCost,
-  CreditCost,
-  BmcCheck,
-  BmcNavContext,
   BmcErrorModal,
   bmcError,
 };

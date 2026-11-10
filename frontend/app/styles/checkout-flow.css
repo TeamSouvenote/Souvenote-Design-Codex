@@ -19,7 +19,7 @@
 .souv-flow {
   --cf-top: 96px;
   /* Field outline: solid so it reaches 3:1 against paper and ivory (WCAG 1.4.11). */
-  --cf-field-line: #8A7B77;
+  --cf-field-line: var(--l-field-line);
   --cf-error: #9E3D58;
 }
 @media (min-width: 1221px) {
@@ -44,7 +44,6 @@
   text-transform: uppercase;
 }
 .souv-flow .cf-eyebrow-dot { width: 4px; height: 4px; border-radius: 50%; background: var(--l-stripe); }
-.souv-flow .cf-eyebrow-num { font-variant-numeric: tabular-nums; }
 .souv-flow .cf-title {
   margin-top: 10px;
   font-family: var(--l-font);
@@ -89,7 +88,7 @@
   width: 100%;
   min-height: 48px;
   padding: 0 14px;
-  border: 1.5px solid var(--cf-field-line, #8A7B77);
+  border: 1.5px solid var(--cf-field-line, var(--l-field-line));
   border-radius: 12px;
   background-color: #FFFFFF;
   color: var(--l-paper-ink);
@@ -200,7 +199,10 @@
 .souv-landing :is(.ct-wrap, .dv-wrap, .dc-wrap, .fd-dialog) .l-btn { gap: 10px; }
 .souv-landing :is(.ct-wrap, .dv-wrap, .dc-wrap, .fd-dialog) .l-btn svg { flex: none; }
 .souv-landing :is(.ct-wrap, .dv-wrap, .dc-wrap, .fd-dialog) .l-btn:disabled { opacity: 0.45; cursor: not-allowed; transform: none; box-shadow: none; }
-.souv-landing :is(.ct-wrap, .dv-wrap, .dc-wrap, .fd-dialog) .l-btn[aria-disabled="true"] { opacity: 0.7; cursor: progress; }
+/* Busy: aria-disabled, not disabled, so the pressed button keeps focus (a disabled
+   button drops it to <body>). Also on Settings, Contact and every FlowPageShell page. */
+.souv-landing :is(.ct-wrap, .dv-wrap, .dc-wrap, .fd-dialog) .l-btn[aria-disabled="true"],
+.souv-flow .l-btn[aria-disabled="true"] { opacity: 0.7; cursor: progress; transform: none; box-shadow: none; }
 
 /* ==========================================================================
    Cart
@@ -272,9 +274,11 @@
   border: 1px solid rgba(74, 59, 57, 0.18);
   box-shadow: 0 4px 10px rgba(74, 59, 57, 0.12);
 }
-.souv-cart .ct-pack-card.c3 { background: var(--l-dark-bg); transform: rotate(-9deg) translate(-4px, 2px); }
-.souv-cart .ct-pack-card.c2 { background: var(--l-stripe); transform: rotate(5deg) translate(3px, 0); }
-.souv-cart .ct-pack-card.c1 { background: var(--l-tone-3); }
+/* Back cards in the landing gallery's tones (Phase D, 2026-11-08): berry and terracotta. No gold: these are cards, not AI. */
+.souv-cart .ct-pack-card.c3 { background: var(--l-tone-5); transform: rotate(-9deg) translate(-4px, 2px); }
+.souv-cart .ct-pack-card.c2 { background: var(--l-tone-4); transform: rotate(5deg) translate(3px, 0); }
+/* The gold logo goes only on forest (design system 2.13), so the front card is forest (audit I1, 2026-11-08). */
+.souv-cart .ct-pack-card.c1 { background: var(--l-dark-bg); }
 /* Small logo on the front card (packs, Print and Send) and on a forest circle (credits). */
 .souv-cart .ct-pack-card.c1 { display: grid; place-items: center; }
 .souv-cart .ct-thumb-logo { display: block; width: 40%; height: auto; }
@@ -290,8 +294,6 @@
 }
 .souv-cart .ct-token { display: grid; place-items: center; color: var(--l-paper-ink); }
 .souv-cart .ct-thumb-credits { background: var(--l-ai); }
-.souv-cart .ct-thumb-gift { background: var(--l-tone-5); }
-.souv-cart .ct-thumb-gift .ct-token { color: #F7F0E8; }
 .souv-cart .ct-thumb-badge {
   position: absolute; right: -8px; bottom: -8px;
   display: grid; place-items: center;
@@ -303,15 +305,7 @@
 }
 
 .souv-cart .ct-line-main { min-width: 0; }
-.souv-cart .ct-line-kind {
-  display: inline-flex; align-items: center; gap: 6px;
-  color: var(--l-label);
-  font-size: 12px; font-weight: 700;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
-}
 .souv-cart .ct-line-name {
-  margin-top: 4px;
   font-size: 1.2rem; font-weight: 700;
   line-height: 1.3;
   color: var(--l-heading);
@@ -378,8 +372,8 @@
   cursor: pointer;
   transition: color .25s var(--l-ease);
 }
-.souv-cart .ct-stepper button:hover:not(:disabled) { color: var(--l-hover); }
-.souv-cart .ct-stepper button:disabled { opacity: 0.35; cursor: default; }
+.souv-cart .ct-stepper button:hover:not(:disabled, [aria-disabled="true"]) { color: var(--l-hover); }
+.souv-cart .ct-stepper button:is(:disabled, [aria-disabled="true"]) { opacity: 0.35; cursor: default; }
 .souv-cart .ct-qty-num { min-width: 3ch; text-align: center; font-size: 17px; font-weight: 700; font-variant-numeric: tabular-nums; }
 .souv-cart .ct-qty-locked {
   display: inline-flex; align-items: baseline; gap: 6px;
@@ -499,37 +493,6 @@
    ========================================================================== */
 .souv-delivery .dv-lede { max-width: 60ch; }
 
-.souv-delivery .dv-gift-reminder {
-  display: grid;
-  grid-template-columns: 40px minmax(0, 1fr);
-  gap: 12px 14px;
-  align-items: center;
-  max-width: 1080px;
-  margin: 0 auto 24px;
-  padding: 16px 18px;
-  border-radius: var(--l-radius);
-  border-left: 4px solid var(--l-stripe-2);
-  background: var(--l-paper);
-  color: var(--l-paper-ink);
-  box-shadow: var(--l-shadow);
-}
-@media (min-width: 600px) {
-  .souv-delivery .dv-gift-reminder { grid-template-columns: 40px minmax(0, 1fr) auto; }
-}
-.souv-delivery .dv-gift-reminder-ico {
-  display: grid; place-items: center;
-  width: 40px; height: 40px;
-  border-radius: 50%;
-  background: var(--l-tone-5);
-  color: #F7F0E8;
-}
-.souv-delivery .dv-gift-reminder-title { font-weight: 700; }
-.souv-delivery .dv-gift-reminder p { font-size: 16px; }
-.souv-delivery .dv-gift-reminder-dismiss { grid-column: 1 / -1; min-height: 44px; padding: 0 20px; font-size: 16px; }
-@media (min-width: 600px) {
-  .souv-delivery .dv-gift-reminder-dismiss { grid-column: auto; }
-}
-
 .souv-delivery .dv-grid {
   display: grid;
   gap: 20px;
@@ -627,34 +590,6 @@
 .souv-delivery .dv-piece-name { font-size: 16px; font-weight: 700; line-height: 1.3; }
 .souv-delivery .dv-piece-meta { color: var(--l-paper-ink-2); font-size: 14px; line-height: 1.35; }
 .souv-delivery .dv-piece-check { color: var(--l-dark-bg); }
-/* Song play button and handwritten message preview: not shown until the card's
-   real song and message are saved with it (build-fixes item 9). Kept for then. */
-.souv-delivery .dv-piece-fab {
-  display: grid; place-items: center;
-  width: 44px; height: 44px;
-  border: 0; border-radius: 50%;
-  background: var(--l-dark-bg);
-  color: var(--l-dark-ink);
-  cursor: pointer;
-  transition: background .25s var(--l-ease);
-}
-.souv-delivery .dv-piece-fab:hover { background: var(--l-btn-bg-hover); }
-
-.souv-delivery .dv-hand { margin: 16px 0 0; padding: 14px 16px; border-radius: 12px; border: 1px dashed var(--l-line-strong); }
-.souv-delivery .dv-hand-label {
-  color: var(--l-paper-ink-2);
-  font-size: 12px; font-weight: 700;
-  letter-spacing: 0.16em;
-  text-transform: uppercase;
-}
-.souv-delivery .dv-hand-body {
-  margin: 6px 0 0;
-  color: #514C4A;  /* graphite, same as the Welcome sketches' handwriting */
-  font-family: var(--font-patrick-hand), "Patrick Hand", cursive;
-  font-size: 19px;
-  line-height: 1.45;
-  white-space: pre-line;
-}
 .souv-delivery .dv-ships { display: flex; flex-wrap: wrap; gap: 8px; margin: 14px 0 0; padding: 0; list-style: none; }
 .souv-delivery .dv-ship-tag {
   display: inline-flex; align-items: center; gap: 6px;
@@ -678,6 +613,8 @@
 @media (min-width: 600px) {
   .souv-delivery .dv-section { padding: 26px 28px 28px; }
 }
+/* The recipient and return-address cards hold what the sender typed: terracotta means "yours" (Phase D, 2026-11-08). */
+.souv-delivery .dv-section.is-yours { border-top: 4px solid var(--l-stripe); }
 .souv-delivery .dv-section-head {
   display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between;
   gap: 12px 16px;
@@ -716,19 +653,23 @@
 .souv-delivery .dv-chip:hover:not(.is-active) { color: var(--l-hover); }
 .souv-delivery .dv-chip.is-active { background: var(--l-dark-bg); color: var(--l-dark-ink); }
 
-/* Address fields: one column on phones; title+first name share a row. */
-.souv-delivery .dv-fields { display: flex; flex-direction: column; gap: 16px; }
-.souv-delivery .dv-grid-name { display: grid; grid-template-columns: 96px minmax(0, 1fr); gap: 16px 12px; }
-.souv-delivery .dv-grid-name .dv-f-last { grid-column: 1 / -1; }
-.souv-delivery .dv-grid-2 { display: grid; gap: 16px; }
-.souv-delivery .dv-grid-3 { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 16px 12px; }
-.souv-delivery .dv-grid-3 .dv-f-city { grid-column: 1 / -1; }
+/* Address fields: one column on phones; title+first name share a row.
+   Also used by Account Settings > Saved recipients (.souv-account). */
+:is(.souv-delivery, .souv-account) .dv-fields { display: flex; flex-direction: column; gap: 16px; }
+.souv-delivery .dv-saved-pick { margin-bottom: 16px; }
+.souv-delivery .dv-save-check { display: flex; align-items: flex-start; gap: 10px; min-height: 44px; margin-top: 14px; font-size: 16px; cursor: pointer; }
+.souv-delivery .dv-save-check input { width: 22px; height: 22px; margin-top: 1px; accent-color: var(--l-btn-bg); flex-shrink: 0; }
+:is(.souv-delivery, .souv-account) .dv-grid-name { display: grid; grid-template-columns: 96px minmax(0, 1fr); gap: 16px 12px; }
+:is(.souv-delivery, .souv-account) .dv-grid-name .dv-f-last { grid-column: 1 / -1; }
+:is(.souv-delivery, .souv-account) .dv-grid-2 { display: grid; gap: 16px; }
+:is(.souv-delivery, .souv-account) .dv-grid-3 { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 16px 12px; }
+:is(.souv-delivery, .souv-account) .dv-grid-3 .dv-f-city { grid-column: 1 / -1; }
 @media (min-width: 600px) {
-  .souv-delivery .dv-grid-name { grid-template-columns: 110px minmax(0, 1fr) minmax(0, 1fr); }
-  .souv-delivery .dv-grid-name .dv-f-last { grid-column: auto; }
-  .souv-delivery .dv-grid-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-  .souv-delivery .dv-grid-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
-  .souv-delivery .dv-grid-3 .dv-f-city { grid-column: auto; }
+  :is(.souv-delivery, .souv-account) .dv-grid-name { grid-template-columns: 110px minmax(0, 1fr) minmax(0, 1fr); }
+  :is(.souv-delivery, .souv-account) .dv-grid-name .dv-f-last { grid-column: auto; }
+  :is(.souv-delivery, .souv-account) .dv-grid-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  :is(.souv-delivery, .souv-account) .dv-grid-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  :is(.souv-delivery, .souv-account) .dv-grid-3 .dv-f-city { grid-column: auto; }
 }
 
 .souv-delivery .dv-subhead {
@@ -838,33 +779,8 @@
   border: 1.5px solid var(--l-paper-line);
   border-radius: 14px;
 }
-.souv-delivery .dv-ship-opts { display: flex; flex-direction: column; gap: 10px; }
-.souv-delivery .dv-ship-opt {
-  position: relative;
-  display: grid;
-  grid-template-columns: 22px minmax(0, 1fr) auto;
-  gap: 14px;
-  align-items: center;
-  min-height: 64px;
-  padding: 12px 16px;
-  border: 1.5px solid var(--l-paper-line);
-  border-radius: 14px;
-  cursor: pointer;
-}
-.souv-delivery .dv-ship-opt.is-active { border-color: var(--l-dark-bg); background: rgba(47, 62, 59, 0.05); }
-.souv-delivery .dv-ship-opt:has(.dv-ship-input:focus-visible) { outline: 2px solid var(--l-focus); outline-offset: 2px; }
-.souv-delivery .dv-ship-input { position: absolute; opacity: 0; pointer-events: none; }
-.souv-delivery .dv-radio { width: 22px; height: 22px; border-radius: 50%; border: 2px solid var(--cf-field-line); }
-.souv-delivery .dv-ship-opt.is-active .dv-radio { border-color: var(--l-dark-bg); box-shadow: inset 0 0 0 4px var(--l-paper), inset 0 0 0 11px var(--l-dark-bg); }
-.souv-delivery .dv-ship-text { display: flex; flex-direction: column; }
 .souv-delivery .dv-ship-name { font-weight: 700; }
 .souv-delivery .dv-ship-sub { color: var(--l-paper-ink-2); font-size: 15px; }
-.souv-delivery .dv-ship-price {
-  font-size: 12px; font-weight: 700;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
-}
-.souv-delivery .dv-ship-price.is-free { color: var(--l-dark-bg); }
 
 /* Action bar: a forest bar, pinned to the bottom from tablet up. On phones it
    sits after the form, so it never covers a field while typing. */
@@ -898,8 +814,9 @@
 .souv-delivery .dv-status-sub { margin-top: 2px; color: var(--l-dark-ink-2); font-size: 15px; line-height: 1.4; }
 .souv-delivery .dv-status-sub.is-low { color: var(--l-dark-ink); font-weight: 700; }
 .souv-delivery .dv-actionbar-right { display: flex; flex-direction: column-reverse; gap: 10px; flex: none; }
+/* From 600px the two buttons sit side by side at one width (the wider label's). */
 @media (min-width: 600px) {
-  .souv-delivery .dv-actionbar-right { flex-direction: row; align-items: center; }
+  .souv-delivery .dv-actionbar-right { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); align-items: center; }
 }
 /* Buttons on forest: ivory primary pill, ivory-outline secondary (as the nav). */
 .souv-delivery .dv-actionbar .l-btn { min-height: 52px; padding: 0 24px; font-size: 16px; }
@@ -976,7 +893,7 @@
    Pop-ups (FlowDialog.tsx)
    ========================================================================== */
 .souv-landing.fd-overlay {
-  --cf-field-line: #8A7B77;
+  --cf-field-line: var(--l-field-line);
   --cf-error: #9E3D58;
   position: fixed; inset: 0; z-index: 1000;
   display: flex;               /* the dialog's auto margins centre it; a tall one scrolls from the top */
@@ -1030,6 +947,7 @@
 }
 .fd-overlay .fd-close:hover { background: var(--l-raised); color: var(--l-hover); }
 
+/* Retired 2026-11-09 (owner: no eyebrows anywhere); nothing uses .fd-eyebrow any more. */
 .fd-overlay .fd-eyebrow {
   display: inline-flex; align-items: center; gap: 8px;
   color: var(--l-label);
@@ -1038,7 +956,7 @@
   text-transform: uppercase;
 }
 .fd-overlay .fd-title {
-  margin-top: 8px;
+  margin-top: 0;
   font-weight: 300;
   font-size: clamp(1.7rem, 1.4rem + 1.4vw, 2.3rem);
   line-height: 1.2;
@@ -1046,8 +964,14 @@
   text-wrap: balance;
 }
 .fd-overlay .fd-title .l-script { font-size: 1.1em; }
+/* No eyebrows (owner, 2026-11-09): each pop-up starts with its title, so the title keeps clear of
+   the close button (44px, 10px from the top-right corner). Centred titles stay centred. */
+.fd-overlay .fd-dialog:not(.fd-center) .fd-title { padding-right: 36px; }
+.fd-overlay .fd-dialog.fd-center .fd-title { padding-inline: 36px; }
 .fd-overlay .fd-lede { max-width: 46ch; margin-top: 12px; color: var(--l-paper-ink-2); text-wrap: pretty; }
 .fd-overlay .fd-center .fd-lede { margin-inline: auto; }
+/* A quiet line under the actions (the cart's "Log in before checkout" pricing link). */
+.fd-overlay .fd-note { margin-top: 14px; font-size: 15px; color: var(--l-paper-ink-2); }
 
 .fd-overlay .fd-actions {
   display: flex; flex-direction: column-reverse; gap: 12px;
@@ -1058,153 +982,6 @@
   .fd-overlay .fd-center .fd-actions { justify-content: center; }
 }
 .fd-overlay .fd-actions .l-btn { min-height: 52px; padding: 0 26px; font-size: 16px; }
-.fd-overlay .fd-full { width: 100%; }
-
-/* Two columns from 760px: content left, a raised summary panel right. */
-.fd-overlay .fd-split { display: grid; gap: 22px; }
-@media (min-width: 760px) {
-  .fd-overlay .fd-split { grid-template-columns: minmax(0, 1fr) 300px; gap: 32px; align-items: start; }
-}
-.fd-overlay .fd-aside {
-  padding: 22px 20px;
-  border-radius: 16px;
-  background: var(--l-raised);
-  text-align: center;
-}
-.fd-overlay .fd-aside .cf-rows { margin-top: 12px; text-align: left; }
-.fd-overlay .fd-aside .cf-rows > div { border-bottom-color: rgba(74, 59, 57, 0.18); }
-.fd-overlay .fd-token {
-  display: grid; place-items: center;
-  width: 108px; aspect-ratio: 5 / 7;
-  margin: 0 auto;
-  border-radius: 10px;
-  background: var(--l-tone-5);
-  color: #F7F0E8;
-  font-family: var(--l-script);
-  font-size: 17px;
-  line-height: 1.15;
-  text-align: center;
-  box-shadow: 0 10px 22px rgba(74, 59, 57, 0.2);
-  transform: rotate(-4deg);
-}
-.fd-overlay .fd-aside-price {
-  margin-top: 16px;
-  color: var(--l-script-color);
-  font-size: 2.2rem; font-weight: 400;
-  line-height: 1;
-  font-variant-numeric: tabular-nums;
-}
-.fd-overlay .fd-aside-price .cur { font-size: 0.6em; vertical-align: 0.5em; margin-right: 2px; }
-.fd-overlay .fd-aside-price .cad { margin-left: 6px; color: var(--l-paper-ink-2); font-size: 13px; font-weight: 700; letter-spacing: 0.12em; }
-.fd-overlay .fd-aside-name { margin-top: 8px; font-weight: 700; }
-
-.fd-overlay .fd-includes { display: flex; flex-direction: column; gap: 14px; margin: 22px 0 0; padding: 0; list-style: none; }
-.fd-overlay .fd-includes li { display: grid; grid-template-columns: 40px minmax(0, 1fr); gap: 14px; }
-.fd-overlay .fd-includes-ico {
-  display: grid; place-items: center;
-  width: 40px; height: 40px;
-  border-radius: 50%;
-  background: var(--l-raised);
-  color: var(--l-script-color);
-}
-.fd-overlay .fd-includes-h { font-size: 17px; font-weight: 700; line-height: 1.35; }
-.fd-overlay .fd-includes-p { color: var(--l-paper-ink-2); font-size: 16px; }
-.fd-overlay .fd-fields { display: flex; flex-direction: column; gap: 16px; margin-top: 22px; }
-
-/* "On its way" */
-.fd-overlay .fd-seal {
-  display: inline-grid; place-items: center;
-  width: 76px; height: 76px;
-  border-radius: 50%;
-  background: var(--l-dark-bg);
-  color: var(--l-dark-accent);
-}
-.fd-overlay .fd-seal + .fd-title { margin-top: 14px; }
-.fd-overlay .fd-pill {
-  display: inline-flex; align-items: center; gap: 6px;
-  margin-top: 16px;
-  padding: 6px 14px;
-  border-radius: 999px;
-  background: var(--l-raised);
-  font-size: 14px; font-weight: 700;
-  letter-spacing: 0.06em;
-}
-.fd-overlay .fd-rows { margin-top: 16px; text-align: left; }
-.fd-overlay .fd-home {
-  display: inline-flex; align-items: center; justify-content: center; gap: 12px;
-  min-height: 56px;
-  padding: 0 26px;
-  border-radius: 999px;
-  background: var(--l-dark-bg);
-  color: var(--l-dark-ink);
-  text-decoration: none;
-  transition: background .25s var(--l-ease);
-}
-.fd-overlay .fd-home:hover { background: var(--l-btn-bg-hover); }
-.fd-overlay .fd-home-logo { height: 28px; width: auto; }
-
-/* Card top-up */
-.fd-overlay .fd-wordmark {
-  display: inline-flex; align-items: center;
-  padding: 4px 14px 6px;
-  border-radius: 12px;
-  background: var(--l-dark-bg);       /* the gold logo always sits on forest */
-  vertical-align: middle;
-}
-.fd-overlay .fd-wordmark img { height: 0.95em; width: auto; }
-.fd-overlay .fd-sublist { display: flex; flex-direction: column; gap: 4px; margin: 14px 0 0; padding: 0; list-style: none; color: var(--l-paper-ink-2); }
-.fd-overlay .fd-pack { margin-top: 22px; }
-.fd-overlay .fd-tiers { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; margin: 0; padding: 0; list-style: none; }
-.fd-overlay .fd-tier {
-  display: flex; flex-direction: column; align-items: center; justify-content: center;
-  width: 100%; min-height: 76px;
-  padding: 8px 4px;
-  border: 1.5px solid var(--l-paper-line);
-  border-radius: 14px;
-  background: transparent;
-  color: var(--l-paper-ink);
-  font-family: var(--l-font);
-  cursor: pointer;
-  transition: border-color .25s var(--l-ease), background .25s var(--l-ease);
-}
-.fd-overlay .fd-tier:hover { border-color: var(--l-hover); }
-.fd-overlay .fd-tier.is-active { border-color: var(--l-dark-bg); background: var(--l-dark-bg); color: var(--l-dark-ink); }
-.fd-overlay .fd-tier-range { font-size: 12px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; white-space: nowrap; }
-.fd-overlay .fd-tier-price { font-size: 1.25rem; font-variant-numeric: tabular-nums; }
-.fd-overlay .fd-tier-unit { font-size: 14px; font-style: normal; color: inherit; opacity: 0.85; }
-.fd-overlay .fd-qty {
-  display: flex; flex-wrap: wrap; align-items: center; justify-content: center;
-  gap: 10px 16px;
-  margin-top: 12px;
-  padding: 10px 14px;
-  border-radius: 16px;
-  background: var(--l-raised);
-}
-.fd-overlay .fd-qty-label { font-size: 13px; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase; }
-.fd-overlay .fd-stepper { display: inline-flex; align-items: center; border: 1.5px solid var(--cf-field-line); border-radius: 999px; background: #FFFFFF; }
-.fd-overlay .fd-stepper button {
-  display: grid; place-items: center;
-  width: 44px; height: 44px;
-  border: 0; border-radius: 50%;
-  background: transparent;
-  color: var(--l-paper-ink);
-  font: 700 20px/1 var(--l-font);
-  cursor: pointer;
-}
-.fd-overlay .fd-stepper button:disabled { opacity: 0.35; cursor: default; }
-.fd-overlay .fd-stepper input {
-  width: 5ch; min-height: 44px;
-  border: 0; background: transparent;
-  color: var(--l-paper-ink);
-  font: 400 18px/1 var(--l-font);
-  text-align: center;
-  -moz-appearance: textfield; appearance: textfield;
-}
-.fd-overlay .fd-stepper input::-webkit-outer-spin-button,
-.fd-overlay .fd-stepper input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
-.fd-overlay .fd-qty-value { display: flex; align-items: baseline; gap: 8px; }
-.fd-overlay .fd-qty-value strong { color: var(--l-script-color); font-size: 1.5rem; font-variant-numeric: tabular-nums; }
-.fd-overlay .fd-qty-value em { color: var(--l-paper-ink-2); font-size: 14px; font-style: normal; }
 .fd-overlay .fd-fineprint { margin-top: 14px; color: var(--l-paper-ink-2); font-size: 14px; }
 
 /* Checkout */
@@ -1259,6 +1036,24 @@
 .fd-overlay .co-promo-apply { min-height: 48px; padding: 0 20px; font-size: 16px; }
 .fd-overlay .co-pay-cta { width: 100%; margin-top: 20px; }
 .fd-overlay .co-back { display: block; margin: 10px auto 0; }
+/* Compact checkout (audit I4, 2026-11-08): fits one 1280x720 screen. From 600px:
+   slimmer padding, the card fields in two rows (number; expiry, CVC, postal code)
+   and tighter gaps. Same fields, same order, same labels. */
+@media (min-width: 600px) {
+  .fd-overlay .fd-dialog.fd-checkout { padding: 34px 32px 22px; }
+  .fd-overlay .fd-checkout .co-card-el { display: grid; grid-template-columns: minmax(0, 2fr) minmax(0, 1fr); gap: 12px; }
+  .fd-overlay .fd-checkout .co-card-el > .cf-field:first-child { grid-column: 1 / -1; }
+  .fd-overlay .fd-checkout .co-express { margin-top: 14px; }
+  .fd-overlay .fd-checkout .co-or { margin: 12px 0; }
+  .fd-overlay .fd-checkout .co-promo { margin-top: 12px; }
+  .fd-overlay .fd-checkout .co-pay-cta { margin-top: 14px; }
+  .fd-overlay .fd-checkout .co-secure { margin-top: 8px; }
+  .fd-overlay .fd-checkout .co-back { margin-top: 2px; }
+}
+/* Tablets: the summary beside the form too, in a narrower column. */
+@media (min-width: 700px) and (max-width: 859px) {
+  .fd-overlay .fd-checkout .co-grid { grid-template-columns: minmax(0, 1fr) 250px; gap: 24px; align-items: start; }
+}
 .fd-overlay .co-summary {
   padding: 20px;
   border-radius: 16px;
@@ -1294,22 +1089,17 @@
   .fd-overlay .fd-dialog { animation: none; }
   .souv-landing .cf-spin { animation-duration: 2.4s; }
   .souv-landing :is(.cf-input, .cf-select),
-  .souv-cart .ct-line-remove,
-  .souv-cart .ct-stepper button,
-  .souv-delivery .dv-chip,
-  .souv-delivery .dv-switch,
-  .souv-delivery .dv-switch::after,
-  .souv-delivery .dv-piece-fab,
-  .souv-delivery-confirmation .dc-ref summary::before,
-  .fd-overlay .fd-close,
-  .fd-overlay .fd-tier,
-  .fd-overlay .fd-home { transition: none; }
+.souv-cart .ct-line-remove,
+.souv-cart .ct-stepper button,
+.souv-delivery .dv-chip,
+.souv-delivery .dv-switch,
+.souv-delivery .dv-switch::after,
+.souv-delivery-confirmation .dc-ref summary::before,
+.fd-overlay .fd-close { transition: none; }
 }
 
 /* Phones: keep the preview strip short so the form starts sooner. */
 @media (max-width: 599px) {
-  .souv-delivery .dv-hand { margin-top: 12px; padding: 10px 12px; }
-  .souv-delivery .dv-hand-body { font-size: 16px; line-height: 1.4; }
   .souv-delivery .dv-piece { padding: 6px 8px; }
   .souv-delivery .dv-piece-meta { font-size: 13px; }
 }
@@ -1335,4 +1125,43 @@
   .souv-delivery-confirmation .dc-ref { margin-top: 4px; }
   .souv-delivery-confirmation .dc-ref summary { min-height: 44px; }
   .souv-delivery-confirmation .dc-actions { gap: 10px; margin-top: 14px; }
+}
+
+/* High contrast (audit A1/A2, 2026-11-09): the selected Delivery chip gets an outline, and
+   every FlowDialog an edge (its stripe and shadow alone vanish in forced colours). */
+@media (forced-colors: active) {
+  .souv-delivery .dv-chip.is-active { outline: 3px solid Highlight; outline-offset: 2px; }
+  .fd-overlay .fd-dialog { border: 1px solid CanvasText; }
+}
+
+/* ---------- Phones: checkout on one screen (audit Part B, 2026-11-09) ----------
+   The order summary starts closed behind a bar with the total (the Pay button also
+   shows it), and the form takes the tighter spacing it has from 600px. From 700px the
+   summary sits beside the form, open, as before. */
+.fd-overlay .co-summary-toggle { display: none; }
+@media (max-width: 699px) {
+  .fd-overlay .fd-checkout .co-summary { padding: 0; background: transparent; }
+  .fd-overlay .fd-checkout .co-summary-title-text { display: none; }
+  .fd-overlay .fd-checkout .co-summary-toggle {
+    display: flex; align-items: center; justify-content: space-between; gap: 12px;
+    width: 100%; min-height: 52px; padding: 0 16px;
+    border: 0; border-radius: 16px; background: var(--l-raised);
+    color: var(--l-paper-ink); font: inherit; letter-spacing: inherit; text-transform: inherit; cursor: pointer;
+  }
+  .fd-overlay .fd-checkout .co-summary-toggle::after { content: "+"; font-size: 20px; letter-spacing: 0; }
+  .fd-overlay .fd-checkout .co-summary-toggle[aria-expanded="true"]::after { content: "\2212"; }
+  .fd-overlay .fd-checkout .co-summary-toggle-total { margin-left: auto; color: var(--l-script-color); font-size: 16px; letter-spacing: 0; text-transform: none; font-variant-numeric: tabular-nums; }
+  .fd-overlay .fd-checkout .co-summary-toggle:hover { color: var(--l-hover); }
+  .fd-overlay .fd-checkout .co-summary-toggle:focus-visible { outline: 2px solid var(--l-focus); outline-offset: 2px; }
+  .fd-overlay .fd-checkout .co-summary-body { display: none; padding: 4px 16px 16px; }
+  .fd-overlay .fd-checkout .co-summary-body.is-open { display: block; }
+  .fd-overlay .fd-dialog.fd-checkout { padding-bottom: 20px; }
+  .fd-overlay .fd-checkout .co-grid { gap: 14px; }
+  .fd-overlay .fd-checkout .co-express { margin-top: 14px; }
+  .fd-overlay .fd-checkout .co-or { margin: 12px 0; }
+  .fd-overlay .fd-checkout .co-card-el { gap: 10px; }
+  .fd-overlay .fd-checkout .co-promo { margin-top: 12px; }
+  .fd-overlay .fd-checkout .co-pay-cta { margin-top: 14px; }
+  .fd-overlay .fd-checkout .co-secure { margin-top: 8px; }
+  .fd-overlay .fd-checkout .co-back { margin-top: 2px; }
 }

@@ -3,6 +3,8 @@
 import * as React from "react";
 import { BmcIcon } from "./BmcShared";
 import { FlowField } from "./flow/FlowField";
+import type { SavedRecipient } from "../lib/api";
+import { crossBorderPostage, formatMoney, type Country, type Currency } from "../lib/priceLists";
 
 export type DeliveryMode = "single" | "multiple";
 export type DeliveryWhen = "now" | "schedule";
@@ -28,7 +30,6 @@ type DeliveryCountry = {
   name: string;
   region: string;
   postal: string;
-  carrier: string;
 };
 
 type DlvAddressFieldsProps = {
@@ -53,6 +54,11 @@ type DlvRecipientSectionProps = {
   setEditingIdx: React.Dispatch<React.SetStateAction<number | null>>;
   quantity: number;
   setQuantity: React.Dispatch<React.SetStateAction<number>>;
+  /** The account's address book; empty hides the picker. */
+  savedRecipients?: SavedRecipient[];
+  /** "Save this recipient": the order's addresses are added to the address book after checkout starts. */
+  saveToAccount?: boolean;
+  setSaveToAccount?: (value: boolean) => void;
 };
 
 type DlvReturnSectionProps = {
@@ -74,14 +80,18 @@ type DlvScheduleSectionProps = {
 };
 
 type DlvShippingSectionProps = {
+  /** The recipient's country. */
   country: string;
+  /** The sender's (account's) country and currency. */
+  fromCountry: Country;
+  currency: Currency;
 };
 
 const DLV_TITLES = ["", "Mr", "Ms", "Mrs", "Mx", "Dr"];
 
 const DLV_COUNTRIES: DeliveryCountry[] = [
-  { code: "CA", name: "Canada", region: "Province", postal: "Postal code", carrier: "Canada Post" },
-  { code: "US", name: "United States", region: "State", postal: "ZIP code", carrier: "USPS" },
+  { code: "CA", name: "Canada", region: "Province", postal: "Postal code" },
+  { code: "US", name: "United States", region: "State", postal: "ZIP code" },
 ];
 
 function dlvCountry(code: string) {
@@ -128,16 +138,18 @@ function dlvSummaryLine(recipient: DeliveryRecipient) {
 }
 
 /** Section card with a numbered heading; `aside` sits on the right of the heading row. */
-function DlvSection({ num, title, aside, children, headClassName = "" }: {
+function DlvSection({ num, title, aside, children, headClassName = "", yours = false }: {
   num: number;
   title: string;
   aside?: React.ReactNode;
   children: React.ReactNode;
   headClassName?: string;
+  /** The sender's own details (addresses): a terracotta edge. */
+  yours?: boolean;
 }) {
   const headingId = React.useId();
   return (
-    <section className="dv-section" aria-labelledby={headingId}>
+    <section className={`dv-section${yours ? " is-yours" : ""}`} aria-labelledby={headingId}>
       <div className={`dv-section-head ${headClassName}`.trim()}>
         <h2 id={headingId} className="dv-section-title">
           <span className="dv-section-num" aria-hidden="true">{num}</span> {title}
@@ -254,8 +266,24 @@ function DlvRecipientSection({
   setEditingIdx,
   quantity,
   setQuantity,
+  savedRecipients = [],
+  saveToAccount,
+  setSaveToAccount,
 }: DlvRecipientSectionProps) {
   const qtyId = React.useId();
+  const savedId = React.useId();
+  const [pickedId, setPickedId] = React.useState("");
+
+  // Choosing a saved recipient copies their address into this order. Editing
+  // the order's copy afterwards never changes the saved entry.
+  function pickSaved(id: string) {
+    setPickedId(id);
+    const saved = savedRecipients.find((recipient) => recipient.id === id);
+    if (!saved) return;
+    const { title, firstName, lastName, company, address1, address2, address3, city, state, postalCode, country } = saved;
+    setDraft({ title, firstName, lastName, company, address1, address2, address3, city, state, postalCode, country });
+    setErrors({});
+  }
 
   function commitDraft() {
     const nextErrors = dlvValidate(draft);
@@ -280,7 +308,7 @@ function DlvRecipientSection({
   function removeRecip(index: number) {
     setRecipients(recipients.filter((_, recipientIndex) => recipientIndex !== index));
     if (editingIdx === index) {
-      setDraft({ ...DLV_EMPTY_RECIP });
+      setDraft({ ...DLV_EMPTY_RECIP, country: draft.country });
       setEditingIdx(null);
     }
   }
@@ -289,6 +317,7 @@ function DlvRecipientSection({
     <DlvSection
       num={1}
       title="Who's it going to?"
+      yours
       aside={(
         <DlvChoice<DeliveryMode>
           label="Number of recipients"
@@ -325,7 +354,28 @@ function DlvRecipientSection({
         </p>
       )}
 
-      <DlvAddressFields value={draft} onChange={setDraft} errors={errors} />
+      {savedRecipients.length > 0 && (
+        <div className="cf-field dv-saved-pick">
+          <label className="cf-label" htmlFor={savedId}>Choose a saved recipient</label>
+          <select id={savedId} className="cf-select" value={pickedId} onChange={(event) => pickSaved(event.target.value)}>
+            <option value="">Type a new address below</option>
+            {savedRecipients.map((recipient) => (
+              <option key={recipient.id} value={recipient.id}>
+                {[recipient.firstName, recipient.lastName].filter(Boolean).join(" ")} · {recipient.city}
+              </option>
+            ))}
+          </select>
+        </div>
+      )}
+
+      <DlvAddressFields value={draft} onChange={(next) => { setDraft(next); if (pickedId) setPickedId(""); }} errors={errors} />
+
+      {setSaveToAccount && (
+        <label className="dv-save-check">
+          <input type="checkbox" checked={Boolean(saveToAccount)} onChange={(event) => setSaveToAccount(event.target.checked)} />
+          <span>Save {mode === "multiple" ? "these recipients" : "this recipient"} to my account for next time</span>
+        </label>
+      )}
 
       {mode === "single" ? (
         <div className="dv-qty">
@@ -364,7 +414,7 @@ function DlvReturnSection({ on, setOn, sender, setSender, errors = {} }: DlvRetu
   const bodyId = React.useId();
 
   return (
-    <section className="dv-section" aria-labelledby={headingId}>
+    <section className="dv-section is-yours" aria-labelledby={headingId}>
       {/* The whole heading row toggles, as before. The switch button covers the
           row so the heading stays a real heading for screen readers. */}
       <div className="dv-section-head dv-toggle-head">
@@ -428,7 +478,7 @@ function DlvScheduleSection({ when, setWhen, date, setDate, minDate, dateError }
       ) : (
         <p className="dv-note">
           <BmcIcon name="sparkle" w={16} />
-          <span>{"Into production within one business day. Most cards are written, posted, and on their way within 1–2 business days."}</span>
+          <span>{"We send your card to print as soon as you check out, and email you an order confirmation."}</span>
         </p>
       )}
     </DlvSection>
@@ -436,16 +486,27 @@ function DlvScheduleSection({ when, setWhen, date, setDate, minDate, dateError }
 }
 
 // One speed today, so a plain line instead of a one-option radio list (owner,
-// 2026-11-06). Bring the radio list back when there's a second speed.
-function DlvShippingSection({ country }: DlvShippingSectionProps) {
-  const carrier = dlvCountry(country).carrier;
+// 2026-11-06). No delivery-time promise until the print partner confirms
+// estimates (owner, 2026-11-08). Cards going across the border (Canada <-> US)
+// show the cross-border postage line when it's more than $0; it's $0 until
+// Scribeless confirms its rates, so today the line stays hidden.
+function DlvShippingSection({ country, fromCountry, currency }: DlvShippingSectionProps) {
+  const destination = dlvCountry(country);
+  const crossBorder = destination.code !== fromCountry;
+  const postage = crossBorderPostage(currency, fromCountry, destination.code);
 
   return (
-    <DlvSection num={4} title="Shipping speed">
+    <DlvSection num={4} title="Postage">
       <p className="dv-ship-plain">
-        <span className="dv-ship-name">Standard shipping, included</span>
-        <span className="dv-ship-sub">{carrier} · 5–7 business days</span>
+        <span className="dv-ship-name">Standard postage to {destination.name}, included</span>
+        <span className="dv-ship-sub">Mailed by our print partner. We&apos;ll show an estimated delivery date here when one is available.</span>
       </p>
+      {crossBorder && postage > 0 && (
+        <p className="dv-ship-plain dv-ship-cross">
+          <span className="dv-ship-name">Cross-border postage: {formatMoney(postage, currency)}</span>
+          <span className="dv-ship-sub">Added at checkout, before you pay.</span>
+        </p>
+      )}
     </DlvSection>
   );
 }

@@ -1,7 +1,8 @@
 import type { Metadata } from "next";
 import { Footer } from "./components/Footer";
 import { Navbar } from "./components/Navbar";
-import { COMMUNITY_CARDS_HREF, FAQ_ITEMS, FOOTER_LEDE, HERO_COPY } from "./components/landing/content";
+import { COMMUNITY_CARDS_HREF, FOOTER_LEDE, HERO_COPY } from "./components/landing/content";
+import { SOCIAL } from "./components/Footer";
 import { LandingComparison } from "./components/landing/LandingComparison";
 import { LandingFaq } from "./components/landing/LandingFaq";
 import { LandingGallery } from "./components/landing/LandingGallery";
@@ -13,7 +14,7 @@ import { brandFontVariables } from "./lib/brandFonts";
 import { SITE_DESCRIPTION, SITE_URL, openGraphFor } from "./lib/site";
 import "./styles/landing.css";
 
-// The share image comes from app/opengraph-image.tsx; metadataBase (root
+// The share image is app/opengraph-image.jpg; metadataBase (root
 // layout) turns these paths into absolute URLs.
 export const metadata: Metadata = {
   title: "Souvenote | Personalized greeting cards with an original song",
@@ -22,23 +23,24 @@ export const metadata: Metadata = {
   openGraph: openGraphFor("/", "Souvenote | A card worth keeping", SITE_DESCRIPTION),
 };
 
+// Organization and WebSite only (audit E8). The FAQ structured data lives on /faq
+// alone: the same questions marked up on two pages is a duplicate, and FAQ rich
+// results are limited to government and health sites anyway.
 const structuredData = [
   {
     "@context": "https://schema.org",
     "@type": "Organization",
     name: "Souvenote",
     url: SITE_URL,
-    logo: `${SITE_URL}/assets/LogoMark.png`,
+    logo: `${SITE_URL}/icon.png`,
     description: HERO_COPY.lede,
+    sameAs: SOCIAL.map((social) => social.url),
   },
   {
     "@context": "https://schema.org",
-    "@type": "FAQPage",
-    mainEntity: FAQ_ITEMS.map((item) => ({
-      "@type": "Question",
-      name: item.q,
-      acceptedAnswer: { "@type": "Answer", text: item.a },
-    })),
+    "@type": "WebSite",
+    name: "Souvenote",
+    url: SITE_URL,
   },
 ];
 

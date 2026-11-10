@@ -35,7 +35,7 @@ export function HeroCard() {
               src="/assets/pt-comic-cover.jpg"
               alt=""
               fill
-              sizes="(min-width: 960px) 288px, 58vw"
+              sizes="(min-width: 1200px) 288px, (min-width: 960px) 24vw, (min-width: 414px) 240px, 58vw"
               className="l-card-art"
               priority
             />
@@ -45,8 +45,10 @@ export function HeroCard() {
               src="/assets/pt-comic-back.jpg"
               alt=""
               fill
-              sizes="(min-width: 960px) 288px, 58vw"
+              sizes="(min-width: 1200px) 288px, (min-width: 960px) 24vw, (min-width: 414px) 240px, 58vw"
               className="l-card-art"
+              // The card turns, so either face can be the largest image on screen (audit E4/LCP).
+              priority
             />
           </span>
         </span>

@@ -1,5 +1,7 @@
 import Link from "next/link";
 import { OrnamentDivider } from "./Ornaments";
+import { CookieSettingsButton } from "./content/CookieConsent";
+import Image from "next/image";
 
 type SocialLink = {
   label: string;
@@ -17,17 +19,16 @@ type FooterLinkLabel = keyof typeof PAGE_HREFS;
 
 type FooterProps = {
   /**
-   * "landing" is used only by the public landing page: Community Cards is an
-   * active link, the Account column adds Pricing,
-   * social buttons link to profiles, and the slogan can be overridden.
-   * Every other screen uses "default", which is unchanged.
+   * Every screen uses the landing footer since 2026-11-08 (the old "default"
+   * footer and its un-tinted wordmark were removed, audit P3). Kept so the
+   * pages that pass it still read clearly.
    */
-  variant?: "default" | "landing";
+  variant?: "landing";
   communityCardsHref?: string;
   lede?: string;
 };
 
-const SOCIAL: SocialLink[] = [
+export const SOCIAL: SocialLink[] = [
   { label: "Instagram", url: "https://www.instagram.com/souvenote", path: "M7.75 2h8.5A5.75 5.75 0 0 1 22 7.75v8.5A5.75 5.75 0 0 1 16.25 22h-8.5A5.75 5.75 0 0 1 2 16.25v-8.5A5.75 5.75 0 0 1 7.75 2zm0 1.5A4.25 4.25 0 0 0 3.5 7.75v8.5A4.25 4.25 0 0 0 7.75 20.5h8.5A4.25 4.25 0 0 0 20.5 16.25v-8.5A4.25 4.25 0 0 0 16.25 3.5zm4.25 3a5.5 5.5 0 1 1 0 11 5.5 5.5 0 0 1 0-11zm0 1.5a4 4 0 1 0 0 8 4 4 0 0 0 0-8zm5.75-.88a1.13 1.13 0 1 1-2.25 0 1.13 1.13 0 0 1 2.25 0z" },
   { label: "TikTok", url: "https://www.tiktok.com/@souvenote", path: "M16.6 5.82A4.28 4.28 0 0 1 13.8 3h-3v12.4a2.6 2.6 0 0 1-2.6 2.6 2.6 2.6 0 0 1-2.6-2.6A2.6 2.6 0 0 1 8.2 12.8c.28 0 .56.04.82.12V9.84A5.59 5.59 0 0 0 8.2 9.6 5.6 5.6 0 0 0 2.6 15.2a5.6 5.6 0 0 0 5.6 5.6 5.6 5.6 0 0 0 5.6-5.6V9.74a7.28 7.28 0 0 0 4.2 1.34V8.08a4.28 4.28 0 0 1-1.4-2.26z" },
   { label: "Snapchat", url: "https://www.snapchat.com/add/souvenote", path: "M12 2c3.4 0 5.5 2.4 5.5 5.6 0 1.1-.1 2-.1 2.7.1.1.4.3.8.3.5 0 1.3-.3 1.8-.4l.3 1c-.5.5-2 1-2.6 1.2-.1.6 1.2 2.6 3.3 3.4l-.3 1c-1.5.5-2.5.4-2.9 1.1-.3.6.4 1.4-1.1 1.7-.7.1-1.3-.1-1.9.1-.5.2-1.1 1.1-2 1.5-1.1.6-1.7.6-2.8 0-.9-.4-1.5-1.3-2-1.5-.6-.2-1.2 0-1.9-.1-1.5-.3-.8-1.1-1.1-1.7-.4-.7-1.4-.6-2.9-1.1l-.3-1c2.1-.8 3.4-2.8 3.3-3.4-.6-.2-2.1-.7-2.6-1.2l.3-1c.5.1 1.3.4 1.8.4.4 0 .7-.2.8-.3 0-.7-.1-1.6-.1-2.7C6.5 4.4 8.6 2 12 2z" },
@@ -54,7 +55,6 @@ const PAGE_HREFS = {
 
 const FOOTER_COLS: FooterColumn[] = [
   { title: "Create", items: ["Build My Card", "Personalize a Template", "Community Cards", "Saved Cards & Songs"] },
-  // Gift a Souvenote and Refer a Friend are not linked anywhere (owner decision 2026-11-04).
   { title: "Account", items: ["Profile", "Account Settings"] },
   // About is hidden until an About page exists (owner decision 2026-11-04).
   { title: "Company", items: ["Contact", "FAQ", "Terms of Service", "Privacy Policy", "Cookie Policy", "Refund Policy"] },
@@ -67,20 +67,15 @@ const LANDING_FOOTER_COLS: FooterColumn[] = FOOTER_COLS.map((col) =>
 
 const DEFAULT_LEDE = "Because the card you send should be as unique as they are.";
 
-function Footer({ variant = "default", communityCardsHref, lede = DEFAULT_LEDE }: FooterProps = {}) {
-  const isLanding = variant === "landing";
-  const columns = isLanding ? LANDING_FOOTER_COLS : FOOTER_COLS;
+function Footer({ communityCardsHref, lede = DEFAULT_LEDE }: FooterProps = {}) {
+  const columns = LANDING_FOOTER_COLS;
   return (
     <footer className="souv-footer">
       <OrnamentDivider />
       <div className="souv-footer-inner">
         <div className="souv-footer-brand">
           <span className="souv-footer-wordmark-wrap">
-            <img
-              src={isLanding ? "/assets/wordmark-gold.png" : "/assets/WordmarkLobster.png"}
-              alt="Souvenote"
-              className="souv-footer-wordmark-img"
-            />
+            <Image src="/assets/wordmark-gold.png" alt="Souvenote" width={900} height={208} sizes="220px" className="souv-footer-wordmark-img" />
           </span>
           <p className="souv-footer-lede">{lede}</p>
           <div className="souv-footer-social">
@@ -122,6 +117,7 @@ function Footer({ variant = "default", communityCardsHref, lede = DEFAULT_LEDE }
       </div>
       <div className="souv-footer-base">
         <span>{"\u00a9 2026 Souvenote \u00b7 The phygital greeting card company"}</span>
+        <CookieSettingsButton className="souv-footer-cookie" />
       </div>
     </footer>
   );
